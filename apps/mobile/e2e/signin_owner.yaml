@@ -25,6 +25,11 @@ appId: com.replace-owner.dialed
 - eraseText: 30
 - inputText: dialed-dev-password
 - pressKey: Enter
+# iOS may offer "Save Password?" (system UI, not in the app's tree): tap "Not Now" by position.
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    point: 31%,62%
 - extendedWaitUntil:
     visible: Rest of today
     timeout: 90000

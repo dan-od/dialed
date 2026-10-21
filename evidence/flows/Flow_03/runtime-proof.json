@@ -1,6 +1,6 @@
 {
-  "started_at": "2026-10-21T05:35:12.096Z",
-  "finished_at": "2026-10-21T05:35:12.338Z",
+  "started_at": "2026-10-21T05:49:19.899Z",
+  "finished_at": "2026-10-21T05:49:20.204Z",
   "api": "http://127.0.0.1:8092",
   "ok": true,
   "steps": [
@@ -17,7 +17,7 @@
       "detail": {
         "pages": 2,
         "rows": 87,
-        "revision": 4
+        "revision": 1
       }
     },
     {
@@ -47,7 +47,7 @@
       "ok": true,
       "detail": {
         "first": "applied",
-        "revision": 5
+        "revision": 2
       }
     },
     {
