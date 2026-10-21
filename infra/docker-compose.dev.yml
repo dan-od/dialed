@@ -1,0 +1,4 @@
+# Dev-only override: publish Postgres on loopback for host-side scripts, tests and the API dev server.
+services:
+  postgres:
+    ports: ['127.0.0.1:55432:5432']

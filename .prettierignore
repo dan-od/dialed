@@ -1,0 +1,13 @@
+node_modules
+dist
+pnpm-lock.yaml
+apps/mobile/ios
+apps/mobile/android
+apps/mobile/.expo
+assets/references
+evidence
+backend
+*.md
+verification
+mcp
+.github

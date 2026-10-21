@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Starts the API and runs scripted API journeys; writes evidence/migration-state.json and
+# evidence/flows/Flow_03/runtime-proof.json (BUILD_AGENT Gate 3).
+source "$(dirname "$0")/lib/common.sh"
+ensure_node
+load_env
+wait_for_postgres
+API_LOG="${TMPDIR:-/tmp}/dialed-runtime-proof-api.log"
+trap stop_api EXIT
+start_api 8092
+tsx apps/api/src/cli/runtime_proof.ts

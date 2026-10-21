@@ -1,0 +1,104 @@
+# Dialed — Docker Compose (BACKEND_SETUP §1, §11).
+# Dev:  docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml --env-file .env up -d postgres
+#       (the dev override publishes Postgres on 127.0.0.1:55432; prod publishes no ports)
+# Prod: docker compose -f infra/docker-compose.yml --profile prod up -d             (NOT run by the build agent: stop point)
+name: dialed
+
+x-api-env: &api-env
+  NODE_ENV: ${NODE_ENV:-production}
+  APP_NAME: ${APP_NAME:-Dialed}
+  PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
+  PORT: 8080
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  SIGNUP_MODE: ${SIGNUP_MODE:-invite}
+  APPLE_TEAM_TIER: ${APPLE_TEAM_TIER:-personal}
+  DATABASE_URL: postgres://dialed:${POSTGRES_PASSWORD}@postgres:5432/dialed
+  JWT_PRIVATE_KEY_FILE: /run/secrets/jwt_private_key
+  JWT_KEY_ID: ${JWT_KEY_ID}
+  CODE_PEPPER: ${CODE_PEPPER}
+  EMAIL_TRANSPORT: ${EMAIL_TRANSPORT:-console}
+  EMAIL_FROM: ${EMAIL_FROM:-}
+  APNS_MODE: ${APNS_MODE:-log}
+  AI_MODE: ${AI_MODE:-fixture}
+  TRUST_PROXY_IP: ${TRUST_PROXY_IP:-}
+
+services:
+  postgres:
+    image: postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
+    environment:
+      POSTGRES_USER: dialed
+      POSTGRES_DB: dialed
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U dialed -d dialed']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+    networks: [internal]
+
+  migrate:
+    build: { context: .., dockerfile: infra/api.Dockerfile }
+    profiles: [prod]
+    command: ['node', 'dist/migrate.js']
+    environment:
+      DATABASE_URL: postgres://dialed:${POSTGRES_PASSWORD}@postgres:5432/dialed
+    depends_on: { postgres: { condition: service_healthy } }
+    networks: [internal]
+
+  api:
+    build: { context: .., dockerfile: infra/api.Dockerfile }
+    profiles: [prod]
+    command: ['node', 'dist/server.js']
+    environment: *api-env
+    secrets: [jwt_private_key]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+    networks: [internal]
+
+  worker:
+    build: { context: .., dockerfile: infra/api.Dockerfile }
+    profiles: [prod]
+    command: ['node', 'dist/worker.js']
+    environment: *api-env
+    secrets: [jwt_private_key]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+    networks: [internal]
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.0
+    profiles: [prod]
+    command: ['tunnel', '--no-autoupdate', 'run']
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-} # owner action: create the tunnel first
+    depends_on: [api]
+    restart: unless-stopped
+    networks: [internal]
+
+  backup:
+    image: postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
+    profiles: [prod]
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - 'while true; do pg_dump -Fc -h postgres -U dialed dialed > /backups/dialed-$$(date +%F).dump; sleep 86400; done'
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ${BACKUP_DIR:-./backups}:/backups
+    depends_on: { postgres: { condition: service_healthy } }
+    networks: [internal]
+
+secrets:
+  jwt_private_key:
+    file: ${JWT_PRIVATE_KEY_FILE:-../.secrets/jwt-ed25519.pem}
+
+volumes:
+  pgdata:
+
+networks:
+  internal:

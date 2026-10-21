@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Fresh DB → migrate → migrate again (must apply nothing) → fingerprint == verification/schema.fingerprint,
+# and a tampered copy of an applied migration must be refused. Writes evidence/verification/migration_replay.json.
+source "$(dirname "$0")/lib/common.sh"
+ensure_node
+load_env
+wait_for_postgres
+tsx apps/api/src/cli/migration_replay.ts

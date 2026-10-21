@@ -1,0 +1,6 @@
+# Prepared, not deployed (stop point: DNS/Cloudflare are owner actions).
+# Token-based tunnel: ingress is configured in the Cloudflare dashboard; this file documents the intended routing.
+ingress:
+  - hostname: api.okoro.me
+    service: http://api:8080
+  - service: http_status:404

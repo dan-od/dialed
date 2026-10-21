@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-21T03:34:06.642Z",
+  "api": "http://127.0.0.1:8091",
+  "checks": [
+    {
+      "id": "unauthenticated_denied",
+      "passed": true,
+      "available_from": "flow-01",
+      "sub_checks": [
+        {
+          "id": "no_token_401",
+          "passed": true,
+          "observed": [
+            401,
+            "unauthorized"
+          ]
+        },
+        {
+          "id": "expired_token_401_token_expired",
+          "passed": true,
+          "observed": [
+            401,
+            "token_expired"
+          ]
+        },
+        {
+          "id": "forged_token_401",
+          "passed": true,
+          "observed": [
+            401,
+            "unauthorized"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wrong_role_denied",
+      "passed": null,
+      "available_from": "flow-01 (partial); full from flow-07",
+      "sub_checks": [
+        {
+          "id": "app_token_at_mcp_401",
+          "passed": true,
+          "observed": 401
+        },
+        {
+          "id": "mcp_token_at_sync_push_denied",
+          "passed": null,
+          "reason": "needs MCP OAuth tokens (flow-07)"
+        },
+        {
+          "id": "mcp_token_at_plan_approve_denied",
+          "passed": null,
+          "reason": "needs MCP OAuth tokens (flow-07) and plans API (flow-06)"
+        }
+      ]
+    },
+    {
+      "id": "cross_object_denied",
+      "passed": null,
+      "available_from": "flow-03 (sync) and flow-06 (plans)",
+      "sub_checks": [
+        {
+          "id": "sync_push_bob_routine_block_rejected_not_found",
+          "passed": true,
+          "observed": {
+            "client_mutation_id": "668eac93-5060-466b-9427-42938d4dbf4c",
+            "status": "rejected",
+            "error_code": "not_found",
+            "message": "That isn’t available."
+          }
+        },
+        {
+          "id": "sync_push_override_on_bob_block_rejected_not_found",
+          "passed": true,
+          "observed": {
+            "client_mutation_id": "963a237e-3c7f-4ec4-ae67-2784247dce7b",
+            "status": "rejected",
+            "error_code": "not_found",
+            "message": "That isn’t available."
+          }
+        },
+        {
+          "id": "sync_pull_never_returns_bob_rows",
+          "passed": true,
+          "observed": {
+            "status": 200,
+            "contains_bob_block": false
+          }
+        },
+        {
+          "id": "get_bob_plan_404",
+          "passed": null,
+          "reason": "GET /v1/plans/3f64b5e1-eed2-5e8e-9db2-a6499a142fc6 lands with flow-06; an unbuilt route would 404 for the wrong reason"
+        },
+        {
+          "id": "mcp_get_schedule_never_returns_bob",
+          "passed": null,
+          "reason": "needs /mcp tools (flow-07)"
+        }
+      ]
+    }
+  ]
+}
