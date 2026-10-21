@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Gate 2 authorization smoke (verification/commands.json): real tokens against a running API on the dev DB.
+# Writes $FLOW_BY_FLOW_REPORT_DIR/authorization.json. passed=null means "not yet testable" (UNVERIFIED), never PASS.
+source "$(dirname "$0")/lib/common.sh"
+ensure_node
+load_env
+: "${FLOW_BY_FLOW_REPORT_DIR:?set FLOW_BY_FLOW_REPORT_DIR}"
+wait_for_postgres
+API_LOG="${TMPDIR:-/tmp}/dialed-auth-smoke-api.log"
+trap stop_api EXIT
+start_api 8091
+tsx apps/api/src/cli/auth_smoke.ts

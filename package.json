@@ -1,0 +1,34 @@
+{
+  "name": "dialed",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=22.13 <23"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "typecheck": "pnpm -r --parallel run typecheck",
+    "test": "pnpm -r --workspace-concurrency=1 run test",
+    "build": "pnpm --filter @dialed/api run build",
+    "dev:api": "pnpm --filter @dialed/api run dev",
+    "dev:worker": "pnpm --filter @dialed/api run dev:worker",
+    "bootstrap": "./scripts/bootstrap",
+    "migrate": "./scripts/migrate",
+    "migration_replay": "./scripts/migration_replay",
+    "auth_smoke": "./scripts/auth_smoke",
+    "runtime_proof": "./scripts/runtime_proof",
+    "secret_scan": "gitleaks git --no-banner --redact .",
+    "audit": "pnpm audit --prod --audit-level high",
+    "ci": "./scripts/ci"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.13.0",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.0",
+    "vitest": "5.0.5"
+  }
+}

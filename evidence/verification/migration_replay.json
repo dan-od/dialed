@@ -1,0 +1,36 @@
+{
+  "started_at": "2026-10-21T03:34:03.502Z",
+  "database": "dialed_replay_84827",
+  "migrations": [
+    {
+      "version": "0001_init",
+      "sha256": "8e42714feb2925395d171b025bc56895a2f4ad3f023b2424ffac6ab4355c5a09"
+    }
+  ],
+  "first_run": {
+    "applied": [
+      "0001_init"
+    ],
+    "skipped": []
+  },
+  "second_run": {
+    "applied": [],
+    "skipped": [
+      "0001_init"
+    ]
+  },
+  "fingerprint": "d96f06751cffd5dea494920ebb5fe11d",
+  "expected_fingerprint": "d96f06751cffd5dea494920ebb5fe11d",
+  "fingerprint_matches": true,
+  "second_run_applied_nothing": true,
+  "tampered_checksum_refused": true,
+  "tamper_message": "Refusing to run: applied migration 0001_init changed on disk (checksum mismatch). Write a new forward migration instead.",
+  "applied": [
+    {
+      "version": "0001_init",
+      "sha256": "8e42714feb2925395d171b025bc56895a2f4ad3f023b2424ffac6ab4355c5a09"
+    }
+  ],
+  "ok": true,
+  "finished_at": "2026-10-21T03:34:04.631Z"
+}

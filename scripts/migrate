@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Applies backend/migrations/*.sql in order; records SHA-256 in schema_migrations; refuses a changed checksum.
+source "$(dirname "$0")/lib/common.sh"
+ensure_node
+[[ -n "${DATABASE_URL:-}" ]] || load_env
+tsx apps/api/src/cli/migrate.ts

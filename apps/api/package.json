@@ -1,0 +1,32 @@
+{
+  "name": "@dialed/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=../../.env src/server.ts",
+    "dev:worker": "tsx watch --env-file=../../.env src/worker.ts",
+    "start": "node --env-file=../../.env dist/server.js",
+    "build": "tsup",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@dialed/contracts": "workspace:*",
+    "@dialed/schedule": "workspace:*",
+    "@dialed/tokens": "workspace:*",
+    "@fastify/rate-limit": "11.2.1",
+    "@node-rs/argon2": "2.2.2",
+    "drizzle-orm": "0.45.4",
+    "fastify": "5.12.7",
+    "jose": "6.2.13",
+    "pg": "8.23.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@types/pg": "8.23.1",
+    "tsup": "9.0.0",
+    "tsx": "4.23.15"
+  }
+}

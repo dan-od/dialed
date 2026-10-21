@@ -23,6 +23,25 @@ Read with `SECURITY.md`, `00_Flow_Contracts.md` and `PROJECT_BIBLE.md`. Secrets 
 ### Versions
 Pin exact versions at scaffold time in lockfiles. Record Expo SDK, React Native, Node, Postgres and Xcode versions here in a table during the first build task. Never upgrade majors inside a feature flow.
 
+Recorded at Batch 0 (2026-10-20) on the owner's Mac:
+
+| Component | Version | Notes |
+|---|---|---|
+| macOS | 27.2 (26B5101f) | |
+| Xcode | 27.1 (27A9275) | `xcode-select` points at Command Line Tools; scripts set `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` instead of changing it (needs sudo) |
+| iOS Simulator runtimes | iOS 27.0, 27.1 | no iPhone SE runtime installed (375×667 screenshots unavailable) |
+| Node | 22.23.3 LTS | official nodejs.org build in `~/.local/share/node22` (Homebrew `node@22` bottle was broken: missing libsimdjson.34); default `node` on PATH stays 25.9 |
+| pnpm | 9.15.9 | `packageManager` field; `node-linker=hoisted` for Metro |
+| Docker | 29.8.2 via OrbStack | same `docker compose` CLI |
+| PostgreSQL | 16.15 (`postgres:16@sha256:ca0bd484…`) | |
+| TypeScript | 6.0.3 | 7.x is out but typescript-eslint 8.72 supports < 6.1 |
+| Fastify / Zod / Drizzle / pg / jose | 5.12.7 / 4.6.7 / 0.45.4 / 8.23.1 / 6.2.13 | |
+| argon2 | @node-rs/argon2 2.2.2 | prebuilt N-API binary, no install script |
+| Vitest | 5.0.5 | |
+| Expo SDK / React Native / React | 58.0.16 / 0.88.0 / 19.3.0 | `create-expo-app@5.0.0` default template (Expo Router, `src/app`) |
+| CocoaPods / Watchman / gitleaks | 1.17.0 / 2026.10.19.00 / 8.30.1 | Homebrew |
+| App Groups on Personal Team | not tested yet | Flow 08 |
+
 ## 2. Repository layout (pnpm workspaces)
 
 ```text

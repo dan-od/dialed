@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Local CI (mirrors .github/workflows/ci.yml): format, lint, typecheck, tests, build, migration replay,
+# auth smoke, secret scan, dependency audit. Expo prebuild check runs with --with-mobile.
+source "$(dirname "$0")/lib/common.sh"
+ensure_node
+ensure_xcode_env
+step() { log "▶ $1"; shift; "$@"; }
+step format pnpm format:check
+step lint pnpm lint
+step "mobile lint" pnpm --filter mobile lint
+step typecheck pnpm typecheck
+step tests pnpm test
+step build pnpm build
+step migration_replay ./scripts/migration_replay
+step auth_smoke ./scripts/auth_smoke
+step "secret scan" gitleaks git --no-banner --redact .
+step audit pnpm audit --prod --audit-level high
+if [[ "${1:-}" == "--with-mobile" ]]; then
+  step "expo prebuild --clean" bash -c 'cd apps/mobile && CI=1 npx expo prebuild --clean --platform ios --no-install >/dev/null'
+fi
+log "CI green"
