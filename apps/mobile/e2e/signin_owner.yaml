@@ -1,0 +1,31 @@
+# Flow 01 sign-in (wrong password first) → Flow 03 Day from Postgres via sync (since=0 snapshot).
+appId: com.replace-owner.dialed
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow: _open.yaml
+- extendedWaitUntil:
+    visible: I have an account
+    timeout: 90000
+- tapOn: I have an account
+- assertVisible: Welcome back
+# XCUITest can't type into a hidden secure field on the Simulator: reveal it first (a real user option).
+- tapOn: Show password
+- tapOn: { id: signin-email }
+- inputText: owner@dialed.test
+- pressKey: Enter
+- inputText: not-the-password
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: That password doesn’t match. Try again, or reset it.
+    timeout: 15000
+- takeScreenshot: signin-wrong
+- tapOn: { id: signin-password }
+- eraseText: 30
+- inputText: dialed-dev-password
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: Rest of today
+    timeout: 90000
+- takeScreenshot: day-now

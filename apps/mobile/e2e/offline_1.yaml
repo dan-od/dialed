@@ -1,0 +1,10 @@
+# Flow 03 offline (API unreachable): cold launch shows Day from SQLite; an edit (theme) queues in the outbox.
+appId: com.replace-owner.dialed
+---
+- runFlow: _relaunch.yaml
+- extendedWaitUntil: { visible: 'Offline', timeout: 30000 }
+- assertVisible: 'You’re offline. Showing what’s saved on this phone.'
+- takeScreenshot: day-offline
+- tapOn: 'Theme: follows system'
+- extendedWaitUntil: { visible: '1 to sync.*', timeout: 10000 }
+- takeScreenshot: day-offline-queued

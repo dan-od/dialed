@@ -1,0 +1,69 @@
+{
+  "started_at": "2026-10-21T05:35:12.096Z",
+  "finished_at": "2026-10-21T05:35:12.338Z",
+  "api": "http://127.0.0.1:8092",
+  "ok": true,
+  "steps": [
+    {
+      "step": "owner login → 200 with tokens",
+      "ok": true,
+      "detail": {
+        "status": 200
+      }
+    },
+    {
+      "step": "since=0 snapshot pulls in pages",
+      "ok": true,
+      "detail": {
+        "pages": 2,
+        "rows": 87,
+        "revision": 4
+      }
+    },
+    {
+      "step": "resolveDay(2026-10-19) from synced rows = 11 blocks incl. Sermon Sync 12:40–14:30",
+      "ok": true,
+      "detail": {
+        "blocks": 11
+      }
+    },
+    {
+      "step": "owner week of Oct 19 = 64.3h (64.25 h, half-up)",
+      "ok": true,
+      "detail": {
+        "minutes": 3855,
+        "display": "64.3h"
+      }
+    },
+    {
+      "step": "Thanksgiving Oct 12 = Sermon Sync 13:00–15:00 only",
+      "ok": true,
+      "detail": [
+        "Sermon Sync 780-900"
+      ]
+    },
+    {
+      "step": "push applied once; duplicate returns the stored receipt",
+      "ok": true,
+      "detail": {
+        "first": "applied",
+        "revision": 5
+      }
+    },
+    {
+      "step": "incremental pull returns only the new change",
+      "ok": true,
+      "detail": {
+        "count": 1
+      }
+    },
+    {
+      "step": "logout → 204, old access token → 401",
+      "ok": true,
+      "detail": {
+        "logout": 204,
+        "after": 401
+      }
+    }
+  ]
+}
