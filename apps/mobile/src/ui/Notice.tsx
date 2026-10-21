@@ -16,7 +16,7 @@ export function Notice({
   kind?: 'warn' | 'err' | 'quiet';
 }) {
   const { c } = useTheme();
-  const bg = kind === 'err' ? c.err : kind === 'quiet' ? c.surf2 : c.warn;
+  const bg = kind === 'err' ? c.err : kind === 'quiet' ? c.surf2 : c.stamp;
   const fg = kind === 'quiet' ? c.text : c.ink;
   return (
     <Animated.View

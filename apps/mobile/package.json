@@ -48,7 +48,7 @@
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "test": "jest --ci"
+    "test": "NODE_ENV=test jest --ci"
   },
   "private": true,
   "jest": {
@@ -61,6 +61,7 @@
     ],
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|react-native-svg|@dialed/.*))"
-    ]
+    ],
+    "resolver": "react-native-reanimated/jest/resolver"
   }
 }

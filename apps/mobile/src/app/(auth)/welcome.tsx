@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useWindowDimensions, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { useWindowDimensions, View, type ViewInstance } from 'react-native';
 import Animated, { useReducedMotion } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +12,7 @@ import { H1, Page } from '../../ui/Chrome';
 import { LOGO_D, LOGO_SLOT, Mark, Wordmark } from '../../ui/icons';
 import { heroIn } from '../../ui/motion';
 import { T } from '../../ui/Text';
+import { useToastAnchor } from '../../ui/Toast';
 
 export default function Welcome() {
   const { c } = useTheme();
@@ -18,6 +20,10 @@ export default function Welcome() {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const reduce = useReducedMotion();
+  // The sign-up / sign-in buttons are pinned to the bottom: toasts ("Signed out.") go above them.
+  const [actionsTop, setActionsTop] = useState<number | null>(null);
+  const actions = useRef<ViewInstance>(null);
+  useToastAnchor(actionsTop === null ? null : height - actionsTop);
   const legal = (path: string) =>
     void WebBrowser.openBrowserAsync(`${API_BASE_URL}/${path}`).catch(() => {});
   return (
@@ -60,36 +66,48 @@ export default function Welcome() {
           {`Routines that repeat, a day that tells you what's next, and ${aiName()} to draft the changes. Nothing moves until you approve it.`}
         </T>
         {/* "Continue with Apple" (prototype) is hidden: D-39 Personal Team build, BACKEND_SETUP §13. */}
-        <Button label="Sign up with email" onPress={() => router.push('/signup')} />
-        <Button label="I have an account" kind="secondary" onPress={() => router.push('/signin')} />
-        <T
-          size={12}
-          weight="500"
-          color={c.muted}
-          style={{ textAlign: 'center', marginTop: 4, lineHeight: 17 }}
+        <View
+          ref={actions}
+          style={{ gap: 10 }}
+          onLayout={() =>
+            actions.current?.measureInWindow((_x: number, y: number) => setActionsTop(y))
+          }
         >
-          {'By continuing you agree to the '}
+          <Button label="Sign up with email" onPress={() => router.push('/signup')} />
+          <Button
+            label="I have an account"
+            kind="secondary"
+            onPress={() => router.push('/signin')}
+          />
           <T
             size={12}
-            weight="700"
-            color={c.acc2}
-            accessibilityRole="link"
-            onPress={() => legal('terms')}
+            weight="500"
+            color={c.muted}
+            style={{ textAlign: 'center', marginTop: 4, lineHeight: 17 }}
           >
-            Terms
+            {'By continuing you agree to the '}
+            <T
+              size={12}
+              weight="700"
+              color={c.acc2}
+              accessibilityRole="link"
+              onPress={() => legal('terms')}
+            >
+              Terms
+            </T>
+            {' and '}
+            <T
+              size={12}
+              weight="700"
+              color={c.acc2}
+              accessibilityRole="link"
+              onPress={() => legal('privacy')}
+            >
+              Privacy Policy
+            </T>
+            .
           </T>
-          {' and '}
-          <T
-            size={12}
-            weight="700"
-            color={c.acc2}
-            accessibilityRole="link"
-            onPress={() => legal('privacy')}
-          >
-            Privacy Policy
-          </T>
-          .
-        </T>
+        </View>
       </View>
     </Page>
   );

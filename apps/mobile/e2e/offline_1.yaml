@@ -1,5 +1,5 @@
 # Flow 03 offline (API unreachable): cold launch shows Day from SQLite; an edit (theme) queues in the outbox.
-appId: com.replace-owner.dialed
+appId: me.okoro.dialed
 ---
 - runFlow: _relaunch.yaml
 - extendedWaitUntil: { visible: 'Offline', timeout: 30000 }

@@ -1,4 +1,4 @@
-appId: com.replace-owner.dialed
+appId: me.okoro.dialed
 ---
 - tapOn: Sign out
 - extendedWaitUntil: { visible: 'Signed out.', timeout: 15000 }

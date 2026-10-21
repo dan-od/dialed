@@ -1,9 +1,9 @@
 import type { ExpoConfig } from 'expo/config';
 
-// APP_NAME is the single source for the product name (D-11). Bundle ID stays a placeholder until the owner
-// picks one (CLIENT_QUESTIONS #7); underscores aren't valid in bundle IDs, hence "replace-owner".
+// APP_NAME is the single source for the product name (D-11). Bundle ID chosen by the owner on 2026-10-21
+// (CLIENT_QUESTIONS #7); App Group for widgets will be group.me.okoro.dialed.
 const APP_NAME = process.env.APP_NAME ?? 'Dialed';
-const BUNDLE_ID = process.env.DIALED_BUNDLE_ID ?? 'com.replace-owner.dialed';
+const BUNDLE_ID = process.env.DIALED_BUNDLE_ID ?? 'me.okoro.dialed';
 
 const config: ExpoConfig = {
   name: APP_NAME,

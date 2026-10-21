@@ -1,5 +1,5 @@
 # Relaunch keeping the session (Keychain + SQLite) and wait for Day.
-appId: com.replace-owner.dialed
+appId: me.okoro.dialed
 ---
 - launchApp: { stopApp: true }
 - runFlow: _open.yaml

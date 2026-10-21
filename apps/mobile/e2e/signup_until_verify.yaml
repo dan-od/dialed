@@ -1,6 +1,6 @@
 # Flow 01 happy path, part 1: Welcome → Sign up (invalid first) → Verify. Part 2 types the emailed code.
 # Fields are driven with the return key (name → email → password → submit), as Flow 01 specifies.
-appId: com.replace-owner.dialed
+appId: me.okoro.dialed
 env:
   EMAIL: newplanner@dialed.test
 ---

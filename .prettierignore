@@ -11,3 +11,4 @@ backend
 verification
 mcp
 .github
+apps/mobile/expo-env.d.ts

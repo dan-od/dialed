@@ -13,6 +13,8 @@ export const motion = tokens.motion;
 export const toast = tokens.toast;
 
 /** AI `palette` name → stored colour pair (Design_Identity; used by the server's create_category mapping). */
+export { contrast, luminance } from './contrast';
+
 export function paletteColors(name: string): { color_dark: string; color_light: string } | null {
   const pair = (palette as Record<string, [string, string] | undefined>)[name];
   return pair ? { color_dark: pair[0], color_light: pair[1] } : null;
