@@ -1,5 +1,5 @@
 # Flow 01 sign-in (wrong password first) → Flow 03 Day from Postgres via sync (since=0 snapshot).
-appId: com.replace-owner.dialed
+appId: me.okoro.dialed
 ---
 - launchApp:
     clearState: true

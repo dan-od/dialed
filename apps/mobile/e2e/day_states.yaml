@@ -1,6 +1,6 @@
 # Flow 03 Day states at the prototype's clock points on its sample day (Mon Oct 19, 2026), from the owner's
 # seeded routine in Postgres. Dev-only: a long-press on the date cycles the clock (compiled out of release).
-appId: com.replace-owner.dialed
+appId: me.okoro.dialed
 ---
 - runFlow: _relaunch.yaml
 - runFlow: { file: _clock.yaml, env: { NAME: 'day-1315-${THEME}' } }

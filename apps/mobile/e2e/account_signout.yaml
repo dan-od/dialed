@@ -1,5 +1,5 @@
 # Flow 01: Account sheet from the Day avatar → Sign out? dialog → Welcome, local data wiped.
-appId: com.replace-owner.dialed
+appId: me.okoro.dialed
 ---
 - tapOn: 'Account: .*'
 - extendedWaitUntil: { visible: 'Signed in with', timeout: 10000 }

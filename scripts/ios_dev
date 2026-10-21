@@ -1,27 +1,15 @@
 #!/usr/bin/env bash
-# Builds and installs the iOS dev client on a Simulator, then serves JS from this repo with Metro.
-#
-# Why a mirror: when the repo lives in an iCloud-synced folder (~/Documents with "Desktop & Documents" on),
-# File Provider tags every .framework bundle with Finder info and codesign refuses them
-# ("resource fork, Finder information, or similar detritus not allowed"). The native shell is built from an
-# xattr-free copy outside iCloud (same lockfile → same native code); Metro still serves this repo's JS.
-# Outside iCloud the mirror is skipped. Usage: ./scripts/ios_dev [simulator-udid-or-name]
+# Builds and installs the iOS dev client on a Simulator, then serves JS with Metro (file watching on).
+# Usage: ./scripts/ios_dev [simulator-name-or-udid]   (default: iPhone 17e, 390×844 like the prototype frame)
+# The repo must not live in an iCloud-synced folder: File Provider tags .framework bundles and codesign refuses them.
 source "$(dirname "$0")/lib/common.sh"
 ensure_node
 ensure_xcode_env
 export LANG=en_US.UTF-8
 DEVICE="${1:-iPhone 17e}"
-BUILD_DIR="$ROOT"
-if xattr "$ROOT" 2>/dev/null | grep -q 'com.apple.fileprovider' || [[ "$ROOT" == "$HOME/Documents"* || "$ROOT" == "$HOME/Desktop"* ]]; then
-  BUILD_DIR="${DIALED_IOS_BUILD_DIR:-$HOME/Library/Caches/dialed/ios-build}"
-  log "Repo is in an iCloud-synced folder; building the native shell in $BUILD_DIR"
-  mkdir -p "$BUILD_DIR"
-  # rsync without -X/-E drops extended attributes.
-  rsync -a --delete --exclude .git --exclude 'apps/mobile/ios' --exclude 'apps/mobile/.expo' --exclude evidence --exclude .secrets --exclude .env "$ROOT/" "$BUILD_DIR/"
-fi
-cd "$BUILD_DIR/apps/mobile"
+case "$ROOT" in "$HOME/Documents"*|"$HOME/Desktop"*) log "Warning: $ROOT may be iCloud-synced; codesign can fail there." ;; esac
+cd "$ROOT/apps/mobile"
 CI=1 npx expo prebuild --platform ios --clean >/dev/null
 npx expo run:ios --device "$DEVICE" --no-bundler
-cd "$ROOT/apps/mobile"
-log "Starting Metro from $ROOT (Ctrl-C to stop)"
+log "Starting Metro (Ctrl-C to stop)"
 exec npx expo start --dev-client --port 8081

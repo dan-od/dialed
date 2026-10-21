@@ -7,3 +7,5 @@ jest.mock('expo-haptics', () => ({
   NotificationFeedbackType: { Success: 'success', Warning: 'warning' },
 }));
 jest.mock('expo-crypto', () => ({ randomUUID: () => require('node:crypto').randomUUID() }));
+// Reanimated 4 Jest setup (docs: Testing with Jest) — resolver in package.json "jest", then setUpTests().
+require('react-native-reanimated').setUpTests();

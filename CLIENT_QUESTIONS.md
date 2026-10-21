@@ -47,7 +47,7 @@ Everything below has a recommended default that the build uses until you answer.
 7. **The app's final name and bundle ID.**
    Recommended: keep "Dialed" as the working name; decide before buying the domain and enrolling the Apple bundle ID, because the bundle ID can't change after App Store submission.
    Affected flows: all copy, 08 (App Group ID), 07 (connector name). Owner: you. Reversible: until first TestFlight upload.
-   Your answer: _(default: Dialed, com.REPLACE_OWNER.dialed)_
+   **Your answer (2026-10-21): bundle ID `me.okoro.dialed`** (App Group `group.me.okoro.dialed`). Name stays "Dialed" for now.
 
 ## Confirm or correct
 

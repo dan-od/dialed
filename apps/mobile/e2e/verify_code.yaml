@@ -1,5 +1,5 @@
 # Flow 01 happy path, part 2: wrong code (failure path) → right code → empty-Day setup chooser (C-0102).
-appId: com.replace-owner.dialed
+appId: me.okoro.dialed
 ---
 - tapOn: { id: verify-code }
 - inputText: ${WRONG}

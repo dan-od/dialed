@@ -28,7 +28,8 @@ Recorded at Batch 0 (2026-10-20) on the owner's Mac:
 | Component | Version | Notes |
 |---|---|---|
 | macOS | 27.2 (26B5101f) | |
-| Xcode | 27.1 (27A9275) | `xcode-select` points at Command Line Tools; scripts set `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` instead of changing it (needs sudo) |
+| Xcode | 27.1 (27A9275) | scripts set `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` when `xcode-select` points at Command Line Tools (still the case on 2026-10-21) |
+| Repo location | `~/Codes/dialed` (moved 2026-10-21) | outside iCloud-synced `~/Documents`, so native builds go through the normal Xcode path |
 | iOS Simulator runtimes | iOS 27.0, 27.1 | no iPhone SE runtime installed (375×667 screenshots unavailable) |
 | Node | 22.23.3 LTS | official nodejs.org build in `~/.local/share/node22` (Homebrew `node@22` bottle was broken: missing libsimdjson.34); default `node` on PATH stays 25.9 |
 | pnpm | 9.15.9 | `packageManager` field; `node-linker=hoisted` for Metro |

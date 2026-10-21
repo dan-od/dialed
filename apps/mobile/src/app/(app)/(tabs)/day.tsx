@@ -12,6 +12,7 @@ import { RestOfToday } from '../../../day/RestOfToday';
 import { SetupChooser } from '../../../day/SetupChooser';
 import { useTheme } from '../../../theme/theme';
 import { Notice } from '../../../ui/Notice';
+import { TabPage } from '../../../ui/TabPage';
 import { Spinner } from '../../../ui/Spinner';
 import { T } from '../../../ui/Text';
 import { useToast } from '../../../ui/Toast';
@@ -55,48 +56,50 @@ export default function DayScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <DayHeader
-        date={dateLabel(clock.date)}
-        name={name}
-        pending={sync.pending}
-        syncing={sync.syncing && sync.pending > 0}
-        paused={sync.problem === 'paused'}
-        onSync={syncNow}
-        onAccount={() => router.push('/account')}
-        onPlan={soon}
-        onTheme={() => void toggleTheme(isLight)}
-      />
-      {!online ? (
-        <Notice stamp="Offline" text="You’re offline. Showing what’s saved on this phone." />
-      ) : null}
-      {!sync.hasData ? (
-        <View
-          style={{
-            paddingHorizontal: 20,
-            marginTop: 24,
-            flexDirection: 'row',
-            gap: 10,
-            alignItems: 'center',
-          }}
-        >
-          {online ? <Spinner color={c.muted} /> : null}
-          <T weight="600" color={c.muted}>
-            {online ? 'Getting your week' : 'Connect once to get your week onto this phone.'}
-          </T>
-        </View>
-      ) : model?.setup ? (
-        <SetupChooser onPick={soon} />
-      ) : model ? (
-        <>
-          <DayHero m={model.m} />
-          <RestOfToday
-            rows={model.m.rows}
-            label={model.m.restLabel}
-            onRow={soon}
-            onCollapse={setMini}
-          />
-        </>
-      ) : null}
+      <TabPage>
+        <DayHeader
+          date={dateLabel(clock.date)}
+          name={name}
+          pending={sync.pending}
+          syncing={sync.syncing && sync.pending > 0}
+          paused={sync.problem === 'paused'}
+          onSync={syncNow}
+          onAccount={() => router.push('/account')}
+          onPlan={soon}
+          onTheme={() => void toggleTheme(isLight)}
+        />
+        {!online ? (
+          <Notice stamp="Offline" text="You’re offline. Showing what’s saved on this phone." />
+        ) : null}
+        {!sync.hasData ? (
+          <View
+            style={{
+              paddingHorizontal: 20,
+              marginTop: 24,
+              flexDirection: 'row',
+              gap: 10,
+              alignItems: 'center',
+            }}
+          >
+            {online ? <Spinner color={c.muted} /> : null}
+            <T weight="600" color={c.muted}>
+              {online ? 'Getting your week' : 'Connect once to get your week onto this phone.'}
+            </T>
+          </View>
+        ) : model?.setup ? (
+          <SetupChooser onPick={soon} />
+        ) : model ? (
+          <>
+            <DayHero m={model.m} />
+            <RestOfToday
+              rows={model.m.rows}
+              label={model.m.restLabel}
+              onRow={soon}
+              onCollapse={setMini}
+            />
+          </>
+        ) : null}
+      </TabPage>
     </View>
   );
 }
