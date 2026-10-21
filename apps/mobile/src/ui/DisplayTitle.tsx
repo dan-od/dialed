@@ -18,8 +18,9 @@ interface Props {
   /** Minimum size for the per-word auto-fit (prototype `fitHeads`: 2 pt steps down to 26). */
   min?: number;
   accessibilityRole?: 'header' | 'text';
-  /** CSS line-height in em (`.h1` .9; sheet titles 1). */
+  /** CSS line-height in em (`.h1` .9; sheet titles 1; Month poster .85). */
   line?: number;
+  letterSpacing?: number;
 }
 
 /**
@@ -34,6 +35,7 @@ export function DisplayTitle({
   min = 26,
   accessibilityRole = 'header',
   line: LINE = 0.9,
+  letterSpacing,
 }: Props) {
   const SHIFT = lineShift(LINE);
   const text = upper ? children.toUpperCase() : children;
@@ -53,7 +55,7 @@ export function DisplayTitle({
   const onLines = (e: TextLayoutEvent) =>
     setLines({ key: `${key}|${fs}`, lines: e.nativeEvent.lines.map((l) => l.text.trimEnd()) });
   const ready = fs !== null && lines?.key === `${key}|${fs}`;
-  const base = { fontFamily: fonts.display, color } as const;
+  const base = { fontFamily: fonts.display, color, letterSpacing } as const;
 
   return (
     <View
