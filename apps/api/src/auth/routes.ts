@@ -52,15 +52,13 @@ export function authRoutes(app: FastifyInstance, auth: AuthService, jwt: JwtServ
     async (req, reply) => {
       const b = parse(LoginCheckBody, req.body);
       if (!checkPerEmail(b.email, 20 * mult)) {
-        return reply
-          .code(429)
-          .send({
-            error: {
-              code: 'rate_limited',
-              message: 'Too many tries. Wait a minute and try again.',
-              retryable: true,
-            },
-          });
+        return reply.code(429).send({
+          error: {
+            code: 'rate_limited',
+            message: 'Too many tries. Wait a minute and try again.',
+            retryable: true,
+          },
+        });
       }
       return { exists: await auth.exists(b.email) };
     },

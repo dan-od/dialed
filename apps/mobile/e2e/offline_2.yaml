@@ -1,0 +1,5 @@
+# Back online: the outbox flushes on its own (backoff retry / foreground / network regain); toast "Synced 1 change."
+appId: com.replace-owner.dialed
+---
+- extendedWaitUntil: { visible: 'Synced 1 change.', timeout: 90000 }
+- takeScreenshot: day-synced

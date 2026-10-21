@@ -1,0 +1,44 @@
+# Flow 01 happy path, part 1: Welcome → Sign up (invalid first) → Verify. Part 2 types the emailed code.
+# Fields are driven with the return key (name → email → password → submit), as Flow 01 specifies.
+appId: com.replace-owner.dialed
+env:
+  EMAIL: newplanner@dialed.test
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow: _open.yaml
+- extendedWaitUntil:
+    visible: Sign up with email
+    timeout: 90000
+- takeScreenshot: welcome
+- tapOn: Sign up with email
+- assertVisible: Make your account
+- takeScreenshot: signup
+# XCUITest can't type into a hidden secure field on the Simulator: reveal it first (a real user option).
+- tapOn: Show password
+# Failure path: invalid input shows the prototype's inline errors and focuses the first one.
+- tapOn: { id: signup-email }
+- inputText: newplanner@dialed
+- pressKey: Enter
+- inputText: short
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: Add your name.
+    timeout: 10000
+- assertVisible: That email looks incomplete. Check the @ and the dot.
+- assertVisible: Use 8 or more characters.
+- takeScreenshot: signup-invalid
+# Fix and submit (focus is on the name field after the errors).
+- inputText: New Planner
+- pressKey: Enter
+- eraseText: 40
+- inputText: ${EMAIL}
+- pressKey: Enter
+- eraseText: 10
+- inputText: dialed-signup-pass-1
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: Check your inbox
+    timeout: 20000
+- takeScreenshot: verify

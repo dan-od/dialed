@@ -1,0 +1,6 @@
+# Opens the dev client against the local Metro server (dev builds only).
+appId: com.replace-owner.dialed
+---
+- waitForAnimationToEnd:
+    timeout: 5000
+- openLink: com.replace-owner.dialed://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081&disableOnboarding=1

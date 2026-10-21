@@ -1,0 +1,6 @@
+appId: com.replace-owner.dialed
+---
+- longPressOn: { text: "(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \\d+ \\w+" }
+- extendedWaitUntil: { visible: 'Mon 19 Oct', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: ${NAME}

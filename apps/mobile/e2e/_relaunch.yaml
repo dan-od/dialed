@@ -1,0 +1,6 @@
+# Relaunch keeping the session (Keychain + SQLite) and wait for Day.
+appId: com.replace-owner.dialed
+---
+- launchApp: { stopApp: true }
+- runFlow: _open.yaml
+- extendedWaitUntil: { visible: 'Rest of today', timeout: 90000 }

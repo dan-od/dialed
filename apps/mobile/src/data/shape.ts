@@ -1,0 +1,103 @@
+import type { Mutation, SyncChange, SyncEntity } from '@dialed/contracts';
+import type { ScheduleData } from '@dialed/schedule';
+import type { LocalData, Profile } from './types';
+
+type Row = Record<string, unknown>;
+
+/** Turns mirrored rows into the shapes packages/schedule expects. */
+export function toLocalData(rows: Record<SyncEntity, Row[]>): LocalData {
+  const schedule: ScheduleData = {
+    categories: rows.category.map((r) => ({
+      id: String(r.id),
+      name: String(r.name),
+      group_name: String(r.group_name),
+      color_dark: String(r.color_dark),
+      color_light: String(r.color_light),
+      weight: Number(r.weight),
+      quiet: Boolean(r.quiet),
+      protected: Boolean(r.protected),
+      sort: Number(r.sort),
+      deleted_at: (r.deleted_at as string | null) ?? null,
+    })),
+    terms: rows.term.map((r) => ({
+      id: String(r.id),
+      name: String(r.name),
+      starts_on: String(r.starts_on),
+      ends_on: String(r.ends_on),
+      is_draft: Boolean(r.is_draft),
+      deleted_at: (r.deleted_at as string | null) ?? null,
+    })),
+    routines: rows.routine.map((r) => ({
+      id: String(r.id),
+      term_id: String(r.term_id),
+      name: String(r.name),
+    })),
+    routineBlocks: rows.routine_block.map((r) => ({
+      id: String(r.id),
+      routine_id: String(r.routine_id),
+      weekday: Number(r.weekday),
+      start_min: Number(r.start_min),
+      end_min: Number(r.end_min),
+      title: String(r.title),
+      category_id: String(r.category_id),
+      effective_from: String(r.effective_from),
+      effective_to: (r.effective_to as string | null) ?? null,
+      deleted_at: (r.deleted_at as string | null) ?? null,
+    })),
+    overrides: rows.override.map((r) => ({
+      id: String(r.id),
+      on_date: String(r.on_date),
+      kind: r.kind as 'skip' | 'modify' | 'add' | 'move',
+      routine_block_id: (r.routine_block_id as string | null) ?? null,
+      title: (r.title as string | null) ?? null,
+      start_min: (r.start_min as number | null) ?? null,
+      end_min: (r.end_min as number | null) ?? null,
+      category_id: (r.category_id as string | null) ?? null,
+      moved_to_date: (r.moved_to_date as string | null) ?? null,
+      note: (r.note as string | null) ?? null,
+      deleted_at: (r.deleted_at as string | null) ?? null,
+    })),
+  };
+  const p = rows.profile[0];
+  return { schedule, profile: p ? (p as unknown as Profile) : null };
+}
+
+export const rowId = (c: SyncChange) => (c.entity === 'profile' ? 'me' : String(c.row.id));
+
+/**
+ * Optimistic local effect of a queued mutation. Also re-applied on top of every pull so pending edits
+ * stay visible until the server answers ("· waiting to sync").
+ */
+export function localEffect(m: Mutation, current: Row | null): SyncChange | null {
+  switch (m.entity) {
+    case 'profile':
+      return current
+        ? { entity: 'profile', op: 'upsert', row: { ...current, ...m.fields, _pending: true } }
+        : null;
+    case 'override':
+    case 'category':
+    case 'term':
+      if (m.op === 'delete')
+        return current
+          ? {
+              entity: m.entity,
+              op: 'upsert',
+              row: { ...current, deleted_at: new Date().toISOString(), _pending: true },
+            }
+          : null;
+      return {
+        entity: m.entity,
+        op: 'upsert',
+        row: { ...(current ?? { version: 0 }), ...m.fields, id: m.id, _pending: true },
+      };
+    default:
+      return null; // compound mutations: server result is applied after push (Flow 04/05)
+  }
+}
+
+export function mutationTarget(m: Mutation): { entity: SyncEntity; id: string } | null {
+  if (m.entity === 'profile') return { entity: 'profile', id: 'me' };
+  if (m.entity === 'override' || m.entity === 'category' || m.entity === 'term')
+    return { entity: m.entity, id: m.id };
+  return null;
+}

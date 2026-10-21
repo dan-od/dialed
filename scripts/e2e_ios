@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Flow 01 + Flow 03 slice e2e on the iOS Simulator (Maestro). Needs: dev client installed (scripts/ios_dev),
+# Metro on :8081, and the API dev server writing its log to $API_LOG (EMAIL_TRANSPORT=console prints codes).
+# Usage: API_LOG=/path/to/api.log ./scripts/e2e_ios [device-udid]
+source "$(dirname "$0")/lib/common.sh"
+ensure_xcode_env
+load_env
+: "${API_LOG:?set API_LOG to the API dev server log (codes are read from console emails)}"
+DEVICE="${1:-$(xcrun simctl list devices booted | grep -oE '[0-9A-F-]{36}' | head -1)}"
+export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}" MAESTRO_DRIVER_STARTUP_TIMEOUT=180000 MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
+EMAIL=newplanner@dialed.test
+OUT="$ROOT/evidence/flows"
+# Each maestro run starts its own XCTest driver; a leftover one makes the next start time out.
+reset_driver() {
+  pkill -f "xcodebuild test-without-building -xctestrun" 2>/dev/null || true
+  for b in $(xcrun simctl listapps "$DEVICE" 2>/dev/null | grep -oE 'dev\.mobile[^" ;]*' | sort -u); do xcrun simctl terminate "$DEVICE" "$b" 2>/dev/null || true; done
+}
+run() { reset_driver; (cd "$ROOT/apps/mobile" && maestro --device "$DEVICE" test --test-output-dir "$1" "${@:2}"); }
+# Maestro 2.11's XCUITest driver on the iOS 27 Simulator sometimes drops mid-run (no step fails; the run just ends).
+# Retry a flow up to 3 times; every attempt's output stays in the evidence folder.
+retry() { local n; for n in 1 2 3; do "$@" && return 0; log "attempt $n failed; retrying"; done; return 1; }
+reset_account() {
+  compose exec -T postgres psql -qU dialed -d dialed -c "delete from users where email='$EMAIL'; update invites set used_at = null where email='$EMAIL';" >/dev/null
+}
+signup() { reset_account; run "$OUT/Flow_01/e2e-signup" e2e/signup_until_verify.yaml; }
+
+log "Flow 01: welcome → sign up (invalid, then valid) → verify (resets the dev-only invite account $EMAIL)"
+retry signup
+CODE=$(grep -F "[email:console] to=$EMAIL " "$API_LOG" | tail -1 | sed -E 's/.*code ([0-9]{6}).*/\1/')
+[[ "$CODE" =~ ^[0-9]{6}$ ]] || die "No verification code for $EMAIL in $API_LOG"
+WRONG=$([[ "$CODE" == 000000 ]] && echo 111111 || echo 000000)
+run "$OUT/Flow_01/e2e-verify" -e CODE="$CODE" -e WRONG="$WRONG" e2e/verify_code.yaml  # single-use code: no retry
+
+log "Flow 01 → 03: owner sign in (wrong password first) → Day from Postgres via sync"
+retry run "$OUT/Flow_03/e2e-signin-day" e2e/signin_owner.yaml
+log "e2e green"

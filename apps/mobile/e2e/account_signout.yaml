@@ -1,0 +1,11 @@
+# Flow 01: Account sheet from the Day avatar → Sign out? dialog → Welcome, local data wiped.
+appId: com.replace-owner.dialed
+---
+- tapOn: 'Account: .*'
+- extendedWaitUntil: { visible: 'Signed in with', timeout: 10000 }
+- takeScreenshot: account
+- tapOn: Sign out
+- extendedWaitUntil: { visible: 'Sign out?', timeout: 10000 }
+- takeScreenshot: signout
+# The dialog is modal: only its own "Sign out" is reachable.
+- runFlow: _signout_confirm.yaml
