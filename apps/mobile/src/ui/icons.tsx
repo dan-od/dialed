@@ -113,3 +113,16 @@ export const CalendarIcon = ({ color, size = 22 }: P) => (
     <Path d="M4 10h16M9 3v4M15 3v4" />
   </Svg>
 );
+export const RepeatIcon = ({ color, size = 18 }: P) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2}
+    strokeLinecap="round"
+  >
+    <Path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4" />
+  </Svg>
+);
