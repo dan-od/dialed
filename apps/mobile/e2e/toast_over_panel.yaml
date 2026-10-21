@@ -1,0 +1,10 @@
+# Toasts over the Rest-of-today panel in both themes (owner review 2026-10-21). Toggles the theme twice.
+appId: me.okoro.dialed
+---
+- runFlow: _relaunch.yaml
+- runFlow: _dev_clock.yaml
+- tapOn: "Theme: follows system"
+- takeScreenshot: toast-over-panel-1
+- waitForAnimationToEnd: { timeout: 5000 }
+- tapOn: "Theme: follows system"
+- takeScreenshot: toast-over-panel-2

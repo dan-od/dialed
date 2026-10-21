@@ -1,0 +1,8 @@
+# Offline stamp (API unreachable) — read-only, no edits queued.
+appId: me.okoro.dialed
+---
+- runFlow: _relaunch.yaml
+- extendedWaitUntil: { visible: "Offline", timeout: 30000 }
+- runFlow: _dev_clock.yaml
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: day-offline-${THEME}
