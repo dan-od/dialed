@@ -20,7 +20,7 @@ export function Seg({
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityState={{ selected: on }}
-        hitSlop={{ top: 4, bottom: 4 }}
+        hitSlop={{ top: 7, bottom: 7 }} // 30 pt button + 14 = 44 pt target
         onPress={() => {
           if (on) return;
           haptic.selection();

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Text, View, type TextLayoutEvent } from 'react-native';
+import { Text, useWindowDimensions, View, type TextLayoutEvent } from 'react-native';
 import { fonts } from '../theme/theme';
 
 // Anton hhea metrics (2048 upm): ascent 2409, descent −674. CSS line-height L puts the baseline at
@@ -40,6 +40,8 @@ export function DisplayTitle({
   const SHIFT = lineShift(LINE);
   const text = upper ? children.toUpperCase() : children;
   const [width, setWidth] = useState(0);
+  // Text scales with Dynamic Type; the line boxes and baseline shift must scale with it.
+  const { fontScale } = useWindowDimensions();
   const [fit, setFit] = useState<{ key: string; size: number } | null>(null);
   const [lines, setLines] = useState<{ key: string; lines: string[] } | null>(null);
   const key = `${text}|${size}|${width}`;
@@ -82,14 +84,17 @@ export function DisplayTitle({
       ) : null}
       {ready ? (
         lines!.lines.map((line, i) => (
-          <View key={i} style={{ height: fs! * LINE, overflow: 'visible' }}>
-            <Text style={[base, { fontSize: fs!, marginTop: -fs! * SHIFT }]} numberOfLines={1}>
+          <View key={i} style={{ height: fs! * LINE * fontScale, overflow: 'visible' }}>
+            <Text
+              style={[base, { fontSize: fs!, marginTop: -fs! * SHIFT * fontScale }]}
+              numberOfLines={1}
+            >
               {line}
             </Text>
           </View>
         ))
       ) : (
-        <View style={{ height: size * LINE }} />
+        <View style={{ height: size * LINE * fontScale }} />
       )}
     </View>
   );

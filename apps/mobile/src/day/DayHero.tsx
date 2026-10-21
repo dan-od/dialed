@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Text, View } from 'react-native';
+import { Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -95,6 +95,7 @@ export function DayBars({ bars }: { bars: BarModel[] }) {
 
 export function DayHero({ m }: { m: DayModel }) {
   const { c } = useTheme();
+  const { fontScale } = useWindowDimensions();
   const reduce = useReducedMotion();
   const [h, mm] = m.countdown ? m.countdown.split(':') : [null, null];
   return (
@@ -116,8 +117,8 @@ export function DayHero({ m }: { m: DayModel }) {
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 14 }}>
           {h !== null ? (
             // `.count { font-size: 72px; line-height: .9 }`: natural-height digits in a .9 em box (no cap clipping).
-            <View style={{ height: 72 * 0.9, overflow: 'visible' }}>
-              <View style={{ flexDirection: 'row', marginTop: -72 * COUNT_SHIFT }}>
+            <View style={{ height: 72 * 0.9 * fontScale, overflow: 'visible' }}>
+              <View style={{ flexDirection: 'row', marginTop: -72 * COUNT_SHIFT * fontScale }}>
                 <Text style={{ fontFamily: fonts.display, fontSize: 72, color: c.text }}>{h}</Text>
                 <Colon color={c.text} />
                 <Text style={{ fontFamily: fonts.display, fontSize: 72, color: c.text }}>{mm}</Text>

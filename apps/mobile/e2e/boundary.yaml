@@ -1,0 +1,14 @@
+# Flow 03 minute boundary: at 2:30 pm Sermon Sync ends and Break begins — the hero, bars and Rest of today
+# update at that minute without a re-entrance animation. Recorded by scripts/flow03_evidence.
+appId: me.okoro.dialed
+---
+- runFlow: _relaunch.yaml
+- runFlow: _dev_clock.yaml
+- runFlow: _dev_clock.yaml
+- runFlow: _dev_clock.yaml
+- runFlow: _dev_clock.yaml
+- extendedWaitUntil: { visible: 'Right now: Sermon Sync.*', timeout: 10000 }
+- takeScreenshot: boundary-before-1429
+- extendedWaitUntil: { visible: 'Right now: Break.*', timeout: 30000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: boundary-after-1430

@@ -4,3 +4,22 @@ appId: me.okoro.dialed
 - waitForAnimationToEnd:
     timeout: 5000
 - openLink: me.okoro.dialed://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081&disableOnboarding=1
+# iOS may ask "Open in “Dialed”?" (system UI, invisible to text matching): tap Open by position while no app
+# screen is showing. On a loading screen the tap does nothing.
+- waitForAnimationToEnd:
+    timeout: 4000
+- runFlow:
+    when:
+      notVisible: '.*(Sign up with email|I have an account|Rest of today|Set up your week).*'
+    commands:
+      - tapOn:
+          point: 70%,54%
+# The dev client can raise the prompt a second time once the bundle loads.
+- waitForAnimationToEnd:
+    timeout: 4000
+- runFlow:
+    when:
+      notVisible: '.*(Sign up with email|I have an account|Rest of today|Set up your week).*'
+    commands:
+      - tapOn:
+          point: 70%,54%

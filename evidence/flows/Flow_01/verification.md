@@ -26,6 +26,11 @@ Device: iPhone 17e Simulator (390×844 pt @3x), iOS 27.0, dev client built with 
 - Account sheet uses the native iOS form sheet (Design_Identity platform delta) instead of the drawn sheet.
 - Screens enter with the prototype's 18 pt slide + fade (320 ms); the native back swipe is off for now (custom transition).
 
+- Owner review 2026-10-21: toasts use the new contrast surfaces (dark cream + ink edge, light cocoa) and sit above
+  pinned bottom buttons — "Signed out." now appears above "Sign up with email" on Welcome (Flow 03 `screens/signed-out.png`
+  in `e2e-review-*`). Offline/stamp notices use the AA stamp colour in light mode.
+- Bundle ID is `me.okoro.dialed` (owner, 2026-10-21).
+
 ## E2E notes
 - Maestro cannot type into a hidden secure field on the iOS 27 Simulator; flows tap "Show" first (a real user option).
 - Fields are driven with the return key (name → email → password → submit), as Flow 01 specifies.

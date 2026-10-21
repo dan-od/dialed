@@ -6,5 +6,3 @@ appId: me.okoro.dialed
 - runFlow: { file: _clock.yaml, env: { NAME: 'day-1315-${THEME}' } }
 - runFlow: { file: _clock.yaml, env: { NAME: 'day-free-2020-${THEME}' } }
 - runFlow: { file: _clock.yaml, env: { NAME: 'day-done-2330-${THEME}' } }
-# back to the real clock
-- longPressOn: 'Mon 19 Oct'

@@ -1,0 +1,26 @@
+# Flow 03 Week lanes → Day cards (Wed) → swipe a card → Lanes → Month → a week row, at the prototype clock.
+appId: me.okoro.dialed
+---
+- runFlow: _relaunch.yaml
+- runFlow: _dev_clock.yaml
+- tapOn: Week
+- extendedWaitUntil: { visible: 'Week 43', timeout: 15000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: week-${THEME}
+- tapOn: 'Wednesday 21.*'
+- extendedWaitUntil: { visible: 'Swipe through your days', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: cards-wed-${THEME}
+- swipe: { start: '70%,45%', end: '20%,45%', duration: 400 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: cards-thu-${THEME}
+- tapOn: Lanes
+- extendedWaitUntil: { visible: 'Week 43', timeout: 10000 }
+- tapOn: Month
+- extendedWaitUntil: { visible: 'Weeks', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: month-${THEME}
+- tapOn: 'Oct 12 to 18.*'
+- extendedWaitUntil: { visible: 'Oct 12–18', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: week-thanksgiving-${THEME}

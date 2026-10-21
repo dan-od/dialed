@@ -1,4 +1,4 @@
-import { Pressable, View } from 'react-native';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   useReducedMotion,
@@ -46,6 +46,7 @@ export function LaneRow({
   onPress: () => void;
 }) {
   const { c } = useTheme();
+  const { fontScale } = useWindowDimensions();
   const reduce = useReducedMotion();
   return (
     <Pressable
@@ -66,7 +67,7 @@ export function LaneRow({
         minHeight: 48,
       })}
     >
-      <View style={{ width: 42 }}>
+      <View style={{ width: 42 * fontScale }}>
         <T size={11} weight="700" color={lane.today ? c.acc2 : c.muted} style={{ lineHeight: 14 }}>
           {lane.wd}
         </T>
@@ -120,7 +121,8 @@ export function LaneRow({
       <D
         size={19}
         color={lane.today ? c.hero : c.text}
-        style={{ width: 46, textAlign: 'right', lineHeight: 24 }}
+        style={{ width: 46 * fontScale, textAlign: 'right', lineHeight: 24 }}
+        numberOfLines={1}
       >
         {lane.total}
       </D>
