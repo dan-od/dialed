@@ -1,0 +1,21 @@
+# Flow 03 floating nav: scrolling the Rest-of-today sheet down collapses the nav to a pill; up expands it.
+appId: me.okoro.dialed
+---
+- runFlow: _relaunch.yaml
+- runFlow: _dev_clock.yaml
+- extendedWaitUntil: { visible: 'Rest of today', timeout: 10000 }
+- takeScreenshot: nav-full
+- swipe: { start: '50%,85%', end: '50%,62%', duration: 600 }
+- extendedWaitUntil: { visible: 'Show Day, Week and Month', timeout: 5000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: nav-mini
+- swipe: { start: '50%,62%', end: '50%,85%', duration: 600 }
+- extendedWaitUntil: { visible: 'Month', timeout: 5000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: nav-expanded
+- runFlow: _relaunch.yaml
+- runFlow: _dev_clock.yaml
+- swipe: { start: '50%,85%', end: '50%,62%', duration: 600 }
+- tapOn: 'Show Day, Week and Month'
+- extendedWaitUntil: { visible: 'Month', timeout: 5000 }
+- takeScreenshot: nav-tap-expand

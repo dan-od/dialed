@@ -1,0 +1,4 @@
+# Dev-only clock (long-press the Day date): 1:15 pm → 8:20 pm → 11:30 pm → 2:29:45 pm on Mon Oct 19 → real.
+appId: me.okoro.dialed
+---
+- longPressOn: "(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \\d+ \\w+"

@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   useReducedMotion,
@@ -8,10 +8,14 @@ import Animated, {
   type LayoutAnimation,
 } from 'react-native-reanimated';
 import { useTheme } from '../theme/theme';
+import { LARGE_TEXT } from '../ui/largeText';
 import { D, T } from '../ui/Text';
 import type { Card, Tile } from './model';
 
 export const CARD_W = 296;
+/** Card width: 296 pt, wider with larger Dynamic Type, never wider than the screen minus a peek of the next card. */
+export const cardWidth = (fontScale: number, screenW: number) =>
+  Math.round(Math.min(CARD_W * Math.max(1, fontScale), screenW - 40 - 24));
 export const CARD_GAP = 12;
 
 /** Cards slide in from the right; the tapped day first, neighbours rippling out 60 ms apart. */
@@ -34,9 +38,19 @@ const cardIn =
     };
   };
 
-export function DayCard({ card, delay }: { card: Card; delay: number }) {
+export function DayCard({
+  card,
+  delay,
+  width = CARD_W,
+}: {
+  card: Card;
+  delay: number;
+  width?: number;
+}) {
   const { c } = useTheme();
   const reduce = useReducedMotion();
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale >= LARGE_TEXT;
   const fg = card.today ? c.ink : c.text;
   return (
     <Animated.View
@@ -44,7 +58,7 @@ export function DayCard({ card, delay }: { card: Card; delay: number }) {
       accessible
       accessibilityLabel={`${card.a11y}. ${card.rows.map((r) => `${r.time} ${r.title}, ${r.duration}`).join('. ')}`}
       style={{
-        width: CARD_W,
+        width,
         minHeight: 340,
         borderRadius: 28,
         padding: 18,
@@ -79,7 +93,12 @@ export function DayCard({ card, delay }: { card: Card; delay: number }) {
             opacity: r.past ? 0.45 : 1,
           }}
         >
-          <D size={16} color={fg} style={{ width: 44, lineHeight: 20 }}>
+          <D
+            size={16}
+            color={fg}
+            numberOfLines={1}
+            style={{ width: 44 * fontScale, lineHeight: 20 }}
+          >
             {r.time}
           </D>
           <View
@@ -91,17 +110,28 @@ export function DayCard({ card, delay }: { card: Card; delay: number }) {
               backgroundColor: card.today ? c.ink : r.color,
             }}
           />
-          <T
-            size={14}
-            weight={r.current ? '800' : '600'}
-            color={fg}
-            style={{ flex: 1, minWidth: 0, lineHeight: 18 }}
+          {/* Large Dynamic Type: duration under the title so long words never break. */}
+          <View
+            style={{
+              flex: 1,
+              minWidth: 0,
+              flexDirection: stacked ? 'column' : 'row',
+              alignItems: stacked ? 'flex-start' : 'baseline',
+              gap: stacked ? 0 : 10,
+            }}
           >
-            {r.title}
-          </T>
-          <T size={12} weight="600" color={fg} style={{ opacity: 0.75 }}>
-            {r.duration}
-          </T>
+            <T
+              size={14}
+              weight={r.current ? '800' : '600'}
+              color={fg}
+              style={{ flex: stacked ? undefined : 1, minWidth: 0, lineHeight: 18 }}
+            >
+              {r.title}
+            </T>
+            <T size={12} weight="600" color={fg} style={{ opacity: 0.75 }}>
+              {r.duration}
+            </T>
+          </View>
         </View>
       ))}
     </Animated.View>

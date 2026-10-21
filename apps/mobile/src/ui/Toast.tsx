@@ -140,6 +140,7 @@ function ToastView({ msg, onDone, bottom }: { msg: ToastMsg; onDone: () => void;
         {msg.action ? (
           <Pressable
             accessibilityRole="button"
+            hitSlop={{ top: 5, bottom: 5 }} // 34 pt button + 10 = 44 pt target
             onPress={() => {
               msg.action!.onPress();
               onDone();

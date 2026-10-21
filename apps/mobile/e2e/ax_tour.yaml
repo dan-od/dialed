@@ -1,0 +1,20 @@
+# Dynamic Type AX1 / small-screen tour: Day, Week, Cards, Month at the prototype clock (Mon 1:15 pm).
+appId: me.okoro.dialed
+---
+- runFlow: _relaunch.yaml
+- runFlow: _dev_clock.yaml
+- extendedWaitUntil: { visible: 'Rest of today', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: ${TAG}-day
+- tapOn: Week
+- extendedWaitUntil: { visible: 'Week 43', timeout: 15000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: ${TAG}-week
+- tapOn: 'Wednesday 21.*'
+- extendedWaitUntil: { visible: 'Swipe through your days', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: ${TAG}-cards
+- tapOn: Month
+- extendedWaitUntil: { visible: 'Weeks', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: ${TAG}-month

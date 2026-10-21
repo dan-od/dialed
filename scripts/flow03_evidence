@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Flow 03 runtime evidence on the iOS Simulator (Maestro + simctl video). Needs the dev client installed
+# (scripts/ios_dev), Metro on :8081, the API running and the owner signed in.
+# Writes evidence/flows/Flow_03/{screens,recordings}. Usage: ./scripts/flow03_evidence [device-udid]
+source "$(dirname "$0")/lib/common.sh"
+ensure_xcode_env
+DEVICE="${1:-$(xcrun simctl list devices booted | grep -oE '[0-9A-F-]{36}' | head -1)}"
+export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}" MAESTRO_DRIVER_STARTUP_TIMEOUT=180000 MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
+EV="$ROOT/evidence/flows/Flow_03"
+RAW="$EV/e2e-evidence"
+mkdir -p "$EV/screens" "$EV/recordings" "$RAW"
+run() { pkill -f "xcodebuild test-without-building -xctestrun" 2>/dev/null || true; (cd "$ROOT/apps/mobile" && maestro --device "$DEVICE" test --test-output-dir "$RAW/$1" "${@:2}"); }
+retry() { local n; for n in 1 2 3; do "$@" && return 0; log "attempt $n failed; retrying"; done; return 1; }
+record() { # record <name> <maestro args…>
+  local name="$1"; shift
+  xcrun simctl io "$DEVICE" recordVideo --codec h264 --force "$EV/recordings/$name.mp4" >/dev/null 2>&1 &
+  local rec=$!
+  sleep 2
+  run "$name" "$@"; local rc=$?
+  kill -INT "$rec"; wait "$rec" 2>/dev/null || true
+  return $rc
+}
+# ONLY=states|week|boundary|nav runs one part (default: all). Screens are copied even when a step fails.
+ONLY="${ONLY:-all}"
+want() { [[ "$ONLY" == all || "$ONLY" == "$1" ]]; }
+collect() { find "$RAW" -path "*takeScreenshot*" -name "*.png" -exec cp {} "$EV/screens/" \; ; }
+trap collect EXIT
+for theme in dark light; do
+  xcrun simctl ui "$DEVICE" appearance "$theme"
+  if want states; then log "Day states ($theme)"; retry run "states-$theme" -e THEME="$theme" e2e/day_states.yaml; fi
+  if want week; then log "Week / Cards / Month ($theme)"; retry run "week-$theme" -e THEME="$theme" e2e/week_month.yaml; fi
+done
+xcrun simctl ui "$DEVICE" appearance dark
+if want boundary; then log "Recording: minute boundary 2:29:45 → 2:30 pm"; retry record boundary e2e/boundary.yaml; fi
+if want nav; then log "Recording: nav collapse / expand"; retry record nav e2e/nav_collapse.yaml; fi
+log "Flow 03 evidence written to $EV"

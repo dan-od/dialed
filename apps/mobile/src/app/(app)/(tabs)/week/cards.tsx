@@ -7,18 +7,17 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   type ScrollViewInstance,
+  useWindowDimensions,
 } from 'react-native';
 import { haptic } from '../../../../lib/haptics';
 import { BackLink, Header, Page } from '../../../../ui/Chrome';
 import { DisplayTitle } from '../../../../ui/DisplayTitle';
 import { T } from '../../../../ui/Text';
-import { CARD_GAP, CARD_W, DayCard, Tiles } from '../../../../week/Cards';
+import { CARD_GAP, cardWidth, DayCard, Tiles } from '../../../../week/Cards';
 import { cardsModel } from '../../../../week/model';
 import { Seg } from '../../../../week/Seg';
 import { ThemeButton } from '../../../../week/ThemeButton';
 import { useSchedule } from '../../../../week/useSchedule';
-
-const STEP = CARD_W + CARD_GAP;
 
 /** Day cards (Flow 03): pushed from a lane, scrolled to that day; snaps one card at a time. */
 export default function CardsScreen() {
@@ -34,6 +33,9 @@ export default function CardsScreen() {
     () => (data ? cardsModel(data.schedule, start, now, { isLight }) : null),
     [data, start, now, isLight],
   );
+  const { fontScale, width: screenW } = useWindowDimensions();
+  const cardW = cardWidth(fontScale, screenW);
+  const STEP = cardW + CARD_GAP;
   const rail = useRef<ScrollViewInstance>(null);
   const index = useRef(day);
   const back = () =>
@@ -99,7 +101,7 @@ export default function CardsScreen() {
             onAccessibilityAction={(e) => go(e.nativeEvent.actionName === 'increment' ? 1 : -1)}
           >
             {m.cards.map((card, i) => (
-              <DayCard key={card.date} card={card} delay={Math.abs(i - day) * 60} />
+              <DayCard key={card.date} card={card} width={cardW} delay={Math.abs(i - day) * 60} />
             ))}
           </ScrollView>
           <Tiles tiles={m.tiles} />

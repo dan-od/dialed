@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import {
   Pressable,
+  useWindowDimensions,
   ScrollView,
   Text,
   View,
@@ -9,6 +10,8 @@ import {
 } from 'react-native';
 import { fonts, useTheme } from '../theme/theme';
 import { T } from '../ui/Text';
+import { navScroll, type NavScrollState } from './navCollapse';
+import { LARGE_TEXT } from '../ui/largeText';
 import type { RowModel } from './model';
 
 /** "Rest of today" sheet: the scroll container for the bottom of Day; drives the nav collapse. */
@@ -24,12 +27,19 @@ export function RestOfToday({
   onCollapse: (mini: boolean) => void;
 }) {
   const { c } = useTheme();
-  const last = useRef(0);
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale >= LARGE_TEXT;
+  const state = useRef<NavScrollState>({ anchor: 0, mini: false });
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const y = e.nativeEvent.contentOffset.y;
-    if (y - last.current > 6 && y > 24) onCollapse(true);
-    else if (last.current - y > 6 || y < 4) onCollapse(false);
-    last.current = y;
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    const next = navScroll(
+      state.current,
+      contentOffset.y,
+      contentSize.height,
+      layoutMeasurement.height,
+    );
+    if (next.mini !== state.current.mini) onCollapse(next.mini);
+    state.current = next;
   };
   return (
     <ScrollView
@@ -80,21 +90,42 @@ export function RestOfToday({
               })}
             >
               <Text
-                style={{ width: 62, fontFamily: fonts.display, fontSize: 22, color: c.sheetTime }}
+                style={{
+                  width: 62 * fontScale,
+                  fontFamily: fonts.display,
+                  fontSize: 22,
+                  color: c.sheetTime,
+                }}
+                numberOfLines={1}
               >
                 {r.time}
               </Text>
-              <T size={16} weight={r.quiet ? '500' : '700'} color={c.sheetFg} style={{ flex: 1 }}>
-                {r.title}
-                {r.pending ? (
-                  <T size={12} weight="600" color={c.sheetFg}>
-                    {' · waiting to sync'}
-                  </T>
-                ) : null}
-              </T>
-              <T size={13} weight="600" color={c.sheetFg}>
-                {r.duration}
-              </T>
+              {/* Large Dynamic Type: the duration moves under the title so long words never break. */}
+              <View
+                style={{
+                  flex: 1,
+                  flexDirection: stacked ? 'column' : 'row',
+                  alignItems: stacked ? 'flex-start' : 'center',
+                  gap: stacked ? 0 : 14,
+                }}
+              >
+                <T
+                  size={16}
+                  weight={r.quiet ? '500' : '700'}
+                  color={c.sheetFg}
+                  style={{ flex: stacked ? undefined : 1 }}
+                >
+                  {r.title}
+                  {r.pending ? (
+                    <T size={12} weight="600" color={c.sheetFg}>
+                      {' · waiting to sync'}
+                    </T>
+                  ) : null}
+                </T>
+                <T size={13} weight="600" color={c.sheetFg}>
+                  {r.duration}
+                </T>
+              </View>
             </Pressable>
           ))
         )}

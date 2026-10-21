@@ -1,27 +1,52 @@
-# Flow 03 — verification (first vertical slice: Day)
+# Flow 03 — verification (complete: Day, Week, Cards, Month)
 
-Data: the owner's seeded Fall 2026 routine in Postgres, pulled through `GET /v1/sync/pull?since=0` into on-device SQLite.
-Clock states use a dev-only clock (long-press the date; `__DEV__` only, compiled out of release builds).
+Data: the owner's seeded Fall 2026 routine in Postgres, pulled through `GET /v1/sync/pull?since=0` into on-device SQLite,
+resolved by `packages/schedule.resolveDay` (the same code the server uses). Device: iPhone 17e Simulator (390×844 pt @3x),
+iOS 27.0, dev build from `~/Codes/dialed` (normal Xcode path), bundle ID `me.okoro.dialed`.
+Clock states use a dev-only clock: long-press the Day date to cycle Mon Oct 19 1:15 pm → 8:20 pm → 11:30 pm →
+2:29:45 pm (ticking) → real clock. `__DEV__` only; compiled out of release builds.
 
-| Requirement | Implementation | Automated | Runtime | Status |
+Re-run everything: `./scripts/flow03_evidence` (screens + recordings), `pnpm --filter mobile test`.
+
+| Requirement | Implementation | Automated | Runtime evidence | Status |
 |---|---|---|---|---|
-| resolveDay parity + 64.3 h week | `packages/schedule` (same code on device and server) | 21 golden/rule tests; runtime_proof resolves from synced rows | runtime-proof.json | passed |
-| Hero three states | `day/model.ts`, `DayHero` | jest `dayModel.test.ts` at 795/1220/1410 (prototype numbers) | day-1315/free-2020/done-2330 × dark/light | passed |
-| Minute boundary update | `clock/useClock` (minute-aligned, pauses in background) | — | not recorded | unverified (no fake-timer test or recording yet) |
-| Offline read + queued edit | `SQLiteStore`, `SyncEngine` outbox | jest `syncEngine.test.ts` (7) | day-offline.png (API down, cold launch), day-offline-queued.png ("1 to sync"), day-after-sync.png | passed (API unreachable; true airplane-mode network loss not reproducible in the Simulator) |
-| Sync pill + toast | `SyncPill`, engine events | jest | pill screenshot; "Synced 1 change." toast fired before capture | partial (toast not captured) |
-| Conflict toast + Reapply | engine `conflict` → toast | jest (two writers) | — | passed (automated only) |
-| Week lanes / cards / month | placeholders | — | — | not started (outside this session's scope) |
-| Nav collapse on scroll | `FloatingNav`, `RestOfToday` | — | not recorded | unverified |
-| Empty-Day setup chooser | `SetupChooser` | — | setup.png (new account after verify) | passed (options show "next build step" toast until Flows 02/05/06) |
-| VoiceOver labels | hero single element, rows "Edit …, 2:30 pm", nav tabs | — | not run with VoiceOver | unverified |
+| resolveDay parity + 64.3 h week | `packages/schedule` | 21 golden/rule tests; runtime_proof resolves from synced rows | `runtime-proof.json` | passed |
+| Hero three states | `day/model.ts`, `DayHero` | `dayModel.test.ts` (795/1220/1410, prototype numbers) | `screens/day-{1315,free-2020,done-2330}-{dark,light}.png` | passed |
+| Minute boundary update | `clock/useClock` (aligned to the real or dev clock's minute) | `clock.test.tsx` (fake timers: 14:29:50 → 14:30; dev clock 14:29:45 → 14:30) | `recordings/boundary.mp4`, `screens/boundary-before-1429.png`, `boundary-after-1430.png` | passed |
+| Offline read + queued edit | `SQLiteStore`, `SyncEngine` | `syncEngine.test.ts` (7) | `screens/day-offline*.png`, `day-after-sync.png` (API stopped; airplane mode can't be simulated) | passed |
+| Sync pill + toast | `SyncPill`, engine events | engine tests | `day-offline-queued.png` (pill); toast fired before capture | partial |
+| Conflict toast + Reapply | engine `conflict` → toast | engine test (two writers) | — | passed (automated only) |
+| Week lanes | `week/model.ts weekModel`, `week/Lanes.tsx`, `(tabs)/week/index.tsx` | `weekModel.test.ts` (64h, lane totals and summaries, 8 am axis, now marker, legend) | `screens/week-{dark,light}.png`, `week-thanksgiving-*.png` (from Month) | passed |
+| Day cards | `cardsModel`, `week/Cards.tsx`, `(tabs)/week/cards.tsx` | model tests (rows, current "left", tiles) | `screens/cards-wed-*.png`, `cards-thu-*.png` (after a swipe) | passed |
+| Month poster + weeks | `monthModel`, `week/MonthChart.tsx`, `(tabs)/month.tsx` | model tests (276h / 153h / 12 days at Mon 1:15 pm; weeks incl. Thanksgiving 55.8h; axis collisions) | `screens/month-{dark,light}.png` | passed |
+| Nav collapse on scroll | `day/navCollapse.ts`, `RestOfToday`, `FloatingNav` | `navCollapse.test.ts` (slow 5 pt steps, bounce, jitter) | `recordings/nav.mp4`, `screens/nav-{full,mini,expanded,tap-expand}.png` | passed |
+| Empty-Day setup chooser | `SetupChooser` | — | Flow 01 `screens/setup.png` | passed |
+| VoiceOver labels | hero sentence, rows "Edit …", lanes "Monday 19, today, 10.4 hours. Open in detail.", cards summary, tiles, nav tabs with selected state, charts hidden | `a11y.test.tsx` (7) | `a11y.md` (device accessibility tree) | passed (automated); spoken VoiceOver unverified — the Simulator has no VoiceOver |
+| Dynamic Type AX1 | `DisplayTitle`/countdown scale line boxes; fixed columns scale; rows stack duration under title ≥ 1.3× | — | `screens/ax1-{day,week,cards,month}.png` | passed (visual) |
+| 44 pt targets | lanes ≥ 48, week rows ≥ 44, Seg and toast action via hitSlop | — | — | passed (static review) |
+| Contrast | tokens | `packages/tokens/test/contrast.test.ts` | — | passed |
+| 375×667 (iPhone SE) | layouts are width-relative | — | not captured | **unverified**: on the fresh SE simulator iOS shows "Open in “Dialed”?" on every launch and Maestro's tap doesn't reach that system alert. One manual tap on Open in Simulator.app unblocks it. |
+| Week with no blocks ("Plan this week") | lanes render "0h" with empty tracks | — | — | **not built**: not in the prototype; a new layout needs a flow-prototype approval (D-35 rule) |
 
 ## Fidelity deltas vs prototype v9
-- Day bounds come from the profile (D-31/D-37). The owner's day starts 7:30 am, so the axis reads "7:30 am" and percents are 35/78/97 % (prototype, at 9 am: 28/76/97 %). The jest test checks the prototype numbers with 9 am bounds.
-- "1 blocks" / "0 blocks" in the prototype → "1 block" / "0 blocks" (pluralised).
-- "Tomorrow starts at 8:10 am with your Cryptography lecture." is computed from tomorrow's first work block (the prototype hard-codes it). With the seed it reads the same.
-- Rest-of-today rows list blocks that haven't started (prototype behaviour; the flow file says "from now on").
-- Toast in light mode: toast and Rest-of-today sheet share the ink colour, so the toast bubble is hard to see over the sheet (tokens as specified). Design follow-up.
-- Light-mode stamp (ink on #8F5A00) is about 3.4:1, below AA for 15 pt text — reproduced exactly as the prototype; flagged.
-- Anton headlines: line height .9 reproduced by measuring lines and drawing each at natural height (iOS clips caps when lineHeight < the font's natural line).
-- Not compared at 375×667 (no iPhone SE runtime installed) — unverified.
+- Owner review 2026-10-21 (user instruction outranks the prototype):
+  - Toasts: dark = cream with a 1.5 pt ink edge; light = cocoa `#8A5A44` with cream text (prototype: ink, invisible over the ink Rest-of-today panel). Toasts sit above the floating nav or pinned bottom buttons (`useToastAnchor`), never over them.
+  - Light-mode stamp `#D4911F` (ink text 7.3:1); prototype `#8F5A00` was 3.4:1.
+- Day bounds from the profile (owner day starts 7:30 am): axis "7:30 am", 35/78/97 % (prototype at 9 am: 28/76/97 %).
+- Week/Month numbers are computed (week number, dates, done hours, days to go, holiday label) instead of the prototype's literals. At the prototype clock they match: 64h, 276h, 153h, 12 days to go.
+- Legend, month stack and mini-bar order follow the data (hours, Life last). With the seed Study (14.7 h) edges Sermon Sync (14.6 h), so the legend starts "Study, Sermon Sync, Class" and the tiles start "School 27.2h, Sermon Sync 14.6h" (prototype hand-orders "Sermon Sync, Class, Study" / "Sermon Sync, School"). Tile values are identical.
+- Tile label "Speedwatch Ontario" (full name; prototype shortens to "Speedwatch").
+- Week summaries leave out Life categories (generalises the prototype's "leave out Gym").
+- Month axis: day numbers chosen by priority without overlap (today, holidays, 1st/last, Mondays); the holiday note ("Thanksgiving", from the override note) sits on its own row (prototype: "12 Holiday" inline).
+- Every week row opens its week (prototype: only the current one; others toast). Previous month works.
+- Lane axis labels aligned to the track's 0/25/50/75/100 % (prototype axis is ~10 pt off the track).
+- Tab changes fade 120 ms (Flow 03) — prototype slides 320 ms. Nav collapse animates 450 ms (prototype) — Flow 03 says 250 ms. Both flagged for the owner.
+- Lane label adds "today"; Day cards announce as one summary each; the card rail has VoiceOver increment/decrement.
+- Card snap fires a selection haptic (annotated, not coded, in the prototype); Lanes/Cards switch fires selection both ways.
+- "1 blocks" → "1 block"; "Cryptography lecture" no longer doubled (computed tomorrow line).
+
+## Known dev-only finding
+`WARN Sending onAnimatedValueUpdate with no listeners registered` appears intermittently in dev builds (LogBox). It comes
+from React Native's core Animated native driver (react-native-screens wires `onTransitionProgress` with
+`useNativeDriver: true`); app code uses only Reanimated. Not reproducible on demand (0 of 7 targeted runs, seen in 2
+batches), no user-visible effect, not suppressed. Open finding.

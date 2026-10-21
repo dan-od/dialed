@@ -1,7 +1,7 @@
 import { addDays } from '@dialed/schedule';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { useTheme } from '../../../theme/theme';
 import { IconButton } from '../../../ui/Button';
 import { Header } from '../../../ui/Chrome';
@@ -23,6 +23,7 @@ export default function MonthScreen() {
   const toast = useToast();
   const params = useLocalSearchParams<{ month?: string }>();
   const { data, now, c, isLight } = useSchedule();
+  const { fontScale } = useWindowDimensions();
   const month =
     params.month && /^\d{4}-\d{2}$/.test(params.month) ? params.month : now.date.slice(0, 7);
   const m = useMemo(
@@ -126,7 +127,11 @@ export default function MonthScreen() {
                       opacity: pressed ? 0.8 : w.past ? 0.6 : 1,
                     })}
                   >
-                    <D size={16} numberOfLines={1} style={{ width: 98, lineHeight: 22 }}>
+                    <D
+                      size={16}
+                      numberOfLines={1}
+                      style={{ width: 98 * fontScale, lineHeight: 22 }}
+                    >
                       {w.label}
                     </D>
                     <View
@@ -154,7 +159,8 @@ export default function MonthScreen() {
                     <D
                       size={16}
                       color={w.current ? c.hero : c.text}
-                      style={{ width: 50, textAlign: 'right', lineHeight: 22 }}
+                      style={{ width: 50 * fontScale, textAlign: 'right', lineHeight: 22 }}
+                      numberOfLines={1}
                     >
                       {w.total}
                     </D>
