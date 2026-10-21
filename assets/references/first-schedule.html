@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Weekly Schedule</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAFAF9;
+    --surface: #FFFFFF;
+    --surface-alt: #F5F5F4;
+    --text: #1C1917;
+    --text-secondary: #78716C;
+    --border: #E7E5E4;
+    --accent: #DC6843;
+    --accent-light: #FEF0EB;
+    --class: #1D4ED8;
+    --class-bg: #EFF6FF;
+    --study: #0F766E;
+    --study-bg: #F0FDFA;
+    --project-sermon: #9333EA;
+    --project-sermon-bg: #FAF5FF;
+    --project-wfsl: #C2410C;
+    --project-wfsl-bg: #FFF7ED;
+    --project-prayers: #0369A1;
+    --project-prayers-bg: #F0F9FF;
+    --project-speedwatch: #B91C1C;
+    --project-speedwatch-bg: #FEF2F2;
+    --gym: #65A30D;
+    --gym-bg: #F7FEE7;
+    --meal: #A16207;
+    --meal-bg: #FEFCE8;
+    --break-color: #6B7280;
+    --break-bg: #F9FAFB;
+    --radius: 8px;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1C1917;
+      --surface: #292524;
+      --surface-alt: #1C1917;
+      --text: #FAFAF9;
+      --text-secondary: #A8A29E;
+      --border: #44403C;
+      --accent: #F0845C;
+      --accent-light: #3B2318;
+      --class-bg: #1E2A3E;
+      --study-bg: #132E2B;
+      --project-sermon-bg: #2D1B47;
+      --project-wfsl-bg: #3B2010;
+      --project-prayers-bg: #0C2A3E;
+      --project-speedwatch-bg: #3B1515;
+      --gym-bg: #1A2E0A;
+      --meal-bg: #2E2409;
+      --break-bg: #292524;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1C1917;
+    --surface: #292524;
+    --surface-alt: #1C1917;
+    --text: #FAFAF9;
+    --text-secondary: #A8A29E;
+    --border: #44403C;
+    --accent: #F0845C;
+    --accent-light: #3B2318;
+    --class-bg: #1E2A3E;
+    --study-bg: #132E2B;
+    --project-sermon-bg: #2D1B47;
+    --project-wfsl-bg: #3B2010;
+    --project-prayers-bg: #0C2A3E;
+    --project-speedwatch-bg: #3B1515;
+    --gym-bg: #1A2E0A;
+    --meal-bg: #2E2409;
+    --break-bg: #292524;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 24px 16px 80px;
+  }
+
+  header {
+    margin-bottom: 28px;
+  }
+
+  header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin-bottom: 4px;
+  }
+
+  header p {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab {
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  .tab:hover { border-color: var(--accent); color: var(--text); }
+  .tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .day-schedule { display: none; }
+  .day-schedule.active { display: block; }
+
+  .time-block {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 6px;
+    align-items: stretch;
+  }
+
+  .time-label {
+    width: 56px;
+    flex-shrink: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    padding-top: 10px;
+    text-align: right;
+  }
+
+  .block-content {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    border-left: 3px solid transparent;
+    min-height: 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .block-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 1px;
+  }
+
+  .block-detail {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .block-content.class    { background: var(--class-bg); border-left-color: var(--class); }
+  .block-content.class .block-title { color: var(--class); }
+
+  .block-content.study    { background: var(--study-bg); border-left-color: var(--study); }
+  .block-content.study .block-title { color: var(--study); }
+
+  .block-content.sermon   { background: var(--project-sermon-bg); border-left-color: var(--project-sermon); }
+  .block-content.sermon .block-title { color: var(--project-sermon); }
+
+  .block-content.wfsl     { background: var(--project-wfsl-bg); border-left-color: var(--project-wfsl); }
+  .block-content.wfsl .block-title { color: var(--project-wfsl); }
+
+  .block-content.prayers  { background: var(--project-prayers-bg); border-left-color: var(--project-prayers); }
+  .block-content.prayers .block-title { color: var(--project-prayers); }
+
+  .block-content.speedwatch { background: var(--project-speedwatch-bg); border-left-color: var(--project-speedwatch); }
+  .block-content.speedwatch .block-title { color: var(--project-speedwatch); }
+
+  .block-content.gym      { background: var(--gym-bg); border-left-color: var(--gym); }
+  .block-content.gym .block-title { color: var(--gym); }
+
+  .block-content.meal     { background: var(--meal-bg); border-left-color: var(--meal); }
+  .block-content.meal .block-title { color: var(--meal); }
+
+  .block-content.brk      { background: var(--break-bg); border-left-color: var(--break-color); }
+  .block-content.brk .block-title { color: var(--break-color); }
+
+  .summary {
+    margin-top: 32px;
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .summary h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+  }
+
+  .stat {
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: var(--surface-alt);
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+  }
+
+  .stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.5px;
+  }
+
+  .stat-value.accent { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Weekly Schedule</h1>
+    <p>Week of Sep 14 — School + Side Projects</p>
+  </header>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--class)"></div>Class</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--study)"></div>Study</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--project-sermon)"></div>Sermon Sync</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--project-wfsl)"></div>WFSL App</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--project-prayers)"></div>Prayers</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--project-speedwatch)"></div>Speedwatch ON</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--gym)"></div>Gym</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--meal)"></div>Meals</div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="schedule-container"></div>
+
+  <div class="summary">
+    <h3>Weekly breakdown</h3>
+    <div class="stat-grid">
+      <div class="stat"><div class="stat-label">Class time</div><div class="stat-value">~14 hrs</div></div>
+      <div class="stat"><div class="stat-label">Study / review</div><div class="stat-value">~12 hrs</div></div>
+      <div class="stat"><div class="stat-label">Sermon Sync</div><div class="stat-value accent">~8 hrs</div></div>
+      <div class="stat"><div class="stat-label">WFSL App</div><div class="stat-value">~4 hrs</div></div>
+      <div class="stat"><div class="stat-label">Prayers</div><div class="stat-value">~3 hrs</div></div>
+      <div class="stat"><div class="stat-label">Speedwatch ON</div><div class="stat-value">~3 hrs</div></div>
+      <div class="stat"><div class="stat-label">Gym sessions</div><div class="stat-value">5x</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const schedule = {
+  Monday: [
+    { time: "9:00",  title: "Morning routine + Breakfast", type: "meal" },
+    { time: "9:40",  title: "Advanced Networking I — Lecture", detail: "SCI-1140", type: "class" },
+    { time: "11:00", title: "Review networking notes", detail: "Consolidate lecture material", type: "study" },
+    { time: "12:00", title: "Lunch", type: "meal" },
+    { time: "12:40", title: "Sermon Sync", detail: "Primary dev sprint", type: "sermon" },
+    { time: "2:30",  title: "Break", type: "brk" },
+    { time: "2:45",  title: "Study — Cryptography prep", detail: "Pre-read Tuesday's material", type: "study" },
+    { time: "4:15",  title: "Gym", type: "gym" },
+    { time: "5:30",  title: "Dinner", type: "meal" },
+    { time: "6:15",  title: "Sermon Sync", detail: "Continue sprint", type: "sermon" },
+    { time: "8:15",  title: "Break", type: "brk" },
+    { time: "8:30",  title: "WFSL / WellServices App", detail: "Feature work", type: "wfsl" },
+    { time: "10:00", title: "Wind down / free time", type: "brk" },
+  ],
+  Tuesday: [
+    { time: "7:30",  title: "Morning routine + Breakfast", type: "meal" },
+    { time: "8:10",  title: "Cryptography & Network Security — Lecture", detail: "SCI-2120", type: "class" },
+    { time: "11:00", title: "Review crypto lecture", detail: "Summarize key concepts", type: "study" },
+    { time: "12:00", title: "Lunch", type: "meal" },
+    { time: "12:40", title: "Sermon Sync", detail: "Primary dev sprint", type: "sermon" },
+    { time: "2:40",  title: "Break", type: "brk" },
+    { time: "3:00",  title: "Speedwatch Ontario", detail: "Development / planning", type: "speedwatch" },
+    { time: "4:30",  title: "Gym", type: "gym" },
+    { time: "5:45",  title: "Dinner", type: "meal" },
+    { time: "6:30",  title: "Study — Networking assignments", detail: "Problem sets / labs", type: "study" },
+    { time: "8:30",  title: "Prayers", detail: "Development session", type: "prayers" },
+    { time: "10:00", title: "Wind down / free time", type: "brk" },
+  ],
+  Wednesday: [
+    { time: "9:00",  title: "Morning routine + Breakfast", type: "meal" },
+    { time: "9:30",  title: "Study — Capstone prep", detail: "Review requirements & prep", type: "study" },
+    { time: "11:10", title: "Capstone Study Project — Lecture", detail: "SCI-1140", type: "class" },
+    { time: "2:00",  title: "Lunch", type: "meal" },
+    { time: "2:10",  title: "Advanced Networking I — Tutorial", detail: "SIR-1350", type: "class" },
+    { time: "3:30",  title: "Break", type: "brk" },
+    { time: "3:45",  title: "Sermon Sync", detail: "Primary dev sprint", type: "sermon" },
+    { time: "5:15",  title: "Gym", type: "gym" },
+    { time: "6:30",  title: "Dinner", type: "meal" },
+    { time: "7:15",  title: "WFSL / WellServices App", detail: "Feature work", type: "wfsl" },
+    { time: "9:00",  title: "Break", type: "brk" },
+    { time: "9:15",  title: "Study — Crypto problem sets", type: "study" },
+    { time: "10:30", title: "Wind down / free time", type: "brk" },
+  ],
+  Thursday: [
+    { time: "9:00",  title: "Morning routine + Breakfast", type: "meal" },
+    { time: "9:40",  title: "Advanced Networking I — Lecture", detail: "SCI-1140", type: "class" },
+    { time: "11:00", title: "Review networking notes", type: "study" },
+    { time: "12:00", title: "Lunch", type: "meal" },
+    { time: "12:40", title: "Sermon Sync", detail: "Primary dev sprint", type: "sermon" },
+    { time: "2:10",  title: "Advanced Networking I — Lab", detail: "SIR-4150", type: "class" },
+    { time: "5:00",  title: "Gym", type: "gym" },
+    { time: "6:15",  title: "Dinner", type: "meal" },
+    { time: "7:00",  title: "Speedwatch Ontario", detail: "Development / planning", type: "speedwatch" },
+    { time: "8:30",  title: "Prayers", detail: "Development session", type: "prayers" },
+    { time: "10:00", title: "Wind down / free time", type: "brk" },
+  ],
+  Friday: [
+    { time: "9:00",  title: "Morning routine + Breakfast", type: "meal" },
+    { time: "9:30",  title: "Study — Weekly review", detail: "Consolidate all notes from the week", type: "study" },
+    { time: "11:30", title: "Sermon Sync", detail: "Big sprint session", type: "sermon" },
+    { time: "1:00",  title: "Lunch", type: "meal" },
+    { time: "1:45",  title: "Capstone Project work", detail: "Deliverables & research", type: "study" },
+    { time: "3:30",  title: "Gym", type: "gym" },
+    { time: "4:45",  title: "Break", type: "brk" },
+    { time: "5:00",  title: "WFSL / WellServices App", detail: "Feature work", type: "wfsl" },
+    { time: "6:30",  title: "Dinner", type: "meal" },
+    { time: "7:15",  title: "Speedwatch Ontario", detail: "Development / planning", type: "speedwatch" },
+    { time: "8:30",  title: "Prayers", detail: "Development session", type: "prayers" },
+    { time: "10:00", title: "Free evening", type: "brk" },
+  ],
+  Saturday: [
+    { time: "9:30",  title: "Sleep in + Breakfast", type: "meal" },
+    { time: "10:30", title: "Sermon Sync", detail: "Extended sprint — top priority", type: "sermon" },
+    { time: "1:00",  title: "Lunch", type: "meal" },
+    { time: "1:45",  title: "WFSL / WellServices App", detail: "Feature work", type: "wfsl" },
+    { time: "3:15",  title: "Break / free time", type: "brk" },
+    { time: "4:00",  title: "Gym (optional)", type: "gym" },
+    { time: "5:15",  title: "Free evening", type: "brk" },
+  ],
+  Sunday: [
+    { time: "10:00", title: "Sleep in + Breakfast", type: "meal" },
+    { time: "11:00", title: "Light study — Plan the week", detail: "Review upcoming deadlines", type: "study" },
+    { time: "12:30", title: "Lunch", type: "meal" },
+    { time: "1:15",  title: "Sermon Sync", detail: "Polish / bug fixes", type: "sermon" },
+    { time: "3:00",  title: "Free afternoon", type: "brk" },
+  ],
+};
+
+const tabsEl = document.getElementById('tabs');
+const containerEl = document.getElementById('schedule-container');
+const days = Object.keys(schedule);
+
+// Determine today
+const todayIndex = new Date().getDay();
+const dayMap = [6, 0, 1, 2, 3, 4, 5]; // Sun=6, Mon=0...
+let activeIndex = dayMap[todayIndex];
+if (activeIndex >= days.length) activeIndex = 0;
+
+days.forEach((day, i) => {
+  // Tab
+  const tab = document.createElement('div');
+  tab.className = 'tab' + (i === activeIndex ? ' active' : '');
+  tab.textContent = day.slice(0, 3);
+  tab.onclick = () => switchDay(i);
+  tabsEl.appendChild(tab);
+
+  // Schedule
+  const section = document.createElement('div');
+  section.className = 'day-schedule' + (i === activeIndex ? ' active' : '');
+  section.id = 'day-' + i;
+
+  schedule[day].forEach(block => {
+    const row = document.createElement('div');
+    row.className = 'time-block';
+
+    const timeEl = document.createElement('div');
+    timeEl.className = 'time-label';
+    timeEl.textContent = block.time;
+
+    const content = document.createElement('div');
+    content.className = 'block-content ' + block.type;
+
+    const title = document.createElement('div');
+    title.className = 'block-title';
+    title.textContent = block.title;
+    content.appendChild(title);
+
+    if (block.detail) {
+      const detail = document.createElement('div');
+      detail.className = 'block-detail';
+      detail.textContent = block.detail;
+      content.appendChild(detail);
+    }
+
+    row.appendChild(timeEl);
+    row.appendChild(content);
+    section.appendChild(row);
+  });
+
+  containerEl.appendChild(section);
+});
+
+function switchDay(index) {
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === index));
+  document.querySelectorAll('.day-schedule').forEach((s, i) => s.classList.toggle('active', i === index));
+}
+</script>
+</body>
+</html>

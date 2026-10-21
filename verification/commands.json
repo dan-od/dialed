@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "note": "Foundation execution manifest. Scripts are created in Batch 0. Each argv is project-owned; inspect before running. auth_smoke is staged: checks report passed=null (not yet applicable) until the batch that makes them testable lands; a null check is UNVERIFIED, never PASS.",
+  "commands": {
+    "bootstrap": [
+      "./scripts/bootstrap"
+    ],
+    "migration_replay": [
+      "./scripts/migration_replay"
+    ],
+    "auth_smoke": [
+      "./scripts/auth_smoke"
+    ]
+  },
+  "authorization_report_contract": {
+    "written_by": "auth_smoke",
+    "path": "$FLOW_BY_FLOW_REPORT_DIR/authorization.json",
+    "checks": [
+      {
+        "id": "unauthenticated_denied",
+        "passed": null,
+        "available_from": "flow-01",
+        "how": "GET /v1/sync/pull with no token \u2192 401; with an expired token \u2192 401 token_expired"
+      },
+      {
+        "id": "wrong_role_denied",
+        "passed": null,
+        "available_from": "flow-01 (app token at /mcp \u2192 401 once /mcp returns 401 for non-MCP audiences, stubbed in shared-foundation); full check from flow-07",
+        "how": "app token at /mcp \u2192 401; MCP token (scope schedule:read plans:draft) calling /v1/sync/push and POST /v1/plans/:id/approve \u2192 401/403"
+      },
+      {
+        "id": "cross_object_denied",
+        "passed": null,
+        "available_from": "flow-03 (sync) and flow-06 (plans)",
+        "how": "alice's app token: sync push touching bob's probe routine_block \u2192 rejected not_found; GET /v1/plans/3f64b5e1-eed2-5e8e-9db2-a6499a142fc6 (bob's seeded plan) \u2192 404; MCP get_schedule (flow-07) never returns bob's blocks"
+      }
+    ]
+  }
+}

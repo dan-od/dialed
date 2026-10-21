@@ -1,0 +1,4 @@
+# md5 of information_schema.columns for schema 'public' after 0001_init.sql, computed with:
+# select md5(string_agg(table_name||':'||column_name||':'||data_type||':'||is_nullable||':'||coalesce(column_default,''), ',' order by table_name, ordinal_position)) from information_schema.columns where table_schema='public';
+# Verified on PostgreSQL 16 (two clean replays, identical) on 2026-10-20. Update only together with a new migration.
+0001_init d96f06751cffd5dea494920ebb5fe11d

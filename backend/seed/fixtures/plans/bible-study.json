@@ -1,0 +1,87 @@
+{
+  "provider": "fixture",
+  "request_text": "Bible study with Chichi every Wednesday at 7, for the rest of the year. And move Friday Speedwatch to Saturday evening.",
+  "propose_changes": {
+    "request_text": "Bible study with Chichi every Wednesday at 7, for the rest of the year. And move Friday Speedwatch to Saturday evening.",
+    "changes": [
+      {
+        "kind": "create_category",
+        "title": "Bible study",
+        "new_category": {
+          "temp_id": "c1",
+          "name": "Bible study",
+          "group": "Life",
+          "palette": "Mint"
+        },
+        "note": "New category: Bible study, in Life."
+      },
+      {
+        "kind": "new",
+        "title": "Bible study with Chichi",
+        "category_id": "c1",
+        "repeat": {
+          "weekday": "wed",
+          "from": "2026-10-21",
+          "until": "2026-12-31"
+        },
+        "start": "19:00",
+        "end": "20:30",
+        "note": "Every Wednesday, Oct 21 to Dec 31. Exam weeks included; Dec 23\u201331 has no term, so those weeks are left out."
+      },
+      {
+        "kind": "moved",
+        "title": "WellServices",
+        "block_ref": "seed:owner:blk:2:7",
+        "repeat": {
+          "weekday": "sun",
+          "from": "2026-10-25",
+          "until": "2026-12-11"
+        },
+        "to_weekday": "sun",
+        "start": "15:00",
+        "end": "16:45",
+        "note": "Makes room for Bible study from this Wednesday. Sunday is your lightest day.",
+        "close_from": "2026-10-21"
+      },
+      {
+        "kind": "moved",
+        "title": "Speedwatch Ontario",
+        "block_ref": "seed:owner:blk:4:8",
+        "repeat": {
+          "weekday": "sat",
+          "from": "2026-10-24",
+          "until": "2026-12-11"
+        },
+        "to_weekday": "sat",
+        "start": "17:30",
+        "end": "18:45",
+        "note": "Right after Saturday gym, every week from Oct 24.",
+        "close_from": "2026-10-23"
+      }
+    ],
+    "checks": [
+      {
+        "id": "weekend_project_hours_max",
+        "passed": true,
+        "detail": "Saturday 4.25h, Sunday 3.5h of projects"
+      },
+      {
+        "id": "outside_term",
+        "passed": false,
+        "detail": "No term covers Dec 23\u201331; Bible study on Dec 23 and Dec 30 was left out."
+      }
+    ]
+  },
+  "expected_after_approve": {
+    "week_of": "2026-10-26",
+    "work_hours_before": 64.3,
+    "work_hours_after": 65.8,
+    "wednesday_before": 11.6,
+    "wednesday_after": 11.3,
+    "weekend_before": 8.5,
+    "weekend_after": 11.5,
+    "rounding": "half-up to 0.1 h; Wednesday 11.583\u219211.6 before, 11.333\u219211.3 after"
+  },
+  "notes": "block_ref 'seed:owner:blk:<weekday>:<index>' is the uuid5 used in backend/seed/0001_seed.sql (NS 6f1c2b6e-0000-4000-8000-00000000d1a1, name 'owner:blk:<weekday>:<index>'). Wed index 7 = WellServices 19:15\u201321:00; Fri index 8 = Speedwatch Ontario 19:15\u201320:30 (1h15). WellServices closes on Wednesdays from Oct 21 (close_from) and reopens on Sundays from Oct 25, so Oct 21 has no overlap.",
+  "test_clock": "2026-10-20T12:00:00-04:00 (America/Toronto). All fixture tests run with this fixed clock; the validator's 'from \u2265 tomorrow' clamp is evaluated against it."
+}

@@ -1,0 +1,9 @@
+{
+  "provider": "fixture",
+  "behaviour": "propose_changes returns a change overlapping Monday 'Advanced Networking I' (protected) three times",
+  "expected": {
+    "final_status": "failed",
+    "error_code": "validation_failed",
+    "detail": "validation_exhausted"
+  }
+}

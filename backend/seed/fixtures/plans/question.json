@@ -1,0 +1,12 @@
+{
+  "provider": "fixture",
+  "request_text": "Add bible study with Chichi on Wednesdays",
+  "ask_user": {
+    "question": "You don't have a category for Bible study yet. Where should Wednesdays with Chichi go?",
+    "options": [
+      "Bible study, a new category in Life",
+      "Put it under Prayers"
+    ]
+  },
+  "after_answer": "bible-study.json"
+}

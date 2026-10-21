@@ -1,0 +1,10 @@
+{
+  "provider": "fixture",
+  "request_text": "anything",
+  "behaviour": "throw provider_error (timeout) on every attempt",
+  "expected": {
+    "attempts_visible": 3,
+    "final_status": "failed",
+    "error_code": "provider_error"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "source": "REF-002 class-schedule-fall-2026.png (and the generated pdf/docx variants)",
+  "expected_classes": [
+    {
+      "title": "Advanced Networking I",
+      "kind": "lecture",
+      "weekday": "mon",
+      "start": "09:40",
+      "end": "11:00",
+      "room": "SCI1140"
+    },
+    {
+      "title": "Cryptography & Network Security",
+      "kind": "lecture",
+      "weekday": "tue",
+      "start": "08:10",
+      "end": "11:00",
+      "room": "SCI2120"
+    },
+    {
+      "title": "Capstone Study Project",
+      "kind": "lecture",
+      "weekday": "wed",
+      "start": "11:10",
+      "end": "14:00",
+      "room": "SCI1140"
+    },
+    {
+      "title": "Advanced Networking I",
+      "kind": "tutorial",
+      "weekday": "wed",
+      "start": "14:10",
+      "end": "15:30",
+      "room": "SIR1350"
+    },
+    {
+      "title": "Advanced Networking I",
+      "kind": "lecture",
+      "weekday": "thu",
+      "start": "09:40",
+      "end": "11:00",
+      "room": "SCI1140"
+    },
+    {
+      "title": "Advanced Networking I",
+      "kind": "lab",
+      "weekday": "thu",
+      "start": "14:10",
+      "end": "17:00",
+      "room": "SIR4150"
+    }
+  ],
+  "match_rules": "Order-insensitive. title: case-insensitive, '&' == 'and', and a source-truncated title is accepted if the extracted title starts with the visible text (REF-002 shows 'Cryptography & Network Securit'; extracting 'Cryptography & Network Security' or the truncated text both pass). kind: lecture|tutorial|lab|seminar|other ('Laboratory' \u2192 lab). weekday, start, end exact. room: accept 'SCI1140' or the full 'Science Building (SCI)-SCI1140'.",
+  "term_hint": "REF-002 header reads 'Week of Sep 14' \u2192 suggested term start 2026-09-14."
+}

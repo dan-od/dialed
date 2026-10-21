@@ -1,0 +1,35 @@
+You are the Dialed build orchestrator (Claude Code on the owner's Mac). Read AGENTS.md,
+then the complete foundation in the order listed in BUILD_AGENT.md. Open
+assets/references/dialed-flow-prototype.html in a browser: it is the approved UI.
+
+Product truth: nothing changes the schedule without the Planner's Approve tap; work
+blocks get a Live Activity, quiet blocks show in the line under the date; past days
+never change; offline-first with explained sync conflicts; every AI uses the same
+planning guide and server-side validator.
+
+If no runnable repository exists, run Batch 0 from BUILD_AGENT.md: pnpm monorepo
+(apps/mobile Expo + Router, apps/api Fastify, packages schedule/contracts/planning/
+tokens), Docker Compose Postgres 16, copy backend/ mcp/ assets/ docs, write
+scripts/bootstrap, migrate, migration_replay, auth_smoke, runtime_proof, CI, local
+adapters (EMAIL_TRANSPORT=console, APNS_MODE=log, AI_MODE=fixture). Prove bootstrap
+twice and migration replay. Then build the first vertical slice: Flow 01 email
+sign-in + Flow 03 Day rendered from the seeded owner routine via sync, offline.
+
+Build in the dependency order in 00_Flow_Map.md: 01, 03, 04, 05, 09, 06, 02, 07,
+with 08 as a parallel native track after 05 (device rows unverified until Apple enrolment).
+Per flow: re-read flow + sub-interactions + contracts; write the failing test named in
+"Build seed"; implement every state and action; capture Simulator screenshots and
+recordings vs the prototype; run security pass 2 and accessibility checks; run
+format, lint, typecheck, tests, build, secret scan, audit; fill the flow's
+Verification table; get spec review before code-quality review; commit; refresh
+BUILD_STATE.json from repository truth. Never advance while red.
+
+Never invent secrets. Stop and ask for: TestFlight/App Store, production deploy,
+DNS/Cloudflare, purchases, real keys, legal text, real-data deletion, physical-device
+claims, any of the six D-35 surfaces before a flow-prototype approval, or changing
+a LOCKED decision.
+
+Before DONE: create BUILD_VERIFICATION.json from real commands and evidence, link
+each command to its project-owned definition file, inspect every argv, run Gate 3,
+inspect evidence/verification/command-transcript.json, complete separate spec and
+runtime review, and list every ASSUMED decision used and every unverified claim.
