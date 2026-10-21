@@ -45,8 +45,14 @@ Re-run everything: `./scripts/flow03_evidence` (screens + recordings), `pnpm --f
 - Card snap fires a selection haptic (annotated, not coded, in the prototype); Lanes/Cards switch fires selection both ways.
 - "1 blocks" → "1 block"; "Cryptography lecture" no longer doubled (computed tomorrow line).
 
-## Known dev-only finding
-`WARN Sending onAnimatedValueUpdate with no listeners registered` appears intermittently in dev builds (LogBox). It comes
-from React Native's core Animated native driver (react-native-screens wires `onTransitionProgress` with
-`useNativeDriver: true`); app code uses only Reanimated. Not reproducible on demand (0 of 7 targeted runs, seen in 2
-batches), no user-visible effect, not suppressed. Open finding.
+## Known dev-only finding (open)
+`WARN Sending onAnimatedValueUpdate with no listeners registered` shows intermittently in dev builds (LogBox banner
+"Open debugger to view warnings"). Narrowed down:
+- It is emitted by React Native's core Animated native driver. App code uses only Reanimated (no core `Animated`).
+  react-native-screens wires every native-stack screen's `onTransitionProgress` through
+  `Animated.event(…, { useNativeDriver: true })`.
+- It follows sign-in (signed-out stack swapped for the signed-in one): 4 of 10 measured sign-ins, 0 of 6 sign-outs,
+  0 on Day/Week/Month/Cards navigation, account sheet open/close or theme changes.
+- Not the tab fade (A/B both ways) and not the open keyboard at submit (dismissing it first: still 2 of 4).
+- No user-visible effect. Not suppressed with LogBox.ignoreLogs. Next step if wanted: reproduce in a bare Expo Router
+  app with `Stack.Protected` and report upstream, or patch react-native-screens.
