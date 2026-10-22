@@ -138,6 +138,41 @@ describe('edit every week with a client-chosen id for the new version', () => {
   });
 });
 
+describe('delete every week and Undo (routine_block_edit close / reopen)', () => {
+  const edit = (block_id: string, base_version: number, extra: object) => ({
+    client_mutation_id: randomUUID(),
+    entity: 'routine_block_edit',
+    block_id,
+    base_version,
+    effective_from: '2026-10-20',
+    ...extra,
+  });
+  it('closing an older block ends it today; reopen puts it back', async () => {
+    const blk = (await one(owner, newBlock({ weekday: 4, effective_from: '2026-10-20' }))).row;
+    // pretend it started earlier in the term so the close keeps past days
+    await t.pool.query(`update routine_blocks set effective_from = '2026-09-14' where id = $1`, [
+      blk.id,
+    ]);
+    const closed = await one(owner, edit(blk.id, 1, { close: true }));
+    expect(closed).toMatchObject({
+      status: 'applied',
+      row: { effective_to: '2026-10-20', deleted_at: null },
+    });
+    const back = await one(owner, edit(blk.id, 2, { reopen: true }));
+    expect(back).toMatchObject({ status: 'applied', row: { effective_to: null, version: 3 } });
+  });
+  it('a block added today is removed outright, and reopen restores it', async () => {
+    const blk = (await one(owner, newBlock({ weekday: 5 }))).row;
+    const closed = await one(owner, edit(blk.id, 1, { close: true }));
+    expect(closed.row.deleted_at).not.toBeNull();
+    const back = await one(owner, edit(blk.id, 2, { reopen: true }));
+    expect(back).toMatchObject({
+      status: 'applied',
+      row: { deleted_at: null, effective_to: null },
+    });
+  });
+});
+
 describe('one-off moves, deletes and undo', () => {
   const ov = (fields: object | undefined, id = randomUUID(), op = 'upsert', base = 0) => ({
     client_mutation_id: randomUUID(),
