@@ -7,5 +7,11 @@ appId: me.okoro.dialed
 - runFlow: _dev_clock.yaml
 - runFlow: _dev_clock.yaml
 - runFlow: _dev_clock.yaml
+# A dropped long-press leaves the clock on Mon 19 Oct (preset 4): press once more.
+- runFlow:
+    when: { visible: 'Mon 19 Oct' }
+    commands:
+      - runFlow: _dev_clock.yaml
+- assertNotVisible: 'Mon 19 Oct'
 - extendedWaitUntil: { visible: 'Rest of today', timeout: 10000 }
 - waitForAnimationToEnd: { timeout: 3000 }

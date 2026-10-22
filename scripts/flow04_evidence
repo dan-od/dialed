@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Flow 04 runtime evidence on the iOS Simulator (Maestro + simctl video). Needs the dev client installed
 # (scripts/ios_dev), Metro on :8081, the API running and the owner signed in. Every flow removes what it adds.
-# Writes evidence/flows/Flow_04/{screens,recordings}. Usage: ONLY=add|invalid|edit ./scripts/flow04_evidence [udid]
+# Writes evidence/flows/Flow_04/{screens,recordings}. Usage: ONLY=add|invalid|edit|light ./scripts/flow04_evidence [udid]
+# Not automated here (they need the app reinstalled or the API stopped by hand): e2e/perm_deny.yaml and
+# e2e/perm_allow.yaml (each on a fresh install), e2e/offline_add_1.yaml (API stopped) → start the API →
+# e2e/offline_add_2.yaml.
 source "$(dirname "$0")/lib/common.sh"
 ensure_xcode_env
 DEVICE="${1:-$(xcrun simctl list devices booted | grep -oE '[0-9A-F-]{36}' | head -1)}"
@@ -18,6 +21,11 @@ record() { # record <name> <maestro args…>
   sleep 2
   run "$name" "$@"; local rc=$?
   kill -INT "$rec"; wait "$rec" 2>/dev/null || true
+  # Half resolution H.264 keeps each recording ~2–3 MB in git (raw simctl video is ~40 MB).
+  if command -v ffmpeg >/dev/null; then
+    ffmpeg -loglevel error -y -i "$EV/recordings/$name.mp4" -vf "scale=586:-2,fps=30" -c:v libx264 -crf 27 \
+      -preset slow -pix_fmt yuv420p -an "$EV/recordings/$name.small.mp4" && mv "$EV/recordings/$name.small.mp4" "$EV/recordings/$name.mp4"
+  fi
   return $rc
 }
 ONLY="${ONLY:-all}"

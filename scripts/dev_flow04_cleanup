@@ -39,6 +39,23 @@ WITH gone AS (
 )
 INSERT INTO change_log(user_id, revision, entity, entity_id, op, row_json)
 SELECT '$OWNER', rev.revision, 'override', gone.id, 'upsert', to_jsonb(gone) - 'user_id' FROM gone, rev;
+-- Theme back to the seed's "follow the system" (Flow 03's offline proof toggles it), so light/dark captures
+-- follow the Simulator's appearance.
+WITH changed AS (
+  UPDATE users SET theme = 'system', version = version + 1
+  WHERE id = '$OWNER' AND theme <> 'system' RETURNING *
+), rev AS (
+  INSERT INTO revisions(user_id, revision, updated_at) SELECT '$OWNER', 1, now() WHERE EXISTS (SELECT 1 FROM changed)
+  ON CONFLICT (user_id) DO UPDATE SET revision = revisions.revision + 1, updated_at = now() RETURNING revision
+)
+INSERT INTO change_log(user_id, revision, entity, entity_id, op, row_json)
+SELECT '$OWNER', rev.revision, 'profile', changed.id, 'upsert',
+  jsonb_build_object('display_name', changed.display_name, 'time_zone', changed.time_zone,
+    'day_start_min', changed.day_start_min, 'day_end_min', changed.day_end_min,
+    'quiet_start_min', changed.quiet_start_min, 'quiet_end_min', changed.quiet_end_min,
+    'week_start', changed.week_start, 'theme', changed.theme, 'ai_mode', changed.ai_mode,
+    'ai_provider', changed.ai_provider, 'profile_json', changed.profile_json, 'version', changed.version)
+FROM changed, rev;
 COMMIT;
 SQL
 log "Flow 04 test data removed (if any was there)."

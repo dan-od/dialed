@@ -41,6 +41,7 @@ describe('Rest of today after a Flow 04 change', () => {
       <RestOfToday rows={m.rows} label={m.restLabel} onRow={() => {}} onCollapse={() => {}} />,
     );
     expect(screen.getByText(/waiting to sync/)).toBeTruthy();
+    expect(screen.getByLabelText('Edit Gym, 4:15 pm, waiting to sync')).toBeTruthy();
     expect(screen.queryByText('New')).toBeNull();
   });
 });

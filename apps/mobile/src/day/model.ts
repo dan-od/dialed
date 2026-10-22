@@ -123,6 +123,9 @@ export function dayModel(opts: {
     });
   const rest = restOfToday(blocks, minute);
   const rows = rest.map((b): RowModel => {
+    const pending = [b.override_id, b.routine_block_id].some(
+      (id) => !!id && opts.pendingIds?.has(id),
+    );
     const time = formatClock(b.start_min).replace(/ (am|pm)$/, '');
     return {
       key: b.key,
@@ -130,9 +133,9 @@ export function dayModel(opts: {
       title: b.title,
       duration: formatDuration(b.end_min - b.start_min),
       quiet: b.quiet,
-      pending: [b.override_id, b.routine_block_id].some((id) => !!id && opts.pendingIds?.has(id)),
+      pending,
       isNew: b.key === opts.highlight,
-      a11y: `Edit ${b.title}, ${formatClock(b.start_min)}${b.key === opts.highlight ? ', new' : ''}`,
+      a11y: `Edit ${b.title}, ${formatClock(b.start_min)}${b.key === opts.highlight ? ', new' : ''}${pending ? ', waiting to sync' : ''}`,
     };
   });
   return {

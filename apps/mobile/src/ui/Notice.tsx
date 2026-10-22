@@ -62,6 +62,7 @@ export function Notice({
         <Pressable
           accessibilityRole="button"
           onPress={action.onPress}
+          hitSlop={{ top: 2, bottom: 2 }} // 40 pt button → 44 pt target
           style={{
             height: 40,
             paddingHorizontal: 16,
