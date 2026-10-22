@@ -48,8 +48,8 @@ WITH gone AS (
   RETURNING *
 ), reopened AS (
   UPDATE routine_blocks SET effective_to = NULL, version = version + 1
-  WHERE user_id = '$OWNER' AND source = 'seed' AND deleted_at IS NULL AND effective_to >= current_date - 1
-    AND EXISTS (SELECT 1 FROM gone) RETURNING *
+  WHERE user_id = '$OWNER' AND source = 'seed' AND deleted_at IS NULL AND effective_to IS NOT NULL
+  RETURNING *  -- the seed has no ended blocks; any end date on one comes from a test
 ), rev AS (
   INSERT INTO revisions(user_id, revision, updated_at) SELECT '$OWNER', 1, now()
   WHERE EXISTS (SELECT 1 FROM gone) OR EXISTS (SELECT 1 FROM reopened)

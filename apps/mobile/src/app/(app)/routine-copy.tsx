@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useApp } from '../../AppProvider';
 import { WEEKDAYS } from '../../blocks/form';
-import { SheetHeader, SheetScroll } from '../../blocks/ui';
+import { ErrorText, SheetHeader, SheetScroll } from '../../blocks/ui';
 import { haptic } from '../../lib/haptics';
 import { copyDay } from '../../routines/draft';
 import { copyToast, replacesLine } from '../../routines/model';
@@ -23,6 +23,8 @@ export default function RoutineCopySheet() {
   const { data } = useApp();
   const ui = useRoutinesUi();
   const [days, setDays] = useState<number[]>([]);
+  // Inline, not a toast: toasts sit under native sheets, and this sheet stays open.
+  const [error, setError] = useState<string | null>(null);
   const from = ui.day;
   const d = ui.draft;
   if (!d || !data) return null;
@@ -34,7 +36,7 @@ export default function RoutineCopySheet() {
     const r = copyDay(d, from, days, randomUUID, fixed);
     if (r.error) {
       haptic.warning();
-      toast(r.error);
+      setError(r.error);
       return;
     }
     ui.update(() => r.draft);
@@ -61,7 +63,10 @@ export default function RoutineCopySheet() {
                 accessibilityRole="checkbox"
                 accessibilityLabel={w}
                 accessibilityState={{ checked: on }}
-                onPress={() => setDays((x) => (on ? x.filter((y) => y !== i) : [...x, i]))}
+                onPress={() => {
+                  setError(null);
+                  setDays((x) => (on ? x.filter((y) => y !== i) : [...x, i]));
+                }}
                 style={{
                   flexBasis: '47%',
                   flexGrow: 1,
@@ -96,6 +101,7 @@ export default function RoutineCopySheet() {
             );
           })}
         </View>
+        {error ? <ErrorText>{error}</ErrorText> : null}
         {line ? (
           <T size={13} weight="600" color={c.muted} accessibilityLiveRegion="polite">
             {line}
