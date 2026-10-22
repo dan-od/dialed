@@ -1,7 +1,7 @@
 import { formatRange, overlapOf } from '@dialed/schedule';
 import { useLocalSearchParams, useNavigation, usePreventRemove, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { Pressable, Switch, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeOut, LinearTransition, useReducedMotion } from 'react-native-reanimated';
 import { useApp } from '../../../AppProvider';
 import { useBlocksUi } from '../../../blocks/BlocksUi';
@@ -24,6 +24,7 @@ import { Button } from '../../../ui/Button';
 import { BackLink, Dialog, H1, Header } from '../../../ui/Chrome';
 import { CloseIcon, PlusIcon } from '../../../ui/icons';
 import { D, T } from '../../../ui/Text';
+import { LARGE_TEXT } from '../../../ui/largeText';
 import { useToast } from '../../../ui/Toast';
 import { ToastAwareScroll } from '../../../ui/ToastAwareScroll';
 
@@ -34,6 +35,7 @@ export default function RoutineEditor() {
   const navigation = useNavigation();
   const toast = useToast();
   const reduce = useReducedMotion();
+  const large = useWindowDimensions().fontScale >= LARGE_TEXT;
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, online } = useApp();
   const ui = useRoutinesUi();
@@ -106,14 +108,21 @@ export default function RoutineEditor() {
       <Header
         left={<BackLink label="Routines" onPress={() => router.back()} />}
         right={
-          <T size={13} weight="600" color={c.muted} accessibilityLiveRegion="polite">
-            {editorStatus(ui.dirty)}
-          </T>
+          large ? undefined : (
+            <T size={13} weight="600" color={c.muted} accessibilityLiveRegion="polite">
+              {editorStatus(ui.dirty)}
+            </T>
+          )
         }
       />
       <ToastAwareScroll base={110} contentContainerStyle={{ paddingTop: 8 }}>
         <View style={{ paddingHorizontal: 20 }}>
           <H1 size={52}>{term.name}</H1>
+          {large ? (
+            <T size={13} weight="600" color={c.muted} accessibilityLiveRegion="polite">
+              {editorStatus(ui.dirty)}
+            </T>
+          ) : null}
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
             {[
               ['Starts', term.starts_on],
@@ -143,7 +152,13 @@ export default function RoutineEditor() {
         <View
           accessibilityRole="tablist"
           accessibilityLabel="Day of the week"
-          style={{ marginTop: 14, marginHorizontal: 16, flexDirection: 'row', gap: 5 }}
+          style={{
+            marginTop: 14,
+            marginHorizontal: 16,
+            flexDirection: 'row',
+            flexWrap: large ? 'wrap' : 'nowrap',
+            gap: 5,
+          }}
         >
           {WEEKDAY_SHORT.map((w, i) => {
             const on = i === day;
@@ -160,8 +175,11 @@ export default function RoutineEditor() {
                   ui.setDay(i);
                 }}
                 style={{
-                  flex: 1,
-                  height: 56,
+                  flex: large ? undefined : 1,
+                  flexBasis: large ? '23%' : undefined,
+                  flexGrow: 1,
+                  minHeight: 56,
+                  paddingVertical: 4,
                   borderRadius: 14,
                   backgroundColor: on ? c.acc : c.surf,
                   alignItems: 'center',
@@ -187,6 +205,8 @@ export default function RoutineEditor() {
             marginTop: 14,
             paddingHorizontal: 20,
             flexDirection: 'row',
+            flexWrap: 'wrap',
+            rowGap: 6,
             justifyContent: 'space-between',
             alignItems: 'center',
           }}
@@ -238,11 +258,20 @@ export default function RoutineEditor() {
                   },
                 ]}
               >
-                <Text style={{ width: 94, fontFamily: fonts.display, fontSize: 15, color: c.text }}>
-                  {formatRange(b.start_min, b.end_min)}
-                </Text>
+                {large ? null : (
+                  <Text
+                    style={{ width: 94, fontFamily: fonts.display, fontSize: 15, color: c.text }}
+                  >
+                    {formatRange(b.start_min, b.end_min)}
+                  </Text>
+                )}
                 <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: b.color }} />
                 <View style={{ flex: 1, minWidth: 0 }}>
+                  {large ? (
+                    <Text style={{ fontFamily: fonts.display, fontSize: 15, color: c.text }}>
+                      {formatRange(b.start_min, b.end_min)}
+                    </Text>
+                  ) : null}
                   <T weight={b.quiet ? '500' : '600'} style={{ lineHeight: 19 }}>
                     {b.title}
                   </T>
@@ -278,7 +307,14 @@ export default function RoutineEditor() {
           )}
         </View>
 
-        <View style={{ marginTop: 12, paddingHorizontal: 20, flexDirection: 'row', gap: 8 }}>
+        <View
+          style={{
+            marginTop: 12,
+            paddingHorizontal: 20,
+            flexDirection: large ? 'column' : 'row',
+            gap: 8,
+          }}
+        >
           <Pressable
             testID="add-to-day"
             accessibilityRole="button"
@@ -301,8 +337,8 @@ export default function RoutineEditor() {
               router.push('/add');
             }}
             style={{
-              flex: 1,
-              height: 50,
+              flex: large ? undefined : 1,
+              minHeight: 50,
               borderRadius: 16,
               borderWidth: 1.5,
               borderStyle: 'dashed',
@@ -318,7 +354,7 @@ export default function RoutineEditor() {
               {addToDayLabel(day)}
             </T>
           </Pressable>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: large ? undefined : 1 }}>
             <Button
               testID="copy-day"
               kind="secondary"

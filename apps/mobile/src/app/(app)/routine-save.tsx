@@ -2,7 +2,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { addDays } from '@dialed/schedule';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, useWindowDimensions, View } from 'react-native';
+import { LARGE_TEXT } from '../../ui/largeText';
 import { useApp } from '../../AppProvider';
 import { SheetScroll } from '../../blocks/ui';
 import { haptic } from '../../lib/haptics';
@@ -31,6 +32,7 @@ export default function RoutineSaveSheet() {
   const { blocks, online } = useApp();
   const { data, now } = useSchedule();
   const ui = useRoutinesUi();
+  const large = useWindowDimensions().fontScale >= LARGE_TEXT;
   const choices = effectiveChoices(now.date);
   const [choice, setChoice] = useState<Choice>('nextMonday');
   const [picked, setPicked] = useState(addDays(choices.nextMonday, 7));
@@ -89,7 +91,7 @@ export default function RoutineSaveSheet() {
           accessibilityRole="radiogroup"
           accessibilityLabel="Changes start"
           style={{
-            flexDirection: 'row',
+            flexDirection: large ? 'column' : 'row',
             gap: 4,
             padding: 4,
             borderRadius: 16,

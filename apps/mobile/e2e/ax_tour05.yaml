@@ -1,0 +1,34 @@
+# Flow 05 small-screen / large-text tour: Routines, editor (top and bottom), Copy sheet, Save sheet, Terms.
+appId: me.okoro.dialed
+---
+- runFlow: _routines.yaml
+- takeScreenshot: ${TAG}-routines
+- tapOn: { id: 'routine-card' }
+- extendedWaitUntil: { visible: 'Every Monday', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: ${TAG}-editor
+- runFlow: _sheet_to_bottom.yaml
+- takeScreenshot: ${TAG}-editor-bottom
+- tapOn: { id: 'copy-day' }
+- extendedWaitUntil: { visible: 'Copy Monday to', timeout: 5000 }
+- takeScreenshot: ${TAG}-copy
+- tapOn: 'Close'
+- tapOn: 'Remove Gym from every Monday'
+- tapOn: { id: 'save-routine' }
+- extendedWaitUntil: { visible: 'Save Fall term\?', timeout: 5000 }
+- takeScreenshot: ${TAG}-save
+- tapOn: 'Keep editing'
+- extendedWaitUntil: { notVisible: 'Save Fall term\?', timeout: 5000 }
+- tapOn: 'Back to Routines'
+- extendedWaitUntil: { visible: 'Discard routine changes?', timeout: 5000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- tapOn: 'Discard'
+- extendedWaitUntil: { visible: 'Your repeating weeks.*', timeout: 5000 }
+- runFlow:
+    when: { true: '${TAG == "ax1"}' }
+    commands:
+      - swipe: { start: '50%,70%', end: '50%,45%', duration: 500 }
+- tapOn: 'Exam weeks.*'
+- extendedWaitUntil: { visible: 'Terms and dates', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: ${TAG}-terms
