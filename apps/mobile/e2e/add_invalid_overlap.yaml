@@ -1,41 +1,53 @@
-# Flow 04 add-invalid (name + category errors), add-overlap (2h runs into the next block → Add anyway),
-# category create card, and the Discard dialog. Nothing is saved except the created category.
+# Flow 04: overlap (9–10 pm runs into Prayers → Add anyway), category create card, end-before-start error,
+# Discard dialog, then the blank-form errors (name + category). Nothing is saved except the created category.
+# The wheel subflows use iPhone 17e positions, so the steps keep the sheet's layout as probed.
 appId: me.okoro.dialed
 ---
 - runFlow: _today.yaml
-- tapOn: 'Add a block'
-- extendedWaitUntil: { visible: 'Add to .*', timeout: 10000 }
-- tapOn: { id: 'add-save' }
-- extendedWaitUntil: { visible: 'Give the block a name.*', timeout: 5000 }
-- assertVisible: 'Pick a category so it gets the right colour and totals.'
-- takeScreenshot: add-invalid-${THEME}
+- runFlow: _open_add.yaml
+- runFlow: _wheel_start_9pm.yaml
+- extendedWaitUntil: { visible: 'This runs into .*', timeout: 5000 }
 - tapOn: { id: 'add-name' }
 - inputText: 'Prayers, login flow'
-- tapOn: 'Length 2h'
+- pressKey: Enter
+- waitForAnimationToEnd: { timeout: 2000 }
+- hideKeyboard
 - tapOn: 'New category'
-- extendedWaitUntil: { visible: 'Category', timeout: 5000 }
+- extendedWaitUntil: { visible: 'Search or create a category', timeout: 5000 }
 - tapOn: { id: 'cat-search' }
 - inputText: 'Bible study'
+- pressKey: Enter
+- waitForAnimationToEnd: { timeout: 2000 }
 - extendedWaitUntil: { visible: 'Create “Bible study”', timeout: 5000 }
 - takeScreenshot: cat-create-${THEME}
 - tapOn: { id: 'cat-create' }
 - runFlow:
     when: { visible: 'You already have Bible study.' }
     commands:
-      - eraseText: 20
-      - inputText: 'Prayers'
-      - tapOn: 'Prayers'
-- extendedWaitUntil: { visible: 'Category, .*', timeout: 5000 }
-- runFlow:
-    when: { visible: 'This runs into .*' }
-    commands:
-      - takeScreenshot: add-overlap-${THEME}
-      - tapOn: { id: 'add-save' }
-      - extendedWaitUntil: { visible: 'Add anyway', timeout: 5000 }
-      - takeScreenshot: add-overlap-anyway-${THEME}
+      - tapOn: 'Back'
+      - tapOn: { id: 'add-category' }
+      - tapOn: 'Bible study'
+- extendedWaitUntil: { visible: 'Category, Bible study.*', timeout: 5000 }
+- takeScreenshot: add-overlap-${THEME}
+- tapOn: { id: 'add-save' }
+- extendedWaitUntil: { visible: 'Add anyway', timeout: 5000 }
+- takeScreenshot: add-overlap-anyway-${THEME}
+- runFlow: _wheel_end_8pm.yaml
+- tapOn: { id: 'add-save' }
+- extendedWaitUntil: { visible: 'End time needs to be after 9:00 pm.', timeout: 5000 }
+- takeScreenshot: add-invalid-time-${THEME}
 - tapOn: 'Close'
 - extendedWaitUntil: { visible: 'Discard this block?', timeout: 5000 }
 - takeScreenshot: discard-${THEME}
 - tapOn: 'Discard'
 - extendedWaitUntil: { visible: 'Rest of today', timeout: 5000 }
 - assertNotVisible: 'Add to .*'
+# Blank form: name + category errors; a clean form closes without asking.
+- runFlow: _open_add.yaml
+- tapOn: { id: 'add-save' }
+- extendedWaitUntil: { visible: 'Give the block a name.*', timeout: 5000 }
+- assertVisible: 'Pick a category so it gets the right colour and totals.'
+- takeScreenshot: add-invalid-${THEME}
+- tapOn: 'Close'
+- extendedWaitUntil: { visible: 'Rest of today', timeout: 5000 }
+- assertNotVisible: 'Discard this block?'

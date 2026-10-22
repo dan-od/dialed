@@ -1,0 +1,9 @@
+# Starts wheel: from the default 10 pm, one row down → 9 pm (the end keeps the 1 h length). iPhone 17e geometry.
+appId: me.okoro.dialed
+---
+- tapOn: { id: 'add-start' }
+- waitForAnimationToEnd: { timeout: 3000 }
+- swipe: { start: '14%,46%', end: '14%,50%', duration: 600 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- tapOn: { point: '3%,62%' }
+- waitForAnimationToEnd: { timeout: 2000 }

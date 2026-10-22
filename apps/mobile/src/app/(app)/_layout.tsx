@@ -13,6 +13,9 @@ export default function AppLayout() {
     sheetCornerRadius: 28,
     contentStyle: { backgroundColor: c.sheetSurf },
   } as const;
+  // Form sheets keep one tall detent (prototype: up to 768 of 824 pt) so the keyboard never resizes them
+  // under the finger; their content scrolls instead.
+  const form = { ...sheet, sheetAllowedDetents: [0.93] };
   return (
     <BlocksUiProvider>
       <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
@@ -20,9 +23,9 @@ export default function AppLayout() {
         {/* Account: native sheet from the Day avatar (Flow 01, Design_Identity platform deltas). */}
         <Stack.Screen name="account" options={sheet} />
         {/* Flow 04: Add, Edit, and the sheets stacked over them. */}
-        <Stack.Screen name="add" options={sheet} />
-        <Stack.Screen name="edit" options={sheet} />
-        <Stack.Screen name="category" options={sheet} />
+        <Stack.Screen name="add" options={form} />
+        <Stack.Screen name="edit" options={form} />
+        <Stack.Screen name="category" options={form} />
         <Stack.Screen name="nudge" options={sheet} />
         <Stack.Screen name="reminders-help" options={sheet} />
       </Stack>

@@ -49,7 +49,7 @@ export function SheetHeader({
       }}
     >
       {left}
-      <View style={{ flex: 1, alignItems: left ? 'center' : 'flex-start' }}>
+      <View style={{ flex: 1 }}>
         <DisplayTitle size={size} line={1} color={c.text}>
           {title}
         </DisplayTitle>
@@ -240,7 +240,7 @@ export function TimeField({
           value={asDate(value)}
           themeVariant={isLight ? 'light' : 'dark'}
           accentColor={c.acc}
-          onChange={(_e, d) => {
+          onValueChange={(_e, d) => {
             if (d) onChange(d.getHours() * 60 + d.getMinutes());
           }}
         />

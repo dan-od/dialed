@@ -42,7 +42,7 @@ describe('useClock', () => {
     expect(result.current.minute).toBe(870);
   });
 
-  it('long-press cycle: 1:15 pm → 8:20 pm → 11:30 pm → 2:29:45 pm → real clock', async () => {
+  it('long-press cycle: 1:15 pm → 8:20 pm → 11:30 pm → 2:29:45 pm → 1:15 pm today → real clock', async () => {
     jest.setSystemTime(new Date('2026-10-21T16:00:00Z'));
     const { result } = await renderHook(() => useClock('America/Toronto'));
     const seen: number[] = [];
@@ -53,6 +53,12 @@ describe('useClock', () => {
       seen.push(result.current.minute);
     }
     expect(seen).toEqual([795, 1220, 1410, 869]);
+    expect(result.current.date).toBe('2026-10-19');
+    await act(async () => {
+      cycleDevClock();
+    });
+    // Flow 04 preset: the real date (device time zone, Toronto in CI and the Simulator) at 1:15 pm
+    expect(result.current).toEqual({ date: '2026-10-21', minute: 795 });
     await act(async () => {
       cycleDevClock();
     });

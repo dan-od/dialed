@@ -89,6 +89,8 @@ export class SyncEngine {
 
   private async runOnce() {
     if (this.retryTimer) clearTimeout(this.retryTimer);
+    // "Synced N changes." is for catching up after being offline or paused, not for every quiet push.
+    const catchingUp = this.st.problem !== null;
     this.setStatus({ syncing: true });
     try {
       const applied = await this.flush();
@@ -99,7 +101,7 @@ export class SyncEngine {
         problem: null,
         pending: (await this.store.outbox()).length,
       });
-      if (applied > 0) this.events.synced(applied);
+      if (applied > 0 && catchingUp) this.events.synced(applied);
     } catch (e) {
       const offline = e instanceof ApiError && e.code === 'offline';
       if (e instanceof ApiError && e.code === 'unauthorized') {
