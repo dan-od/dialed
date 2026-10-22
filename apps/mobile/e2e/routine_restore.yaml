@@ -1,0 +1,16 @@
+# Flow 05: the editor's draft survives the app being killed (kept on the phone until Save or Discard).
+appId: me.okoro.dialed
+---
+- runFlow: _editor.yaml
+- tapOn: 'Remove Gym from every Monday'
+- extendedWaitUntil: { visible: 'Unsaved changes', timeout: 5000 }
+- stopApp
+- runFlow: _editor.yaml
+- assertVisible: 'Unsaved changes'
+- assertNotVisible: 'Remove Gym from every Monday'
+- takeScreenshot: draft-restored-${THEME}
+- tapOn: 'Back to Routines'
+- extendedWaitUntil: { visible: 'Discard routine changes?', timeout: 5000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- tapOn: 'Discard'
+- extendedWaitUntil: { visible: 'Your repeating weeks.*', timeout: 5000 }

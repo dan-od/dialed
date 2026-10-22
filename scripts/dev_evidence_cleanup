@@ -58,6 +58,29 @@ WITH gone AS (
 INSERT INTO change_log(user_id, revision, entity, entity_id, op, row_json)
 SELECT '$OWNER', rev.revision, 'routine_block', x.id, 'upsert', to_jsonb(x) - 'user_id'
 FROM rev, (SELECT * FROM gone UNION ALL SELECT * FROM reopened) x;
+-- Terms created by the Flow 05 "Name your term" evidence (feature-flagged sheet).
+WITH gone AS (
+  UPDATE terms SET deleted_at = now(), version = version + 1
+  WHERE user_id = '$OWNER' AND name = 'Spring term' AND deleted_at IS NULL RETURNING *
+), rev AS (
+  INSERT INTO revisions(user_id, revision, updated_at) SELECT '$OWNER', 1, now() WHERE EXISTS (SELECT 1 FROM gone)
+  ON CONFLICT (user_id) DO UPDATE SET revision = revisions.revision + 1, updated_at = now() RETURNING revision
+)
+INSERT INTO change_log(user_id, revision, entity, entity_id, op, row_json)
+SELECT '$OWNER', rev.revision, 'term', gone.id, 'upsert', to_jsonb(gone) - 'user_id' FROM gone, rev;
+-- Term dates back to the seed (Flow 05 date edits).
+WITH fixed AS (
+  UPDATE terms t SET starts_on = v.s::date, ends_on = v.e::date, version = t.version + 1
+  FROM (VALUES ('Fall term', '2026-09-14', '2026-12-11'), ('Exam weeks', '2026-12-12', '2026-12-22'),
+               ('Winter term', '2027-01-05', '2027-04-16')) v(n, s, e)
+  WHERE t.user_id = '$OWNER' AND t.name = v.n AND t.deleted_at IS NULL
+    AND (t.starts_on <> v.s::date OR t.ends_on <> v.e::date) RETURNING t.*
+), rev AS (
+  INSERT INTO revisions(user_id, revision, updated_at) SELECT '$OWNER', 1, now() WHERE EXISTS (SELECT 1 FROM fixed)
+  ON CONFLICT (user_id) DO UPDATE SET revision = revisions.revision + 1, updated_at = now() RETURNING revision
+)
+INSERT INTO change_log(user_id, revision, entity, entity_id, op, row_json)
+SELECT '$OWNER', rev.revision, 'term', fixed.id, 'upsert', to_jsonb(fixed) - 'user_id' FROM fixed, rev;
 -- Theme back to the seed's "follow the system" (Flow 03's offline proof toggles it), so light/dark captures
 -- follow the Simulator's appearance.
 WITH changed AS (

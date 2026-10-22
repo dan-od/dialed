@@ -1,0 +1,22 @@
+# Flow 05 Name your term (D-35, feature flag on: Metro started with DIALED_FEATURE_D35=true): errors, then
+# create "Spring term" → empty editor on Monday. scripts/dev_evidence_cleanup removes the term.
+appId: me.okoro.dialed
+---
+- runFlow: _routines.yaml
+- tapOn: { id: 'new-routine' }
+- extendedWaitUntil: { visible: 'Name your term', timeout: 5000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: name-term-${THEME}
+- tapOn: { id: 'nt-name' }
+- eraseText: 20
+- pressKey: Enter
+- tapOn: { id: 'nt-go' }
+- extendedWaitUntil: { visible: 'Give the term a name.*', timeout: 5000 }
+- takeScreenshot: name-term-error-${THEME}
+- tapOn: { id: 'nt-name' }
+- inputText: 'Spring term'
+- pressKey: Enter
+- tapOn: { id: 'nt-go' }
+- extendedWaitUntil: { visible: 'Spring term created. Add your Monday blocks.', timeout: 8000 }
+- extendedWaitUntil: { visible: 'Nothing repeats on Mondays yet.*', timeout: 5000 }
+- takeScreenshot: name-term-created-${THEME}

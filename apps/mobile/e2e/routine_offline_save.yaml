@@ -1,0 +1,14 @@
+# Flow 05 offline save (API stopped): the editor and Save sheet say it stays on the phone; the toast says so.
+appId: me.okoro.dialed
+---
+- runFlow: _editor.yaml
+- tapOn: 'Remove Gym from every Monday'
+- runFlow: _sheet_to_bottom.yaml
+- extendedWaitUntil: { visible: 'You’re offline. Saving keeps it on this phone until you reconnect.', timeout: 30000 }
+- takeScreenshot: offline-editor-${THEME}
+- tapOn: { id: 'save-routine' }
+- extendedWaitUntil: { visible: 'Save on this phone', timeout: 5000 }
+- takeScreenshot: offline-save-sheet-${THEME}
+- tapOn: { id: 'apply-go' }
+- extendedWaitUntil: { visible: 'Saved on this phone. It syncs when you reconnect.', timeout: 8000 }
+- takeScreenshot: offline-saved-${THEME}
