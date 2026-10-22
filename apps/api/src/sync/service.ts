@@ -472,7 +472,8 @@ export class SyncService {
       sql`select * from routine_blocks where id = ${m.block_id} and user_id = ${userId} for update`,
     );
     const cur = found.rows[0];
-    if (!cur || cur.deleted_at) throw new Rejected('not_found', 'That isn’t available.');
+    if (!cur || (cur.deleted_at && !m.reopen))
+      throw new Rejected('not_found', 'That isn’t available.');
     if (Number(cur.version) !== m.base_version) throw new Conflict(syncRow('routine_block', cur));
     const E = m.effective_from;
     if (E < (await this.today(tx, userId)))
@@ -488,7 +489,8 @@ export class SyncService {
       return rows[0]!;
     };
 
-    if (m.reopen) return update(sql`effective_to = null`);
+    // Undo of a delete (within the toast's 6 s): clears either kind of close.
+    if (m.reopen) return update(sql`effective_to = null, deleted_at = null`);
     if (m.close) {
       if (E <= from) return update(sql`deleted_at = now()`); // never resolved on a past date
       if (to !== null && E >= to)
