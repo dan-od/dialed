@@ -1,0 +1,10 @@
+# Flow 04 follow-up: with a two-line toast showing, the last row (the new block) sits above it, not under it.
+# Needs reminders allowed (run after perm_allow.yaml). Removes what it adds.
+appId: me.okoro.dialed
+---
+- runFlow: _today.yaml
+- runFlow: _add_read_acts.yaml
+- tapOn: { id: 'add-save' }
+- extendedWaitUntil: { visible: 'Added to .*You’ll get a nudge 10 min before.', timeout: 8000 }
+- takeScreenshot: toast-room-two-lines-${THEME}
+- runFlow: _delete_read_acts.yaml

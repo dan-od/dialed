@@ -17,6 +17,11 @@ export interface TokenSource {
 
 type Fetch = typeof fetch;
 
+// In-flight refreshes by refresh token, on globalThis so every client instance (and module copy) sees them.
+const inflight: Map<string, Promise<boolean>> = ((
+  globalThis as { __dialedRefreshes?: Map<string, Promise<boolean>> }
+).__dialedRefreshes ??= new Map());
+
 /**
  * The one api client (identity-session contract): x-request-id per request, bearer token,
  * one refresh on 401 token_expired, then sessionEnded on failure. Network failure → `offline`.
@@ -110,11 +115,16 @@ export class ApiClient {
     };
   }
 
-  /** Single-flight refresh; rotating refresh tokens must never be used twice. */
+  /**
+   * Single-flight refresh; rotating refresh tokens must never be used twice. Shared by refresh token across
+   * client instances too (a dev hot reload can leave an old instance running; reuse would end the session).
+   */
   private refresh(): Promise<boolean> {
+    const t = this.tokens.current();
+    if (!t) return Promise.resolve(false);
+    const shared = inflight.get(t.refresh_token);
+    if (shared) return shared;
     this.refreshing ??= (async () => {
-      const t = this.tokens.current();
-      if (!t) return false;
       const r = await this.send(
         'POST',
         '/v1/auth/refresh',
@@ -129,7 +139,9 @@ export class ApiClient {
       return false;
     })().finally(() => {
       this.refreshing = null;
+      inflight.delete(t.refresh_token);
     });
+    inflight.set(t.refresh_token, this.refreshing);
     return this.refreshing;
   }
 }

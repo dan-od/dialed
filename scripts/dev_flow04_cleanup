@@ -20,7 +20,7 @@ INSERT INTO change_log(user_id, revision, entity, entity_id, op, row_json)
 SELECT '$OWNER', rev.revision, 'category', gone.id, 'upsert', to_jsonb(gone) - 'user_id' FROM gone, rev;
 WITH gone AS (
   UPDATE routine_blocks SET deleted_at = now(), version = version + 1
-  WHERE user_id = '$OWNER' AND source = 'user' AND title IN ('Capstone reading', 'Prayers, login flow', 'Read Acts 2', 'Pitch prep')
+  WHERE user_id = '$OWNER' AND source = 'user' AND title IN ('Capstone reading', 'Prayers, login flow', 'Read Acts 2', 'Read', 'Pitch prep')
     AND deleted_at IS NULL RETURNING *
 ), rev AS (
   INSERT INTO revisions(user_id, revision, updated_at) SELECT '$OWNER', 1, now() WHERE EXISTS (SELECT 1 FROM gone)
@@ -31,7 +31,7 @@ SELECT '$OWNER', rev.revision, 'routine_block', gone.id, 'upsert', to_jsonb(gone
 WITH gone AS (
   UPDATE overrides SET deleted_at = now(), version = version + 1
   WHERE user_id = '$OWNER' AND source = 'user' AND deleted_at IS NULL
-    AND (title IN ('Capstone reading', 'Prayers, login flow', 'Read Acts 2', 'Pitch prep') OR kind IN ('skip', 'modify', 'move'))
+    AND (title IN ('Capstone reading', 'Prayers, login flow', 'Read Acts 2', 'Read', 'Pitch prep') OR kind IN ('skip', 'modify', 'move'))
   RETURNING *
 ), rev AS (
   INSERT INTO revisions(user_id, revision, updated_at) SELECT '$OWNER', 1, now() WHERE EXISTS (SELECT 1 FROM gone)

@@ -53,7 +53,13 @@ export function FloatingNav({
           justifyContent: 'center',
         }}
       >
-        <T size={14} weight={on ? '700' : '600'} color={on ? c.navOnFg : c.navIdle}>
+        {/* One line: during the collapse animation the cells narrow and must clip, not wrap. */}
+        <T
+          size={14}
+          weight={on ? '700' : '600'}
+          color={on ? c.navOnFg : c.navIdle}
+          numberOfLines={1}
+        >
           {LABEL[t]}
         </T>
       </Pressable>

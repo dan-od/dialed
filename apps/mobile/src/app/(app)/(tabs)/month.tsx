@@ -1,7 +1,8 @@
+import { ToastAwareScroll } from '../../../ui/ToastAwareScroll';
 import { addDays } from '@dialed/schedule';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 import { useTheme } from '../../../theme/theme';
 import { IconButton } from '../../../ui/Button';
 import { Header } from '../../../ui/Chrome';
@@ -50,7 +51,7 @@ export default function MonthScreen() {
           }
         />
         {m ? (
-          <ScrollView contentContainerStyle={{ paddingTop: 8, paddingBottom: 110 }}>
+          <ToastAwareScroll base={110} contentContainerStyle={{ paddingTop: 8 }}>
             <View
               style={{
                 paddingHorizontal: 20,
@@ -168,7 +169,7 @@ export default function MonthScreen() {
                 ))}
               </View>
             </View>
-          </ScrollView>
+          </ToastAwareScroll>
         ) : null}
       </TabPage>
     </View>
