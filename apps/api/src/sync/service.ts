@@ -6,7 +6,7 @@ import type {
   SyncChange,
   SyncEntity,
 } from '@dialed/contracts';
-import { localNow } from '@dialed/schedule';
+import { localNow, weekStartOf } from '@dialed/schedule';
 import type { Db, Tx } from '../db/pool';
 import { AppError, appError } from '../lib/errors';
 import { ChangeRecorder } from './record';
@@ -276,6 +276,7 @@ export class SyncService {
       case 'override':
       case 'category':
       case 'term':
+      case 'routine_block':
         return { entity: m.entity, row: await this.simple(tx, rec, userId, m) };
     }
   }
@@ -287,9 +288,27 @@ export class SyncService {
     baseVersion: number,
     fields: Row,
   ): Promise<Row> {
-    const sets = Object.entries(fields)
+    const { block_alerts: alerts, ...columns } = fields as Row & {
+      block_alerts?: Record<string, number | null>;
+    };
+    const sets = Object.entries(columns)
       .filter(([, v]) => v !== undefined)
       .map(([k, v]) => sql`${sql.identifier(k)} = ${v}`);
+    if (alerts) {
+      // Merge into profile_json.block_alerts; null clears a block's alert (D-32).
+      const cur = await tx.execute<{ profile_json: Row }>(
+        sql`select profile_json from users where id = ${userId}`,
+      );
+      const pj = { ...(cur.rows[0]?.profile_json ?? {}) } as Row & {
+        block_alerts?: Record<string, number>;
+      };
+      const merged: Record<string, number> = { ...(pj.block_alerts ?? {}) };
+      for (const [k, v] of Object.entries(alerts)) {
+        if (v === null) delete merged[k];
+        else merged[k] = v;
+      }
+      sets.push(sql`profile_json = ${JSON.stringify({ ...pj, block_alerts: merged })}::jsonb`);
+    }
     if (fields.time_zone !== undefined) {
       try {
         new Intl.DateTimeFormat('en', { timeZone: String(fields.time_zone) });
@@ -313,7 +332,7 @@ export class SyncService {
     tx: Tx,
     rec: ChangeRecorder,
     userId: string,
-    m: Extract<Mutation, { entity: 'override' | 'category' | 'term' }>,
+    m: Extract<Mutation, { entity: 'override' | 'category' | 'term' | 'routine_block' }>,
   ): Promise<Row> {
     const table = TABLE[m.entity];
     const found = await tx.execute<Row>(
@@ -324,8 +343,18 @@ export class SyncService {
       throw new Rejected('not_found', 'That isn’t available.'); // 404, never 403
     if (existing && Number(existing.version) !== m.base_version)
       throw new Conflict(syncRow(m.entity, existing));
-    if (!existing && m.op === 'delete') throw new Rejected('not_found', 'That isn’t available.');
+    if (!existing && m.op !== 'upsert') throw new Rejected('not_found', 'That isn’t available.');
     if (!existing && m.base_version !== 0) throw new Conflict(null);
+    // Routine blocks are only created here; changing one is a routine_block_edit (effective-dated).
+    if (existing && m.entity === 'routine_block') throw new Conflict(syncRow(m.entity, existing));
+
+    if (m.op === 'restore') {
+      const { rows } =
+        await tx.execute<Row>(sql`update ${sql.raw(table)} set deleted_at = null, version = version + 1
+        where id = ${m.id} and user_id = ${userId} returning *`);
+      await rec.record(m.entity, m.id, 'upsert', rows[0]!);
+      return rows[0]!;
+    }
 
     if (m.op === 'delete') {
       const { rows } =
@@ -339,6 +368,7 @@ export class SyncService {
       await this.checkOverride(tx, userId, existing ? { ...existing, ...fields } : fields);
     if (m.entity === 'term' && String(fields.ends_on) < String(fields.starts_on))
       throw new Rejected('bad_request', 'A term ends on or after it starts.');
+    if (m.entity === 'routine_block') await this.checkNewRoutineBlock(tx, userId, fields);
 
     let row: Row;
     if (existing) {
@@ -372,6 +402,31 @@ export class SyncService {
     return row;
   }
 
+  private async termOn(tx: Tx, userId: string, date: string): Promise<{ name: string } | null> {
+    const { rows } = await tx.execute<{
+      name: string;
+    }>(sql`select name from terms where user_id = ${userId}
+      and deleted_at is null and not is_draft and starts_on <= ${date} and ends_on >= ${date} limit 1`);
+    return rows[0] ?? null;
+  }
+
+  /** New routine block: owned routine and category, times valid, effective from today or later, inside the term. */
+  private async checkNewRoutineBlock(tx: Tx, userId: string, f: Row) {
+    if (Number(f.end_min) <= Number(f.start_min))
+      throw new Rejected('bad_request', 'End after it starts.');
+    await this.owned(tx, 'categories', String(f.category_id), userId);
+    const { rows } = await tx.execute<{ name: string; starts_on: string; ends_on: string }>(sql`
+      select t.name, t.starts_on, t.ends_on from routines r join terms t on t.id = r.term_id and t.user_id = r.user_id
+      where r.id = ${String(f.routine_id)} and r.user_id = ${userId}`);
+    const term = rows[0];
+    if (!term) throw new Rejected('not_found', 'That isn’t available.');
+    const from = String(f.effective_from);
+    if (from < (await this.today(tx, userId)))
+      throw new Rejected('bad_request', 'Past days never change. Pick today or later.');
+    if (from < term.starts_on || from > term.ends_on)
+      throw new Rejected('bad_request', `That day isn’t in ${term.name}.`);
+  }
+
   private async checkOverride(tx: Tx, userId: string, o: Row) {
     const need = (ok: boolean, msg: string) => {
       if (!ok) throw new Rejected('bad_request', msg);
@@ -382,7 +437,16 @@ export class SyncService {
         'A new block needs a title, times and a category.',
       );
     else need(Boolean(o.routine_block_id), 'Pick the block to change.');
-    if (o.kind === 'move') need(Boolean(o.moved_to_date), 'Pick the day to move it to.');
+    if (o.kind === 'move') {
+      need(Boolean(o.moved_to_date), 'Pick the day to move it to.');
+      need(
+        weekStartOf(String(o.moved_to_date)) === weekStartOf(String(o.on_date)),
+        'Move it within the same week.',
+      );
+      const from = await this.termOn(tx, userId, String(o.on_date));
+      const to = await this.termOn(tx, userId, String(o.moved_to_date));
+      if (!to) throw new Rejected('bad_request', `That day isn’t in ${from?.name ?? 'a term'}.`);
+    }
     if (o.start_min != null && o.end_min != null)
       need(Number(o.end_min) > Number(o.start_min), 'End after it starts.');
     if (o.routine_block_id)
@@ -448,11 +512,18 @@ export class SyncService {
     }
     if (to !== null && E >= to)
       throw new Rejected('bad_request', 'That block already ends before then.');
+    if (m.new_block_id) {
+      const taken = await tx.execute(
+        sql`select 1 from routine_blocks where id = ${m.new_block_id}`,
+      );
+      if (taken.rows[0]) throw new Rejected('bad_request', 'That block id is already used.');
+    }
     await update(sql`effective_to = ${E}`);
+    const newId = m.new_block_id ?? null;
     const { rows } = await tx.execute<Row>(sql`insert into routine_blocks
-      (routine_id, user_id, weekday, start_min, end_min, title, category_id, effective_from, effective_to, source)
-      values (${cur.routine_id}, ${userId}, ${merged.weekday}, ${merged.start_min}, ${merged.end_min}, ${merged.title},
-              ${merged.category_id}, ${E}, ${to}, 'user') returning *`);
+      (id, routine_id, user_id, weekday, start_min, end_min, title, category_id, effective_from, effective_to, source)
+      values (coalesce(${newId}::uuid, gen_random_uuid()), ${cur.routine_id}, ${userId}, ${merged.weekday}, ${merged.start_min},
+              ${merged.end_min}, ${merged.title}, ${merged.category_id}, ${E}, ${to}, 'user') returning *`);
     await rec.record('routine_block', String(rows[0]!.id), 'upsert', rows[0]!);
     return rows[0]!;
   }
