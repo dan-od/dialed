@@ -41,6 +41,7 @@ adds; `scripts/dev_flow04_cleanup` clears leftovers from an aborted run (dev dat
 - Unverified: spoken VoiceOver order and focus moves (the Simulator has no VoiceOver).
 
 ## Fidelity deltas vs prototype v8 (and why)
+Owner approved (2026-10-22): D-43 (new row scrolls into view), D-44 (tall native Add/Edit/Category sheets).
 - Push alert default "Default (off)" (D-32, named in the flow file).
 - Sheets are native iOS sheets (Design_Identity platform deltas): system grabber and dimming instead of the drawn
   scrim; Add/Edit/Category use one tall detent (0.93, the Day still visible above, like the prototype's 768 of

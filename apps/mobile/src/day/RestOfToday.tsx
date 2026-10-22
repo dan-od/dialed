@@ -17,6 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { fonts, useTheme } from '../theme/theme';
 import { T } from '../ui/Text';
+import { useToastAwareList } from '../ui/Toast';
 import { navScroll, type NavScrollState } from './navCollapse';
 import { LARGE_TEXT } from '../ui/largeText';
 import type { RowModel } from './model';
@@ -43,14 +44,25 @@ export function RestOfToday({
   const viewH = useRef(0);
   const newKey = rows.find((r) => r.isNew)?.key ?? null;
   const shown = useRef<string | null>(null);
-  const reveal = (key: string, y: number) => {
+  const reveal = (key: string, y: number, h: number) => {
     if (key !== newKey || shown.current === key) return;
     shown.current = key;
-    // Next frame: the list's content size must include the new row first, or iOS clamps the offset.
-    const target = Math.max(0, listY.current + y - viewH.current / 3);
-    setTimeout(() => scroller.current?.scrollTo({ y: target, animated: true }), 60);
+    // After a frame: the list's content size must include the new row (and any toast room) first, or iOS
+    // clamps the offset. The row sits a third of the way down, and always clear of the toast and nav.
+    setTimeout(() => {
+      const top = listY.current + y;
+      const target = Math.max(top - viewH.current / 3, top + h - viewH.current + padRef.current);
+      scroller.current?.scrollTo({ y: Math.max(0, target), animated: true });
+    }, 120);
   };
+  // While a toast shows, the end of the list makes room so the last row is never under it.
+  const toastRoom = useToastAwareList(120, scroller);
+  const padRef = useRef(toastRoom.paddingBottom);
+  useEffect(() => {
+    padRef.current = toastRoom.paddingBottom;
+  }, [toastRoom.paddingBottom]);
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    toastRoom.track(e);
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
     const next = navScroll(
       state.current,
@@ -66,6 +78,7 @@ export function RestOfToday({
       ref={scroller}
       onLayout={(e) => {
         viewH.current = e.nativeEvent.layout.height;
+        toastRoom.measure();
       }}
       accessibilityLabel="Rest of today"
       onScroll={onScroll}
@@ -77,7 +90,11 @@ export function RestOfToday({
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
       }}
-      contentContainerStyle={{ paddingTop: 20, paddingHorizontal: 20, paddingBottom: 120 }}
+      contentContainerStyle={{
+        paddingTop: 20,
+        paddingHorizontal: 20,
+        paddingBottom: toastRoom.paddingBottom,
+      }}
       showsVerticalScrollIndicator={false}
     >
       <View
@@ -104,7 +121,11 @@ export function RestOfToday({
           rows.map((r) => (
             <Pressable
               key={r.key}
-              onLayout={r.isNew ? (e) => reveal(r.key, e.nativeEvent.layout.y) : undefined}
+              onLayout={
+                r.isNew
+                  ? (e) => reveal(r.key, e.nativeEvent.layout.y, e.nativeEvent.layout.height)
+                  : undefined
+              }
               accessibilityRole="button"
               accessibilityLabel={r.a11y}
               onPress={() => onRow(r)}

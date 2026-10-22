@@ -1,3 +1,4 @@
+import { ToastAwareScroll } from '../../../../ui/ToastAwareScroll';
 import { weekStartOf } from '@dialed/schedule';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useRef } from 'react';
@@ -61,7 +62,7 @@ export default function CardsScreen() {
         right={<ThemeButton />}
       />
       {m ? (
-        <ScrollView contentContainerStyle={{ paddingTop: 8, paddingBottom: 110 }}>
+        <ToastAwareScroll base={110} contentContainerStyle={{ paddingTop: 8 }}>
           <View style={{ paddingHorizontal: 20 }}>
             <DisplayTitle size={64} color={c.hero}>
               {m.title}
@@ -105,7 +106,7 @@ export default function CardsScreen() {
             ))}
           </ScrollView>
           <Tiles tiles={m.tiles} />
-        </ScrollView>
+        </ToastAwareScroll>
       ) : null}
     </Page>
   );

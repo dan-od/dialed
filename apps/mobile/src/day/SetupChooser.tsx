@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, View } from 'react-native';
+import { ToastAwareScroll } from '../ui/ToastAwareScroll';
+import { Pressable, View } from 'react-native';
 import { aiName } from '../config';
 import { useTheme } from '../theme/theme';
 import { H1, Sub } from '../ui/Chrome';
@@ -45,7 +46,7 @@ export function SetupChooser({ onPick }: { onPick: (o: SetupOption) => void }) {
     },
   ];
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
+    <ToastAwareScroll base={110}>
       <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
         <H1 size={68}>Set up your week</H1>
         <Sub>Start with your classes. Projects, gym and meals fit around them after.</Sub>
@@ -97,6 +98,6 @@ export function SetupChooser({ onPick }: { onPick: (o: SetupOption) => void }) {
           ))}
         </View>
       </View>
-    </ScrollView>
+    </ToastAwareScroll>
   );
 }

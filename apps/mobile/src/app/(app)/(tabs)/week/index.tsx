@@ -1,7 +1,8 @@
+import { ToastAwareScroll } from '../../../../ui/ToastAwareScroll';
 import { weekStartOf } from '@dialed/schedule';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 import { DisplayTitle } from '../../../../ui/DisplayTitle';
 import { Header } from '../../../../ui/Chrome';
 import { TabPage } from '../../../../ui/TabPage';
@@ -40,7 +41,7 @@ export default function WeekScreen() {
           right={<ThemeButton />}
         />
         {w ? (
-          <ScrollView contentContainerStyle={{ paddingTop: 8, paddingBottom: 110 }}>
+          <ToastAwareScroll base={110} contentContainerStyle={{ paddingTop: 8 }}>
             <View style={{ paddingHorizontal: 20 }}>
               <DisplayTitle size={64} color={c.hero}>
                 {w.title}
@@ -105,7 +106,7 @@ export default function WeekScreen() {
                 </View>
               ))}
             </View>
-          </ScrollView>
+          </ToastAwareScroll>
         ) : null}
       </TabPage>
     </View>
