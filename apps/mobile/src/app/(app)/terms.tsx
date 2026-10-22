@@ -1,7 +1,8 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, useWindowDimensions, View } from 'react-native';
+import { LARGE_TEXT } from '../../ui/largeText';
 import { useApp } from '../../AppProvider';
 import { aiName } from '../../config';
 import { termDateError, termNotices, termStatus, type TermStatus } from '../../routines/model';
@@ -26,6 +27,8 @@ export default function TermsScreen() {
   const { blocks } = useApp();
   const { data, now } = useSchedule();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Large Dynamic Type: the native date fields stack so they don't overflow.
+  const large = useWindowDimensions().fontScale >= LARGE_TEXT;
   const terms = (data?.schedule.terms ?? [])
     .filter((t) => !t.deleted_at)
     .sort((a, b) => a.starts_on.localeCompare(b.starts_on));
@@ -115,20 +118,20 @@ export default function TermsScreen() {
                 </View>
                 <View
                   style={{
-                    flexDirection: 'row',
+                    flexDirection: large ? 'column' : 'row',
                     gap: 8,
                     paddingVertical: 12,
                     paddingHorizontal: 16,
                   }}
                 >
                   {(['starts_on', 'ends_on'] as const).map((k) => (
-                    <View key={k} style={{ flex: 1, gap: 6 }}>
+                    <View key={k} style={{ flex: large ? undefined : 1, gap: 6 }}>
                       <T size={13} weight="700" color={c.muted} accessible={false}>
                         {k === 'starts_on' ? 'Starts' : 'Ends'}
                       </T>
                       <View
                         style={{
-                          height: 44,
+                          minHeight: 44,
                           borderRadius: 16,
                           borderWidth: 1.5,
                           borderColor: errors[t.id] && k === 'ends_on' ? c.err : c.line,
