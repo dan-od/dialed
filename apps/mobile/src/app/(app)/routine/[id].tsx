@@ -39,17 +39,23 @@ export default function RoutineEditor() {
   const ui = useRoutinesUi();
   const blocksUi = useBlocksUi();
   const [meals, setMeals] = useState(false);
-  const [discard, setDiscard] = useState<null | (() => void)>(null);
+  const [discard, setDiscard] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     if (data && id && ui.draft?.routineId !== id) void ui.open(id, data.schedule);
   }, [data, id, ui]);
 
   // Back button and swipe-back both ask first when there are unsaved edits.
-  usePreventRemove(ui.dirty, ({ data: e }) => {
+  usePreventRemove(ui.dirty && !leaving, () => {
     haptic.warning();
-    setDiscard(() => () => navigation.dispatch(e.action));
+    setDiscard(true);
   });
+  // Leave only after the cleared draft has re-rendered without unsaved changes (replaying the blocked action
+  // after a cancelled swipe-back re-triggered the guard).
+  useEffect(() => {
+    if (leaving && !ui.dirty) navigation.goBack();
+  }, [leaving, ui.dirty, navigation]);
 
   const s = data?.schedule;
   const routine = s?.routines.find((r) => r.id === id);
@@ -337,7 +343,7 @@ export default function RoutineEditor() {
         </View>
       </ToastAwareScroll>
       <Dialog
-        visible={!!discard}
+        visible={discard}
         title="Discard routine changes?"
         body={`Your edits to ${term.name} haven’t been saved.`}
       >
@@ -345,16 +351,16 @@ export default function RoutineEditor() {
           kind="secondary"
           label="Keep editing"
           style={{ marginTop: 6 }}
-          onPress={() => setDiscard(null)}
+          onPress={() => setDiscard(false)}
         />
         <Button
           kind="destructive"
           label="Discard"
           onPress={() => {
             haptic.warning();
-            const go = discard;
-            setDiscard(null);
-            void ui.clear().then(() => go?.());
+            setDiscard(false);
+            setLeaving(true);
+            void ui.clear();
           }}
         />
       </Dialog>
