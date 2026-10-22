@@ -1,0 +1,9 @@
+# Removes the one-off "Read Acts 2" through the Edit sheet.
+appId: me.okoro.dialed
+---
+- extendedWaitUntil: { notVisible: 'Added.*', timeout: 8000 }
+- runFlow: _rest_to_bottom.yaml
+- tapOn: 'Edit Read Acts 2.*'
+- extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
+- tapOn: { id: 'edit-remove' }
+- extendedWaitUntil: { visible: 'Deleted Read Acts 2.', timeout: 5000 }

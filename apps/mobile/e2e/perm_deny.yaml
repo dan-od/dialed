@@ -1,0 +1,30 @@
+# Flow 04 permission, first ask → Don't Allow: Get a nudge → iOS prompt → Don't Allow → saved, "reminders are
+# off"; the next add with an alert shows "Reminders off" → Turn reminders back on. Needs a fresh install
+# (notifications not determined). The prompt's Don't Allow is tapped by position (iPhone 17e).
+appId: me.okoro.dialed
+---
+- runFlow: _today_ask.yaml
+- runFlow: _add_read_acts.yaml
+- tapOn: { id: 'add-save' }
+- extendedWaitUntil: { visible: 'Get a nudge before blocks start', timeout: 5000 }
+- takeScreenshot: nudge-${THEME}
+- tapOn: { id: 'nudge-on' }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: ios-prompt-${THEME}
+- tapOn: { point: '30%,59%' }
+- extendedWaitUntil: { visible: 'Added. Reminders are off for Dialed in Settings.', timeout: 8000 }
+- takeScreenshot: perm-denied-toast-${THEME}
+- runFlow: _delete_read_acts.yaml
+- runFlow: _open_add.yaml
+- tapOn: 'Push alert'
+- tapOn: '10 min before'
+- extendedWaitUntil: { visible: 'Reminders off', timeout: 5000 }
+- takeScreenshot: reminders-off-${THEME}
+- tapOn: 'Turn them on'
+- extendedWaitUntil: { visible: 'Turn reminders back on', timeout: 5000 }
+- takeScreenshot: reminders-help-${THEME}
+- tapOn: 'Done'
+- tapOn: 'Close'
+- extendedWaitUntil: { visible: 'Discard this block?', timeout: 5000 }
+- tapOn: 'Discard'
+- extendedWaitUntil: { visible: 'Rest of today', timeout: 5000 }

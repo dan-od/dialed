@@ -1,5 +1,5 @@
 # Flow 04 build seed: add "Capstone reading" every <today's weekday>; the Day shows it with a New chip.
-# Cleans up: Delete block → Undo (Put back) → Delete block again.
+# Cleans up: Every <weekday> → Delete block → Undo (Put back) → Delete block again.
 appId: me.okoro.dialed
 ---
 - runFlow: _today.yaml
@@ -17,18 +17,29 @@ appId: me.okoro.dialed
 - tapOn: { id: 'add-repeat' }
 - takeScreenshot: add-filled-${THEME}
 - tapOn: { id: 'add-save' }
-- extendedWaitUntil: { visible: 'Added to every .*', timeout: 10000 }
-- scrollUntilVisible: { element: 'Edit Capstone reading.*, new', direction: DOWN, timeout: 10000, centerElement: true }
+- extendedWaitUntil: { visible: 'Edit Capstone reading.*, new', timeout: 5000 }
+- assertVisible: 'Added to every .*'
 - takeScreenshot: add-saved-new-${THEME}
+- runFlow: _rest_to_bottom.yaml
 - tapOn: 'Edit Capstone reading.*'
 - extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
+- tapOn: { id: 'edit-scope-every' }
+- assertVisible: 'Delete block'
 - tapOn: { id: 'edit-remove' }
 - extendedWaitUntil: { visible: 'Deleted Capstone reading.', timeout: 5000 }
 - takeScreenshot: delete-undo-${THEME}
 - tapOn: 'Undo'
 - extendedWaitUntil: { visible: 'Put back.', timeout: 5000 }
-- scrollUntilVisible: { element: 'Edit Capstone reading.*', direction: DOWN, timeout: 10000, centerElement: true }
+- extendedWaitUntil: { notVisible: 'Put back.', timeout: 8000 }
+- runFlow:
+    when: { notVisible: 'Edit Capstone reading.*' }
+    commands:
+      - runFlow: _rest_to_bottom.yaml
+- extendedWaitUntil: { visible: 'Edit Capstone reading.*', timeout: 5000 }
+- runFlow: _rest_to_bottom.yaml
 - tapOn: 'Edit Capstone reading.*'
 - extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
+- tapOn: { id: 'edit-scope-every' }
+- assertVisible: 'Delete block'
 - tapOn: { id: 'edit-remove' }
 - extendedWaitUntil: { visible: 'Deleted Capstone reading.', timeout: 5000 }

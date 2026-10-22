@@ -1,0 +1,13 @@
+# Like _today.yaml, but leaves permissions alone (Maestro's launchApp otherwise grants them), so iOS asks.
+appId: me.okoro.dialed
+---
+- launchApp: { stopApp: true, permissions: { all: unset } }
+- runFlow: _open.yaml
+- extendedWaitUntil: { visible: 'Rest of today', timeout: 90000 }
+- runFlow: _dev_clock.yaml
+- runFlow: _dev_clock.yaml
+- runFlow: _dev_clock.yaml
+- runFlow: _dev_clock.yaml
+- runFlow: _dev_clock.yaml
+- extendedWaitUntil: { visible: 'Rest of today', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }

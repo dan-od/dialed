@@ -1,0 +1,16 @@
+# Fills the Add sheet: "Read Acts 2", Prayers, today only, Push alert 10 min before; taps Add block.
+appId: me.okoro.dialed
+---
+- runFlow: _open_add.yaml
+- tapOn: { id: 'add-name' }
+- inputText: 'Read Acts 2'
+- pressKey: Enter
+- waitForAnimationToEnd: { timeout: 2000 }
+- tapOn: { id: 'add-category' }
+- extendedWaitUntil: { visible: 'Search or create a category', timeout: 5000 }
+- tapOn: 'Prayers'
+- extendedWaitUntil: { visible: 'Category, Prayers.*', timeout: 5000 }
+- tapOn: 'Push alert'
+- extendedWaitUntil: { visible: '10 min before', timeout: 5000 }
+- tapOn: '10 min before'
+- extendedWaitUntil: { visible: 'Push alert, 10 min before|10 min before', timeout: 5000 }

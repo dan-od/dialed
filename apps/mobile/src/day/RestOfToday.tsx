@@ -6,6 +6,7 @@ import {
   Text,
   View,
   type NativeScrollEvent,
+  type ScrollViewInstance,
   type NativeSyntheticEvent,
 } from 'react-native';
 import Animated, {
@@ -36,6 +37,20 @@ export function RestOfToday({
   const { fontScale } = useWindowDimensions();
   const stacked = fontScale >= LARGE_TEXT;
   const state = useRef<NavScrollState>({ anchor: 0, mini: false });
+  // A just-added/changed row is brought into view so its New chip and flash are seen (Flow 04 exit).
+  const scroller = useRef<ScrollViewInstance>(null);
+  const listY = useRef(0);
+  const viewH = useRef(0);
+  const newKey = rows.find((r) => r.isNew)?.key ?? null;
+  const shown = useRef<string | null>(null);
+  const reveal = (key: string, y: number) => {
+    if (key !== newKey || shown.current === key) return;
+    shown.current = key;
+    scroller.current?.scrollTo({
+      y: Math.max(0, listY.current + y - viewH.current / 3),
+      animated: true,
+    });
+  };
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
     const next = navScroll(
@@ -49,6 +64,10 @@ export function RestOfToday({
   };
   return (
     <ScrollView
+      ref={scroller}
+      onLayout={(e) => {
+        viewH.current = e.nativeEvent.layout.height;
+      }}
       accessibilityLabel="Rest of today"
       onScroll={onScroll}
       scrollEventThrottle={16}
@@ -72,7 +91,12 @@ export function RestOfToday({
           {label}
         </T>
       </View>
-      <View style={{ marginTop: 6 }}>
+      <View
+        style={{ marginTop: 6 }}
+        onLayout={(e) => {
+          listY.current = e.nativeEvent.layout.y;
+        }}
+      >
         {rows.length === 0 ? (
           <T weight="600" color={c.sheetFg} style={{ marginTop: 12 }}>
             Nothing else today. Enjoy the evening.
@@ -81,6 +105,7 @@ export function RestOfToday({
           rows.map((r) => (
             <Pressable
               key={r.key}
+              onLayout={r.isNew ? (e) => reveal(r.key, e.nativeEvent.layout.y) : undefined}
               accessibilityRole="button"
               accessibilityLabel={r.a11y}
               onPress={() => onRow(r)}
