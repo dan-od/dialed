@@ -1,0 +1,29 @@
+# Flow 04 move: Gym (Thursday) → Saturday, this week only, then every week; each shown landing on Saturday in
+# the Week tab's day cards. Run scripts/dev_flow04_cleanup between and after (moves have no Undo).
+appId: me.okoro.dialed
+---
+- runFlow: _today.yaml
+- runFlow: _rest_nudge.yaml
+- tapOn: 'Edit Gym, .*'
+- extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
+- tapOn: { id: 'edit-day-5' }
+- runFlow:
+    when: { true: '${SCOPE == "every"}' }
+    commands:
+      - tapOn: { id: 'edit-scope-every' }
+- assertVisible: 'Move to Saturday'
+- takeScreenshot: move-${SCOPE}-sheet-${THEME}
+- tapOn: { id: 'edit-save' }
+- extendedWaitUntil: { visible: 'Moved to .*Saturday.*', timeout: 5000 }
+- assertNotVisible: 'Edit Gym, .*'
+- takeScreenshot: move-${SCOPE}-day-${THEME}
+- runFlow:
+    when: { visible: 'Show Day, Week and Month' }
+    commands:
+      - tapOn: 'Show Day, Week and Month'
+- tapOn: Week
+- extendedWaitUntil: { visible: 'Saturday 24.*', timeout: 15000 }
+- tapOn: 'Saturday 24.*'
+- extendedWaitUntil: { visible: '.*Saturday.*Gym.*', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: move-${SCOPE}-saturday-${THEME}
