@@ -125,13 +125,27 @@ export async function localEffects(m: Mutation, get: GetRow): Promise<SyncChange
         deleted_at: null,
         ...(m.entity === 'routine_block' ? { effective_to: null } : {}),
       };
-      return [
+      const { routine_id: routineId, ...fields } = m.fields as Row;
+      const changes: SyncChange[] = [
         {
           entity: m.entity,
           op: 'upsert',
-          row: pending({ ...base, ...m.fields, id: m.id, version: next(m) }),
+          row: pending({
+            ...base,
+            ...(m.entity === 'term' ? fields : m.fields),
+            id: m.id,
+            version: next(m),
+          }),
         },
       ];
+      // A new term brings its routine (created with it on the server, same id).
+      if (m.entity === 'term' && !cur && typeof routineId === 'string')
+        changes.push({
+          entity: 'routine',
+          op: 'upsert',
+          row: pending({ id: routineId, term_id: m.id, name: fields.name, version: 1 }),
+        });
+      return changes;
     }
     case 'routine_block_edit': {
       const cur = await get('routine_block', m.block_id);
@@ -174,14 +188,91 @@ export async function localEffects(m: Mutation, get: GetRow): Promise<SyncChange
         },
       ];
     }
+    case 'routine_save':
+      return routineSaveEffects(m, get);
     default:
       return [];
   }
 }
 
+/**
+ * Local mirror of the server's routine_save (apps/api routineSave): in-place changes for blocks starting on/after
+ * the date, close + new version for older ones. Re-applying on top of a pull gives the same rows.
+ */
+async function routineSaveEffects(
+  m: Extract<Mutation, { entity: 'routine_save' }>,
+  get: GetRow,
+): Promise<SyncChange[]> {
+  const routine = await get('routine', m.routine_id);
+  if (!routine) return [];
+  const E = m.effective_from;
+  const out: SyncChange[] = [];
+  const put = (row: Row) => out.push({ entity: 'routine_block', op: 'upsert', row: pending(row) });
+  const fresh = (id: string, f: Row, to: unknown): Row => ({
+    id,
+    routine_id: m.routine_id,
+    ...f,
+    effective_from: E,
+    effective_to: to ?? null,
+    version: 1,
+    deleted_at: null,
+  });
+  for (const op of m.ops) {
+    if (op.op === 'add') {
+      put(fresh(op.block_id, op.fields, null));
+      continue;
+    }
+    const cur = await get('routine_block', op.block_id);
+    if (!cur) continue;
+    const from = String(cur.effective_from);
+    // Already applied (re-apply after a pull): the old row was closed at E by this save.
+    const applied = cur._by === m.client_mutation_id;
+    const mark = {
+      _by: m.client_mutation_id,
+      version: applied ? cur.version : Number(cur.version) + 1,
+    };
+    if (op.op === 'close') {
+      put(
+        from >= E
+          ? { ...cur, ...mark, deleted_at: cur.deleted_at ?? new Date().toISOString() }
+          : { ...cur, ...mark, effective_to: E },
+      );
+      continue;
+    }
+    if (from >= E) {
+      put({ ...cur, ...op.fields, ...mark });
+      continue;
+    }
+    const newId = op.new_block_id;
+    const again = newId ? await get('routine_block', newId) : null;
+    const to = applied ? (again?.effective_to ?? null) : (cur.effective_to ?? null);
+    put({ ...cur, ...mark, effective_to: E });
+    if (newId) {
+      const {
+        id: _id,
+        effective_from: _f,
+        effective_to: _t,
+        version: _v,
+        _by,
+        _pending,
+        ...keep
+      } = cur;
+      void [_id, _f, _t, _v, _by, _pending];
+      put(fresh(newId, { ...keep, ...op.fields }, to));
+    }
+  }
+  out.push({
+    entity: 'routine',
+    op: 'upsert',
+    row: pending({ ...routine, version: m.base_version + 1 }),
+  });
+  return out;
+}
+
 /** The row a mutation's base_version refers to (conflict Reapply). */
 export function mutationTarget(m: Mutation): { entity: SyncEntity; id: string } | null {
   if (m.entity === 'profile') return { entity: 'profile', id: 'me' };
+  if (m.entity === 'routine_save') return { entity: 'routine', id: m.routine_id };
   if (m.entity === 'routine_block_edit') return { entity: 'routine_block', id: m.block_id };
   return { entity: m.entity, id: m.id };
 }
