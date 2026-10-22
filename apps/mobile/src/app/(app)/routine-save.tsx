@@ -41,13 +41,14 @@ export default function RoutineSaveSheet() {
   const routine = data?.schedule.routines.find((r) => r.id === ui.draft?.routineId);
   const name = routine?.name ?? 'routine';
 
-  // Leave once the draft is gone (so the editor's unsaved-changes guard doesn't fire): back to Routines.
+  // Leave once nothing is unsaved (so the editor's guard doesn't fire; the editor may already have reopened a
+  // clean draft from the saved week): back to Routines.
   useEffect(() => {
-    if (done && !ui.draft) {
+    if (done && !ui.dirty) {
       router.dismissTo('/routines');
       toast(done);
     }
-  }, [done, ui.draft, router, toast]);
+  }, [done, ui.dirty, router, toast]);
 
   const save = async () => {
     if (!ui.draft || busy) return;
