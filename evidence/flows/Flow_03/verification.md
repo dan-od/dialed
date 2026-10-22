@@ -25,10 +25,11 @@ Re-run everything: `./scripts/flow03_evidence` (screens + recordings), `pnpm --f
 | Dynamic Type AX1 | `DisplayTitle`/countdown scale line boxes; fixed columns scale; rows stack duration under title ≥ 1.3× | — | `screens/ax1-{day,week,cards,month}.png` | passed (visual) |
 | 44 pt targets | lanes ≥ 48, week rows ≥ 44, Seg and toast action via hitSlop | — | — | passed (static review) |
 | Contrast | tokens | `packages/tokens/test/contrast.test.ts` | — | passed |
-| 375×667 (iPhone SE) | layouts are width-relative | — | not captured | **unverified**: on the fresh SE simulator iOS shows "Open in “Dialed”?" on every launch and Maestro's tap doesn't reach that system alert. One manual tap on Open in Simulator.app unblocks it. |
-| Week with no blocks ("Plan this week") | lanes render "0h" with empty tracks | — | — | **not built**: not in the prototype; a new layout needs a flow-prototype approval (D-35 rule) |
+| 375×667 (iPhone SE 3rd gen) | layouts are width-relative | — | `screens-se/` (Day 3 states, Week, Cards, Month, Thanksgiving week); Flow 01 in `../Flow_01/screens-se/`; e2e chain green on the SE | passed |
+| Week with no blocks | lanes render "0h" with empty tracks (D-41) | — | — | passed ("0h"); "Plan this week" pending owner approval, prototyped with Flow 06 |
 
 ## Fidelity deltas vs prototype v9
+Owner accepted (2026-10-21, D-42): category order from data, every week row opens, holiday note row.
 - Owner review 2026-10-21 (user instruction outranks the prototype):
   - Toasts: dark = cream with a 1.5 pt ink edge; light = cocoa `#8A5A44` with cream text (prototype: ink, invisible over the ink Rest-of-today panel). Toasts sit above the floating nav or pinned bottom buttons (`useToastAnchor`), never over them.
   - Light-mode stamp `#D4911F` (ink text 7.3:1); prototype `#8F5A00` was 3.4:1.
@@ -40,7 +41,7 @@ Re-run everything: `./scripts/flow03_evidence` (screens + recordings), `pnpm --f
 - Month axis: day numbers chosen by priority without overlap (today, holidays, 1st/last, Mondays); the holiday note ("Thanksgiving", from the override note) sits on its own row (prototype: "12 Holiday" inline).
 - Every week row opens its week (prototype: only the current one; others toast). Previous month works.
 - Lane axis labels aligned to the track's 0/25/50/75/100 % (prototype axis is ~10 pt off the track).
-- Tab changes fade 120 ms (Flow 03) — prototype slides 320 ms. Nav collapse animates 450 ms (prototype) — Flow 03 says 250 ms. Both flagged for the owner.
+- Tab changes fade 120 ms; nav collapse animates 450 ms (owner decision D-40, 2026-10-21).
 - Lane label adds "today"; Day cards announce as one summary each; the card rail has VoiceOver increment/decrement.
 - Card snap fires a selection haptic (annotated, not coded, in the prototype); Lanes/Cards switch fires selection both ways.
 - "1 blocks" → "1 block"; "Cryptography lecture" no longer doubled (computed tomorrow line).

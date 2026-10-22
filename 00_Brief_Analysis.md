@@ -109,11 +109,6 @@ Non-goals (v1): shared calendars or multiple users per schedule; writing to Appl
 | D-38 | Domain: okoro.me → `api.okoro.me` (API + `/mcp`), email from `no-reply@okoro.me`. | LOCKED (owner, 2026-10-20) | Owner | all networked, 01, 07 |
 | D-39 | Build for a **free Apple account (Personal Team)** first, behind `APPLE_TEAM_TIER=personal`; paid-only features degrade as in BACKEND_SETUP §13 and switch on with `paid`. | LOCKED (owner, 2026-10-20) | Owner | 01, 06, 07, 08 |
 | D-37 | Day bounds and quiet hours are soft checks in the validator; the owner's seed uses day start 7:30 am and quiet hours 12 am–7:30 am. | ASSUMED | Owner | 02, 06, 07 |
-
-## Open questions
-
-All open questions have reversible `ASSUMED` defaults above and are batched in `CLIENT_QUESTIONS.md`. None blocks the first vertical slice.
-
-## Build prompt budget
-
-`BUILD_PROMPT.txt` target ≤ 60 lines / ≤ 4000 characters (target: Claude Code goal field, no smaller limit declared). Actual: 35 lines, 2345 characters.
+| D-40 | Tab changes (Day/Week/Month) fade 120 ms (Flow 03; prototype slides 320 ms). The floating nav collapses/expands over 450 ms (prototype; Flow 03 said 250 ms). | LOCKED (owner, 2026-10-21) | Owner | 03 |
+| D-41 | A week with no blocks shows its lanes with "0h". The "Plan this week" entry point (→ Flow 06) is prototyped with Flow 06. | "0h": LOCKED (owner, 2026-10-21); "Plan this week": PENDING owner approval | Owner | 03, 06 |
+| D-42 | Accepted Flow 03 deltas from the prototype: legend/tile/stack order comes from the data (hours, Life last); every Month week row opens its week; holiday notes sit on their own row under the Month axis. | APPROVED (owner, 2026-10-21) | Owner | 03 |
