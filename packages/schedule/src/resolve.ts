@@ -17,13 +17,15 @@ export interface ResolveOptions {
 
 const live = <T extends { deleted_at?: string | null }>(row: T) => !row.deleted_at;
 
+/** The term covering `date`. Overlapping terms: the earlier start wins (Flow 05, ASSUMED). */
 export function termFor(date: IsoDate, terms: Term[], opts: ResolveOptions = {}): Term | null {
-  return (
-    terms.find(
-      (t) =>
-        live(t) && (opts.includeDrafts || !t.is_draft) && t.starts_on <= date && date <= t.ends_on,
-    ) ?? null
-  );
+  let best: Term | null = null;
+  for (const t of terms) {
+    if (!live(t) || (!opts.includeDrafts && t.is_draft)) continue;
+    if (t.starts_on > date || date > t.ends_on) continue;
+    if (!best || t.starts_on < best.starts_on) best = t;
+  }
+  return best;
 }
 
 function activeOn(block: RoutineBlock, date: IsoDate): boolean {

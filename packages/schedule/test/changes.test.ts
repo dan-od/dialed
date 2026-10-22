@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nextFreeSlot, overlapOf, resolveDay } from '../src';
+import { nextFreeSlot, overlapOf, resolveDay, termFor } from '../src';
 import { seedData } from './seed';
 
 // Flow 04: overlap warning + default times for the Add sheet.
@@ -44,5 +44,28 @@ describe('nextFreeSlot (default Starts: next free 5-min slot, 1 h)', () => {
   });
   it('never ends after midnight: late in the day it falls back to the last hour', () => {
     expect(nextFreeSlot([], 23 * 60 + 40)).toEqual({ start: 1380, end: 1440 });
+  });
+});
+
+describe('termFor with overlapping terms (Flow 05: the earlier start wins)', () => {
+  it('a day in two terms uses the one that started first, whatever the list order', () => {
+    const late = {
+      id: 'b',
+      name: 'Exam weeks',
+      starts_on: '2026-12-08',
+      ends_on: '2026-12-22',
+      is_draft: false,
+      deleted_at: null,
+    };
+    const early = {
+      id: 'a',
+      name: 'Fall term',
+      starts_on: '2026-09-14',
+      ends_on: '2026-12-11',
+      is_draft: false,
+      deleted_at: null,
+    };
+    expect(termFor('2026-12-09', [late, early])?.name).toBe('Fall term');
+    expect(termFor('2026-12-12', [late, early])?.name).toBe('Exam weeks');
   });
 });
