@@ -70,6 +70,8 @@ export const TermFields = z.strictObject({
   starts_on: isoDate,
   ends_on: isoDate,
   is_draft: z.boolean().optional(),
+  /** New terms only: id for the term's routine, created with it (client-chosen so offline edits can use it). */
+  routine_id: z.uuid().optional(),
 });
 export const ProfileFields = z.strictObject({
   display_name: z.string().trim().max(80).optional(),
@@ -129,6 +131,37 @@ export const RoutineBlockEditMutation = z.strictObject({
   new_block_id: z.uuid().optional(),
 });
 
+const blockCore = {
+  weekday: z.number().int().min(0).max(6),
+  start_min: minute,
+  end_min: minute,
+  title: z.string().trim().min(1).max(80),
+  category_id: z.uuid(),
+};
+/** One change inside a routine save. Client-chosen ids keep offline saves stable. */
+export const RoutineSaveOp = z.discriminatedUnion('op', [
+  z.strictObject({ op: z.literal('add'), block_id: z.uuid(), fields: z.strictObject(blockCore) }),
+  z.strictObject({
+    op: z.literal('update'),
+    block_id: z.uuid(),
+    /** Id for the new version when the block is versioned (close + insert). */
+    new_block_id: z.uuid().optional(),
+    fields: z.strictObject(blockCore).partial(),
+  }),
+  z.strictObject({ op: z.literal('close'), block_id: z.uuid() }),
+]);
+export type RoutineSaveOp = z.infer<typeof RoutineSaveOp>;
+
+/** Flow 05 "Save routine": every change in one server transaction, effective from one date. */
+export const RoutineSaveMutation = z.strictObject({
+  ...base,
+  entity: z.literal('routine_save'),
+  routine_id: z.uuid(),
+  base_version: z.number().int().min(1),
+  effective_from: isoDate,
+  ops: z.array(RoutineSaveOp).max(200),
+});
+
 export const Mutation = z.discriminatedUnion('entity', [
   simple('override', OverrideFields),
   simple('category', CategoryFields),
@@ -142,6 +175,7 @@ export const Mutation = z.discriminatedUnion('entity', [
     fields: ProfileFields,
   }),
   RoutineBlockEditMutation,
+  RoutineSaveMutation,
 ]);
 export type Mutation = z.infer<typeof Mutation>;
 
