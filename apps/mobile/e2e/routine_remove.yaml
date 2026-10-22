@@ -1,0 +1,14 @@
+# Flow 05 remove + Undo: the row goes, "Unsaved changes", Undo puts it back and the draft is clean again.
+appId: me.okoro.dialed
+---
+- runFlow: _editor.yaml
+- tapOn: 'Remove Gym from every Monday'
+- extendedWaitUntil: { visible: 'Removed Gym from Mondays.', timeout: 5000 }
+- assertVisible: 'Unsaved changes'
+- assertNotVisible: 'Remove Gym from every Monday'
+- takeScreenshot: remove-undo-${THEME}
+- tapOn: 'Undo'
+- extendedWaitUntil: { visible: 'Put back.', timeout: 5000 }
+- assertVisible: 'Remove Gym from every Monday'
+- assertVisible: 'Changes start next Monday'
+- takeScreenshot: remove-put-back-${THEME}

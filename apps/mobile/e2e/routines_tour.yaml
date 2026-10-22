@@ -1,0 +1,22 @@
+# Flow 05 tour: Routines, Terms and dates (from Exam weeks), the editor (Monday, Tuesday, meals on).
+appId: me.okoro.dialed
+---
+- runFlow: _routines.yaml
+- takeScreenshot: routines-${THEME}
+- tapOn: 'Exam weeks.*'
+- extendedWaitUntil: { visible: 'Terms and dates', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: terms-${THEME}
+- runFlow: _sheet_to_bottom.yaml
+- takeScreenshot: terms-rules-${THEME}
+- tapOn: 'Back to Routines'
+- extendedWaitUntil: { visible: 'Your repeating weeks.*', timeout: 10000 }
+- tapOn: { id: 'routine-card' }
+- extendedWaitUntil: { visible: 'Every Monday', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: editor-mon-${THEME}
+- tapOn: { id: 'rtab-1' }
+- extendedWaitUntil: { visible: 'Every Tuesday', timeout: 5000 }
+- tapOn: { id: 'meals-sw' }
+- extendedWaitUntil: { visible: 'Breakfast', timeout: 5000 }
+- takeScreenshot: editor-tue-meals-${THEME}

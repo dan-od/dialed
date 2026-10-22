@@ -1,0 +1,7 @@
+# Routines → Fall term editor (Monday tab).
+appId: me.okoro.dialed
+---
+- runFlow: _routines.yaml
+- tapOn: { id: 'routine-card' }
+- extendedWaitUntil: { visible: 'Every Monday', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }

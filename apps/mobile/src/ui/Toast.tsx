@@ -232,8 +232,10 @@ function ToastView({
             accessibilityRole="button"
             hitSlop={{ top: 5, bottom: 5 }} // 34 pt button + 10 = 44 pt target
             onPress={() => {
-              msg.action!.onPress();
+              // Clear first: the action may show its own toast ("Put back.").
+              const act = msg.action!;
               onDone();
+              act.onPress();
             }}
             style={{
               height: 34,
