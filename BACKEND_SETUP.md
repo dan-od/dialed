@@ -30,7 +30,7 @@ Recorded at Batch 0 (2026-10-20) on the owner's Mac:
 | macOS | 27.2 (26B5101f) | |
 | Xcode | 27.1 (27A9275) | scripts set `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` when `xcode-select` points at Command Line Tools (still the case on 2026-10-21) |
 | Repo location | `~/Codes/dialed` (moved 2026-10-21) | outside iCloud-synced `~/Documents`, so native builds go through the normal Xcode path |
-| iOS Simulator runtimes | iOS 27.0, 27.1 | no iPhone SE runtime installed (375×667 screenshots unavailable) |
+| iOS Simulator runtimes | iOS 27.0, 27.1 | iPhone SE (3rd generation) available since 2026-10-21 (375×667 evidence for Flows 01, 03) |
 | Node | 22.23.3 LTS | official nodejs.org build in `~/.local/share/node22` (Homebrew `node@22` bottle was broken: missing libsimdjson.34); default `node` on PATH stays 25.9 |
 | pnpm | 9.15.9 | `packageManager` field; `node-linker=hoisted` for Metro |
 | Docker | 29.8.2 via OrbStack | same `docker compose` CLI |
@@ -41,6 +41,7 @@ Recorded at Batch 0 (2026-10-20) on the owner's Mac:
 | Vitest | 5.0.5 | |
 | Expo SDK / React Native / React | 58.0.16 / 0.88.0 / 19.3.0 | `create-expo-app@5.0.0` default template (Expo Router, `src/app`) |
 | CocoaPods / Watchman / gitleaks | 1.17.0 / 2026.10.19.00 / 8.30.1 | Homebrew |
+| @react-native-community/datetimepicker / expo-notifications | 9.2.1 / 58.1.6 | Flow 04: native time picker; local reminders + permission prompt (`enableRemoteNotifications` only on `APPLE_TEAM_TIER=paid`) |
 | App Groups on Personal Team | not tested yet | Flow 08 |
 
 ## 2. Repository layout (pnpm workspaces)

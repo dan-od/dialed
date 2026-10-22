@@ -1,0 +1,11 @@
+# Dev clock preset 5: 1:15 pm on the real date (Flow 04 changes are dated today; the server refuses past days).
+appId: me.okoro.dialed
+---
+- runFlow: _relaunch.yaml
+- runFlow: _dev_clock.yaml
+- runFlow: _dev_clock.yaml
+- runFlow: _dev_clock.yaml
+- runFlow: _dev_clock.yaml
+- runFlow: _dev_clock.yaml
+- extendedWaitUntil: { visible: 'Rest of today', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
