@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { sql, type SQL } from 'drizzle-orm';
 import type {
   Mutation,
@@ -273,6 +274,8 @@ export class SyncService {
         };
       case 'routine_block_edit':
         return { entity: 'routine_block', row: await this.routineBlockEdit(tx, rec, userId, m) };
+      case 'routine_save':
+        return { entity: 'routine', row: await this.routineSave(tx, rec, userId, m) };
       case 'override':
       case 'category':
       case 'term':
@@ -332,7 +335,10 @@ export class SyncService {
     tx: Tx,
     rec: ChangeRecorder,
     userId: string,
-    m: Extract<Mutation, { entity: 'override' | 'category' | 'term' | 'routine_block' }>,
+    m: Extract<
+      Mutation,
+      { entity: 'override' | 'category' | 'term' | 'routine_block' | 'routine' }
+    >,
   ): Promise<Row> {
     const table = TABLE[m.entity];
     const found = await tx.execute<Row>(
@@ -367,8 +373,12 @@ export class SyncService {
     if (m.entity === 'override')
       await this.checkOverride(tx, userId, existing ? { ...existing, ...fields } : fields);
     if (m.entity === 'term' && String(fields.ends_on) < String(fields.starts_on))
-      throw new Rejected('bad_request', 'A term ends on or after it starts.');
+      throw new Rejected('bad_request', 'Ends needs to be after starts.');
     if (m.entity === 'routine_block') await this.checkNewRoutineBlock(tx, userId, fields);
+    // A term's routine id rides along on create only; it isn't a term column.
+    const routineId =
+      m.entity === 'term' ? ((fields.routine_id as string | undefined) ?? null) : null;
+    if (m.entity === 'term') delete fields.routine_id;
 
     let row: Row;
     if (existing) {
@@ -393,7 +403,8 @@ export class SyncService {
       row = rows[0]!;
       if (m.entity === 'term') {
         const r = await tx.execute<Row>(
-          sql`insert into routines (user_id, term_id, name) values (${userId}, ${m.id}, ${String(fields.name)}) returning *`,
+          sql`insert into routines (id, user_id, term_id, name)
+            values (coalesce(${routineId}::uuid, gen_random_uuid()), ${userId}, ${m.id}, ${String(fields.name)}) returning *`,
         );
         await rec.record('routine', String(r.rows[0]!.id), 'upsert', r.rows[0]!);
       }
@@ -459,6 +470,95 @@ export class SyncService {
       sql`select 1 from ${sql.raw(table)} where id = ${id} and user_id = ${userId}`,
     );
     if (!rows[0]) throw new Rejected('not_found', 'That isn’t available.');
+  }
+
+  /**
+   * Flow 05 "Save routine": all changes in one transaction, effective from one date (BACKEND_SETUP §4).
+   * A block that already starts on/after the date changes in place; an older one is closed at the date and a
+   * new version (client-chosen id) continues from it. Past days never change.
+   */
+  private async routineSave(
+    tx: Tx,
+    rec: ChangeRecorder,
+    userId: string,
+    m: Extract<Mutation, { entity: 'routine_save' }>,
+  ): Promise<Row> {
+    const found = await tx.execute<Row>(
+      sql`select * from routines where id = ${m.routine_id} and user_id = ${userId} for update`,
+    );
+    const routine = found.rows[0];
+    if (!routine) throw new Rejected('not_found', 'That isn’t available.');
+    if (Number(routine.version) !== m.base_version) throw new Conflict(syncRow('routine', routine));
+    const E = m.effective_from;
+    if (E < (await this.today(tx, userId)))
+      throw new Rejected('bad_request', 'Past days never change. Pick today or later.');
+
+    const insert = async (id: string, f: Row, to: string | null) => {
+      if (Number(f.end_min) <= Number(f.start_min))
+        throw new Rejected('bad_request', 'End after it starts.');
+      await this.owned(tx, 'categories', String(f.category_id), userId);
+      const taken = await tx.execute(sql`select 1 from routine_blocks where id = ${id}`);
+      if (taken.rows[0]) throw new Rejected('bad_request', 'That block id is already used.');
+      const { rows } = await tx.execute<Row>(sql`insert into routine_blocks
+        (id, routine_id, user_id, weekday, start_min, end_min, title, category_id, effective_from, effective_to, source)
+        values (${id}, ${m.routine_id}, ${userId}, ${f.weekday}, ${f.start_min}, ${f.end_min}, ${f.title},
+                ${f.category_id}, ${E}, ${to}, 'user') returning *`);
+      await rec.record('routine_block', id, 'upsert', rows[0]!);
+    };
+    const update = async (id: string, set: SQL) => {
+      const { rows } = await tx.execute<Row>(
+        sql`update routine_blocks set ${set}, version = version + 1 where id = ${id} returning *`,
+      );
+      await rec.record('routine_block', id, 'upsert', rows[0]!);
+    };
+    const block = async (id: string) => {
+      const r = await tx.execute<Row>(sql`select * from routine_blocks
+        where id = ${id} and user_id = ${userId} and routine_id = ${m.routine_id} and deleted_at is null for update`);
+      if (!r.rows[0]) throw new Rejected('not_found', 'That isn’t available.');
+      return r.rows[0];
+    };
+
+    for (const op of m.ops) {
+      if (op.op === 'add') {
+        await insert(op.block_id, op.fields, null);
+        continue;
+      }
+      const cur = await block(op.block_id);
+      const from = String(cur.effective_from);
+      const to = cur.effective_to ? String(cur.effective_to) : null;
+      if (to !== null && E >= to)
+        throw new Rejected('bad_request', 'That block already ends before then.');
+      if (op.op === 'close') {
+        await update(op.block_id, from >= E ? sql`deleted_at = now()` : sql`effective_to = ${E}`);
+        continue;
+      }
+      const f = op.fields;
+      const merged = {
+        weekday: f.weekday ?? Number(cur.weekday),
+        start_min: f.start_min ?? Number(cur.start_min),
+        end_min: f.end_min ?? Number(cur.end_min),
+        title: f.title ?? String(cur.title),
+        category_id: f.category_id ?? String(cur.category_id),
+      };
+      if (from >= E) {
+        if (merged.end_min <= merged.start_min)
+          throw new Rejected('bad_request', 'End after it starts.');
+        if (f.category_id) await this.owned(tx, 'categories', f.category_id, userId);
+        await update(
+          op.block_id,
+          sql`weekday = ${merged.weekday}, start_min = ${merged.start_min}, end_min = ${merged.end_min},
+            title = ${merged.title}, category_id = ${merged.category_id}`,
+        );
+      } else {
+        await update(op.block_id, sql`effective_to = ${E}`);
+        await insert(op.new_block_id ?? randomUUID(), merged, to);
+      }
+    }
+    const { rows } = await tx.execute<Row>(
+      sql`update routines set version = version + 1 where id = ${m.routine_id} returning *`,
+    );
+    await rec.record('routine', m.routine_id, 'upsert', rows[0]!);
+    return rows[0]!;
   }
 
   /** Flow 04 "every week" edits: close + insert, or in-place on the same effective day. Past days never change. */
@@ -532,6 +632,7 @@ export class SyncService {
 }
 
 function entityOf(m: Mutation): string {
+  if (m.entity === 'routine_save') return 'routine';
   return m.entity === 'routine_block_edit' ? 'routine_block' : m.entity;
 }
 
