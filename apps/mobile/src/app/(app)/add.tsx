@@ -82,9 +82,6 @@ export default function AddSheet() {
   useEffect(() => {
     if (leaving) router.dismissAll();
   }, [leaving, router]);
-  useEffect(() => {
-    if (!f && !leaving) router.back(); // opened without a draft (e.g. restored route)
-  }, [f, leaving, router]);
 
   const schedule = data?.schedule;
   const day = useMemo(

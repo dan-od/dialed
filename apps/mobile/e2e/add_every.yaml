@@ -3,11 +3,12 @@
 appId: me.okoro.dialed
 ---
 - runFlow: _today.yaml
-- tapOn: 'Add a block'
-- extendedWaitUntil: { visible: 'Add to .*', timeout: 10000 }
+- runFlow: _open_add.yaml
 - takeScreenshot: add-blank-${THEME}
 - tapOn: { id: 'add-name' }
 - inputText: 'Capstone reading'
+- pressKey: Enter
+- waitForAnimationToEnd: { timeout: 2000 }
 - tapOn: { id: 'add-category' }
 - extendedWaitUntil: { visible: 'Category', timeout: 5000 }
 - takeScreenshot: cat-${THEME}

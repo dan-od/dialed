@@ -1,0 +1,11 @@
+# Opens the Add sheet from the nav +. The first tap right after the dev-clock long-presses is sometimes
+# dropped in the Simulator; tap again if the sheet isn't up.
+appId: me.okoro.dialed
+---
+- tapOn: 'Add a block'
+- waitForAnimationToEnd: { timeout: 2000 }
+- runFlow:
+    when: { notVisible: 'Add to .*' }
+    commands:
+      - tapOn: 'Add a block'
+- extendedWaitUntil: { visible: 'Add to .*', timeout: 10000 }

@@ -37,9 +37,6 @@ export default function EditSheet() {
   useEffect(() => {
     if (leaving) router.dismissAll();
   }, [leaving, router]);
-  useEffect(() => {
-    if (!e && !leaving) router.back();
-  }, [e, leaving, router]);
   if (!e || !data) return null;
 
   const { block, orig, cur, scope, today } = e;

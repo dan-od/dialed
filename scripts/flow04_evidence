@@ -24,6 +24,7 @@ ONLY="${ONLY:-all}"
 want() { [[ "$ONLY" == all || "$ONLY" == "$1" ]]; }
 collect() { find "$RAW" -path "*takeScreenshot*" -name "*.png" -exec cp {} "$EV/screens/" \; ; }
 trap collect EXIT
+"$ROOT/scripts/dev_flow04_cleanup"
 xcrun simctl ui "$DEVICE" appearance dark
 if want add; then log "Recording: add every week → New → delete → Undo"; retry record add -e THEME=dark e2e/add_every.yaml; fi
 if want invalid; then log "Recording: invalid, category create, overlap, discard"; retry record category -e THEME=dark e2e/add_invalid_overlap.yaml; fi
@@ -35,4 +36,5 @@ if want light; then
   retry run edit-light -e THEME=light e2e/edit_block.yaml
   xcrun simctl ui "$DEVICE" appearance dark
 fi
+"$ROOT/scripts/dev_flow04_cleanup"
 log "Flow 04 evidence written to $EV"

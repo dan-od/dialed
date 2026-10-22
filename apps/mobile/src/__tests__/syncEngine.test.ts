@@ -189,6 +189,19 @@ describe('SyncEngine', () => {
     engine.stop();
   });
 
+  it('an edit made online syncs quietly: "Synced N changes" is only for catching up after offline', async () => {
+    const store = new MemoryStore();
+    const server = new FakeServer();
+    const ev = events();
+    const engine = new SyncEngine(store, server, ev);
+    await engine.sync();
+    await engine.enqueue(theme(1, 1, 'light'));
+    await engine.sync();
+    expect(engine.status.pending).toBe(0);
+    expect(ev.synced).not.toHaveBeenCalled();
+    engine.stop();
+  });
+
   it('pending edits survive a pull (rebased on top) until the server answers', async () => {
     const store = new MemoryStore();
     const server = new FakeServer();

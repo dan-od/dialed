@@ -18,6 +18,8 @@ appId: me.okoro.dialed
 - extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
 - tapOn: { id: 'edit-name' }
 - inputText: ', legs'
+- pressKey: Enter
+- waitForAnimationToEnd: { timeout: 2000 }
 - tapOn: { id: 'edit-save' }
 - extendedWaitUntil: { visible: 'Changed for this .* only.', timeout: 5000 }
 - scrollUntilVisible: { element: 'Edit Gym, legs.*new', direction: DOWN, timeout: 10000, centerElement: true }
@@ -26,6 +28,7 @@ appId: me.okoro.dialed
 - extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
 - tapOn: { id: 'edit-name' }
 - eraseText: 6
+- pressKey: Enter
 - tapOn: { id: 'edit-save' }
 - extendedWaitUntil: { visible: 'Changed for this .* only.', timeout: 5000 }
 # Every week: rename, then back
@@ -35,6 +38,8 @@ appId: me.okoro.dialed
 - tapOn: { id: 'edit-scope-every' }
 - tapOn: { id: 'edit-name' }
 - inputText: ' class'
+- pressKey: Enter
+- waitForAnimationToEnd: { timeout: 2000 }
 - takeScreenshot: edit-every-${THEME}
 - tapOn: { id: 'edit-save' }
 - extendedWaitUntil: { visible: 'Updated every .*', timeout: 5000 }
@@ -44,6 +49,7 @@ appId: me.okoro.dialed
 - tapOn: { id: 'edit-scope-every' }
 - tapOn: { id: 'edit-name' }
 - eraseText: 6
+- pressKey: Enter
 - tapOn: { id: 'edit-save' }
 - extendedWaitUntil: { visible: 'Updated every .*', timeout: 5000 }
 # Skip → Undo
