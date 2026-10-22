@@ -10,7 +10,6 @@ import { DisplayTitle } from '../../../ui/DisplayTitle';
 import { BackIcon, RepeatIcon } from '../../../ui/icons';
 import { TabPage } from '../../../ui/TabPage';
 import { D, T } from '../../../ui/Text';
-import { useToast } from '../../../ui/Toast';
 import { MonthChart } from '../../../week/MonthChart';
 import { monthModel } from '../../../week/model';
 import { ThemeButton } from '../../../week/ThemeButton';
@@ -21,7 +20,6 @@ const prevMonth = (m: string) => addDays(`${m}-01`, -1).slice(0, 7);
 /** Month poster + day chart + weeks list (Flow 03). `?month=YYYY-MM` shows an earlier month. */
 export default function MonthScreen() {
   const router = useRouter();
-  const toast = useToast();
   const params = useLocalSearchParams<{ month?: string }>();
   const { data, now, c, isLight } = useSchedule();
   const { fontScale } = useWindowDimensions();
@@ -45,7 +43,7 @@ export default function MonthScreen() {
           }
           right={
             <View style={{ flexDirection: 'row', gap: 6 }}>
-              <RoutinesPill onPress={() => toast('Routines arrive with the next build step.')} />
+              <RoutinesPill onPress={() => router.push('/routines')} />
               <ThemeButton />
             </View>
           }

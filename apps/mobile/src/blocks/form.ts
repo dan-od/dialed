@@ -81,9 +81,16 @@ export const overlapText = (b: { title: string; start_min: number; end_min: numb
 export const overlapSpoken = (title: string) =>
   `This overlaps ${title}. Press Add anyway to keep both.`;
 
-export function addPrimaryLabel(s: { overlap: boolean; overlapOk: boolean; saving: boolean }) {
+export function addPrimaryLabel(s: {
+  overlap: boolean;
+  overlapOk: boolean;
+  saving: boolean;
+  /** Flow 05 routine mode ("Add to Mons"). */
+  routine?: boolean;
+}) {
   if (s.saving) return 'Adding';
-  return s.overlap && s.overlapOk ? 'Add anyway' : 'Add block';
+  if (s.overlap && s.overlapOk) return 'Add anyway';
+  return s.routine ? 'Add to routine' : 'Add block';
 }
 
 export function addToast(s: {

@@ -41,6 +41,8 @@ interface AppValue {
   online: boolean;
   /** Flow 04 block changes (local first, through the outbox). */
   blocks: Blocks;
+  /** The device store (small per-account prefs such as the routine editor's draft). */
+  store: LocalStore;
   /** After verify / login / reset: persist tokens, start syncing (pull since=0). */
   signIn(t: TokensOut): Promise<void>;
   signOut(): Promise<void>;
@@ -264,6 +266,7 @@ export function AppProvider({
     sync,
     online: online && sync.problem !== 'offline',
     blocks,
+    store,
     signIn,
     signOut,
     syncNow: () => void engineRef.current?.sync(),
