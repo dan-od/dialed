@@ -46,10 +46,9 @@ export function RestOfToday({
   const reveal = (key: string, y: number) => {
     if (key !== newKey || shown.current === key) return;
     shown.current = key;
-    scroller.current?.scrollTo({
-      y: Math.max(0, listY.current + y - viewH.current / 3),
-      animated: true,
-    });
+    // Next frame: the list's content size must include the new row first, or iOS clamps the offset.
+    const target = Math.max(0, listY.current + y - viewH.current / 3);
+    setTimeout(() => scroller.current?.scrollTo({ y: target, animated: true }), 60);
   };
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
