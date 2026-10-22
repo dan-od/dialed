@@ -1,0 +1,17 @@
+# Flow 05: swipe-back with unsaved edits asks first (beforeRemove), like the Back button.
+appId: me.okoro.dialed
+---
+- runFlow: _editor.yaml
+- tapOn: 'Remove Gym from every Monday'
+- extendedWaitUntil: { visible: 'Unsaved changes', timeout: 5000 }
+- swipe: { start: '1%,50%', end: '85%,50%', duration: 500 }
+- extendedWaitUntil: { visible: 'Discard routine changes?', timeout: 5000 }
+- takeScreenshot: swipe-back-discard-${THEME}
+- tapOn: 'Keep editing'
+- extendedWaitUntil: { notVisible: 'Discard routine changes?', timeout: 5000 }
+- assertVisible: 'Unsaved changes'
+- tapOn: 'Back to Routines'
+- extendedWaitUntil: { visible: 'Discard routine changes?', timeout: 5000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- tapOn: 'Discard'
+- extendedWaitUntil: { visible: 'Your repeating weeks.*', timeout: 5000 }
