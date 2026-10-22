@@ -23,6 +23,8 @@ export interface OutboxItem {
 export interface LocalData {
   schedule: ScheduleData;
   profile: Profile | null;
+  /** Ids of rows with a queued, unsent change ("· waiting to sync"). */
+  pending: string[];
 }
 
 /** On-device read model + outbox (D-03). SQLite in the app, memory in tests — same contract. */
@@ -39,6 +41,9 @@ export interface LocalStore {
   enqueue(m: Mutation): Promise<void>;
   outbox(): Promise<OutboxItem[]>;
   removeOutbox(seqs: number[]): Promise<void>;
+  /** Small per-account device prefs (recent categories). Wiped with the session. */
+  getMeta(key: string): Promise<string | null>;
+  setMeta(key: string, value: string): Promise<void>;
   wipe(): Promise<void>;
 }
 
