@@ -5,3 +5,4 @@ export * from './totals';
 export * from './format';
 export * from './now';
 export * from './effective';
+export * from './changes';
