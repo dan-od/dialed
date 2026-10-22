@@ -1,7 +1,7 @@
 import { addDays, weekStartOf } from '@dialed/schedule';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, TextInput, useWindowDimensions, View } from 'react-native';
 import { useApp } from '../../AppProvider';
 import { useBlocksUi } from '../../blocks/BlocksUi';
 import {
@@ -20,12 +20,14 @@ import { haptic } from '../../lib/haptics';
 import { useTheme } from '../../theme/theme';
 import { Button } from '../../ui/Button';
 import { ChevronIcon } from '../../ui/icons';
+import { LARGE_TEXT } from '../../ui/largeText';
 import { T } from '../../ui/Text';
 import { useToast } from '../../ui/Toast';
 
 /** Edit block (prototype blockEdit): this day only vs every week, move within the week, skip or delete. */
 export default function EditSheet() {
   const { c, isLight } = useTheme();
+  const large = useWindowDimensions().fontScale >= LARGE_TEXT;
   const router = useRouter();
   const toast = useToast();
   const { data, blocks, online } = useApp();
@@ -228,7 +230,8 @@ export default function EditSheet() {
               accessibilityRole="radiogroup"
               accessibilityLabel="Apply to"
               style={{
-                flexDirection: 'row',
+                // Large Dynamic Type: stacked, so "This Thursday only" never truncates.
+                flexDirection: large ? 'column' : 'row',
                 gap: 4,
                 padding: 4,
                 borderRadius: 16,
@@ -250,7 +253,8 @@ export default function EditSheet() {
                     onPress={() => ui.setEdit({ ...e, scope: s })}
                     style={{
                       flex: 1,
-                      height: 40,
+                      minHeight: 40,
+                      paddingVertical: 6,
                       borderRadius: 12,
                       backgroundColor: on ? c.surf : 'transparent',
                       alignItems: 'center',

@@ -5,24 +5,23 @@ appId: me.okoro.dialed
 - runFlow: _today.yaml
 - runFlow: _open_add.yaml
 - takeScreenshot: ${TAG}-add
+- runFlow: _sheet_to_bottom.yaml
 - tapOn: { id: 'add-save' }
-- extendedWaitUntil: { visible: 'Give the block a name.*', timeout: 5000 }
-- takeScreenshot: ${TAG}-add-invalid
-- scrollUntilVisible: { element: { id: 'add-save' }, direction: DOWN, timeout: 8000 }
 - takeScreenshot: ${TAG}-add-bottom
+- scrollUntilVisible: { element: 'Give the block a name.*', direction: UP, timeout: 8000 }
+- takeScreenshot: ${TAG}-add-invalid
+- scrollUntilVisible: { element: { id: 'add-category' }, direction: UP, timeout: 8000 }
 - tapOn: { id: 'add-category' }
 - extendedWaitUntil: { visible: 'Search or create a category', timeout: 5000 }
 - takeScreenshot: ${TAG}-category
 - tapOn: 'Back'
+- scrollUntilVisible: { element: 'Close', direction: UP, timeout: 8000 }
 - tapOn: 'Close'
 - extendedWaitUntil: { visible: 'Rest of today', timeout: 5000 }
-- runFlow:
-    when: { notVisible: 'Edit Gym, .*' }
-    commands:
-      - runFlow: _rest_to_bottom.yaml
+- runFlow: _rest_nudge.yaml
 - tapOn: 'Edit Gym, .*'
 - extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
 - takeScreenshot: ${TAG}-edit
-- scrollUntilVisible: { element: { id: 'edit-remove' }, direction: DOWN, timeout: 8000 }
+- runFlow: _sheet_to_bottom.yaml
 - takeScreenshot: ${TAG}-edit-bottom
 - tapOn: 'Close'

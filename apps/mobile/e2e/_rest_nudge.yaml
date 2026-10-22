@@ -1,0 +1,5 @@
+# Small screens / large text: nudge Rest of today up about one row so the second row clears the floating nav.
+appId: me.okoro.dialed
+---
+- swipe: { start: '50%,86%', end: '50%,76%', duration: 500 }
+- waitForAnimationToEnd: { timeout: 2000 }

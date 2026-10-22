@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
   findNodeHandle,
+  useWindowDimensions,
   type TextInputInstance,
   type ViewInstance,
 } from 'react-native';
@@ -48,12 +49,14 @@ import { Button } from '../../ui/Button';
 import { Dialog } from '../../ui/Chrome';
 import { BellIcon, ChevronIcon, RepeatIcon } from '../../ui/icons';
 import { Notice } from '../../ui/Notice';
+import { LARGE_TEXT } from '../../ui/largeText';
 import { T } from '../../ui/Text';
 import { useToast } from '../../ui/Toast';
 
 /** Flow 04 Add sheet (prototype states add, add-invalid, add-overlap; D-32 alert default off). */
 export default function AddSheet() {
   const { c, isLight } = useTheme();
+  const large = useWindowDimensions().fontScale >= LARGE_TEXT;
   const router = useRouter();
   const toast = useToast();
   const { data, blocks, online } = useApp();
@@ -318,13 +321,18 @@ export default function AddSheet() {
         </View>
         {errors.time ? <ErrorText>{errors.time}</ErrorText> : null}
 
-        <View style={{ flexDirection: 'row', gap: 6 }}>
+        {/* Large Dynamic Type: a 2 × 2 grid so "1h 30m" never truncates. */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
           {LENGTHS.map((l) => (
             <Chip
               key={l.min}
               label={l.label}
               on={len === l.min}
-              style={{ flex: 1, paddingHorizontal: 4 }}
+              style={{
+                flexGrow: 1,
+                flexBasis: large ? '45%' : 0,
+                paddingHorizontal: 4,
+              }}
               a11yLabel={`Length ${l.label}`}
               onPress={() => {
                 haptic.selection();

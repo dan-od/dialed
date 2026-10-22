@@ -96,7 +96,7 @@ export default function CategorySheet() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 2,
-                width: 76,
+                minWidth: 76,
               }}
             >
               <BackIcon color={c.acc2} />
