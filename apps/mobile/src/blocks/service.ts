@@ -2,6 +2,7 @@ import type { Mutation } from '@dialed/contracts';
 import type { IsoDate, ResolvedBlock } from '@dialed/schedule';
 import { randomUUID } from 'expo-crypto';
 import type { LocalStore } from '../data/types';
+import { draftOps, saveMutation, type RoutineDraft } from '../routines/draft';
 
 export interface BlockFields {
   title: string;
@@ -303,6 +304,51 @@ export class Blocks {
       },
     });
     return { ok: true, id };
+  }
+
+  /** Terms and dates (Flow 05): inline date edits. */
+  async updateTerm(id: string, dates: { starts_on: string; ends_on: string }) {
+    const t = await this.store.getRow('term', id);
+    if (!t) throw new Error(`term ${id} is not on this phone`);
+    await this.send({
+      entity: 'term',
+      op: 'upsert',
+      id,
+      base_version: this.version(t),
+      fields: { name: String(t.name), ...dates },
+    });
+  }
+
+  /** "Name your term" (D-35): a new term and its routine (client-chosen ids, so its editor works offline). */
+  async createTerm(name: string, starts: string, ends: string) {
+    const termId = this.uuid();
+    const routineId = this.uuid();
+    await this.send({
+      entity: 'term',
+      op: 'upsert',
+      id: termId,
+      base_version: 0,
+      fields: { name: name.trim(), starts_on: starts, ends_on: ends, routine_id: routineId },
+    });
+    return { termId, routineId };
+  }
+
+  /** "Save routine": one routine_save, then any alerts picked while adding blocks in routine mode. */
+  async saveRoutine(
+    draft: RoutineDraft,
+    effectiveFrom: string,
+    alerts: Record<string, AlertChoice> = {},
+  ) {
+    const r = await this.store.getRow('routine', draft.routineId);
+    if (!r) throw new Error(`routine ${draft.routineId} is not on this phone`);
+    await this.enqueue(saveMutation(draft, this.version(r), effectiveFrom, this.uuid));
+    const added = new Set(
+      draftOps(draft, this.uuid)
+        .filter((o) => o.op === 'add')
+        .map((o) => o.block_id),
+    );
+    for (const [id, a] of Object.entries(alerts))
+      if (a !== null && added.has(id)) await this.setAlert(id, a);
   }
 
   /** Per-block push alert (D-32), stored in profile_json.block_alerts and scheduled on this phone. */

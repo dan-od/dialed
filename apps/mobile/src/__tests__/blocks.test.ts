@@ -87,6 +87,9 @@ const rows: SyncChange[] = [
   },
 ];
 
+const engines: SyncEngine[] = [];
+afterEach(() => engines.splice(0).forEach((e) => e.stop()));
+
 async function setup() {
   const store = new MemoryStore();
   await store.replaceAll(rows, 7);
@@ -104,6 +107,7 @@ async function setup() {
       rejected: () => {},
     },
   );
+  engines.push(engine);
   let n = 100;
   const blocks = new Blocks(
     store,
@@ -359,5 +363,68 @@ describe('blocks service (Flow 04)', () => {
       ok: false,
       message: 'You already have Bible study.',
     });
+  });
+  it("term dates: a term upsert with the row's version; a new term carries its routine id", async () => {
+    const { blocks, sent, store } = await setup();
+    await blocks.updateTerm(TERM, { starts_on: '2026-09-14', ends_on: '2026-12-18' });
+    expect((await sent())[0]).toMatchObject({
+      entity: 'term',
+      op: 'upsert',
+      id: TERM,
+      base_version: 1,
+      fields: { name: 'Fall term', starts_on: '2026-09-14', ends_on: '2026-12-18' },
+    });
+    const r = await blocks.createTerm('Summer term', '2027-05-03', '2027-08-20');
+    expect((await sent())[1]).toMatchObject({
+      entity: 'term',
+      op: 'upsert',
+      id: r.termId,
+      base_version: 0,
+      fields: { name: 'Summer term', routine_id: r.routineId },
+    });
+    expect((await store.getRow('routine', r.routineId))?.term_id).toBe(r.termId);
+  });
+  it('saving a routine queues one routine_save and sets alerts chosen in routine mode', async () => {
+    const { blocks, sent, store } = await setup();
+    await store.upsertRows([
+      {
+        entity: 'profile',
+        op: 'upsert',
+        row: { display_name: 'O', time_zone: 'America/Toronto', version: 3, profile_json: {} },
+      },
+    ]);
+    const draft = {
+      routineId: ROUTINE,
+      base: {},
+      trash: {},
+      days: [
+        [
+          {
+            id: u(77),
+            weekday: 0,
+            start_min: 1320,
+            end_min: 1380,
+            title: 'Read',
+            category_id: STUDY,
+          },
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+      ],
+    };
+    await blocks.saveRoutine(draft, '2026-10-26', { [u(77)]: 10 });
+    const [save, alert] = await sent();
+    expect(save).toMatchObject({
+      entity: 'routine_save',
+      routine_id: ROUTINE,
+      base_version: 1,
+      effective_from: '2026-10-26',
+      ops: [{ op: 'add', block_id: u(77) }],
+    });
+    expect(alert).toMatchObject({ entity: 'profile', fields: { block_alerts: { [u(77)]: 10 } } });
   });
 });
