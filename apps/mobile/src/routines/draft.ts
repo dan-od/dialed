@@ -108,25 +108,27 @@ export function editBlock(
 }
 
 /**
- * Copy one day onto others: their blocks are replaced by copies. `replaces` lists target days that had
- * blocks (the sheet says "Replaces what's on …").
+ * Copy one day onto others: their blocks are replaced by copies, except fixed ones (classes stay).
+ * `replaces` lists target days that had blocks to replace (the sheet says "Replaces what's on …").
  */
 export function copyDay(
   d: RoutineDraft,
   from: number,
   to: number[],
   ids: () => string,
+  /** Category ids whose blocks stay put (classes): kept on targets, not copied from the source. */
+  fixed: Set<string> = new Set(),
 ): { draft: RoutineDraft; replaces: number[]; error?: string } {
   if (!to.length) return { draft: d, replaces: [], error: 'Pick at least one day.' };
-  const replaces = to.filter((t) => d.days[t]!.length > 0);
+  const movable = (b: DraftBlock) => !fixed.has(b.category_id);
+  const replaces = to.filter((t) => d.days[t]!.some(movable));
   let out = d;
   for (const t of to) {
     if (t === from) continue;
-    out = withDay(
-      out,
-      t,
-      d.days[from]!.map((b) => ({ ...b, id: ids(), weekday: t })),
-    );
+    out = withDay(out, t, [
+      ...d.days[t]!.filter((b) => !movable(b)),
+      ...d.days[from]!.filter(movable).map((b) => ({ ...b, id: ids(), weekday: t })),
+    ]);
   }
   return { draft: out, replaces };
 }

@@ -22,6 +22,7 @@ const u = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}
 const STUDY = u(1);
 const GYM = u(2);
 const MEAL = u(3);
+const CLASS = u(4);
 const TERM = u(10);
 const ROUTINE = u(11);
 const cat = (id: string, name: string, quiet = false) => ({
@@ -66,6 +67,7 @@ const rows: SyncChange[] = [
   { entity: 'category', op: 'upsert', row: cat(STUDY, 'Study') },
   { entity: 'category', op: 'upsert', row: cat(GYM, 'Gym') },
   { entity: 'category', op: 'upsert', row: cat(MEAL, 'Meal', true) },
+  { entity: 'category', op: 'upsert', row: { ...cat(CLASS, 'Class'), protected: true } },
   {
     entity: 'term',
     op: 'upsert',
@@ -228,5 +230,29 @@ describe('routine draft (Flow 05)', () => {
     await store.upsertRows(await localEffects(m, get));
     expect(JSON.stringify((await store.load()).schedule.routineBlocks)).toBe(once);
     expect((await store.getRow('routine_block', GYM_MON))?.version).toBe(2);
+  });
+  it("copy keeps protected blocks (classes) on the target days and doesn't copy the source's", async () => {
+    const { data } = await setup();
+    let d = baseWeek(data.schedule, ROUTINE);
+    d = addBlock(d, 1, { title: 'Lecture', start_min: 600, end_min: 700, category_id: CLASS }, ids);
+    d = addBlock(
+      d,
+      1,
+      { title: 'Tuesday study', start_min: 800, end_min: 860, category_id: STUDY },
+      ids,
+    );
+    d = addBlock(
+      d,
+      0,
+      { title: 'Monday lecture', start_min: 480, end_min: 540, category_id: CLASS },
+      ids,
+    );
+    const r = copyDay(d, 0, [1], ids, new Set([CLASS]));
+    expect(r.draft.days[1]!.map((b) => b.title)).toEqual([
+      'Lecture',
+      'Advanced Networking I',
+      'Lunch',
+      'Gym',
+    ]);
   });
 });
