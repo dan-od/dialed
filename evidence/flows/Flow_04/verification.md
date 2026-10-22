@@ -20,7 +20,7 @@ adds; `scripts/dev_flow04_cleanup` clears leftovers from an aborted run (dev dat
 | Category picker + create (stacked) | `category.tsx`, `Blocks.createCategory` | `blocks.test.ts` (create, unique ignoring case) | `recordings/category.mp4`, `cat-*`, `cat-create-*` | passed |
 | Discard dialog (dirty form only) | `usePreventRemove` + `Dialog` | — | `discard-*`; clean form closes without asking (flow assertion); a tap on the dimmed area above a dirty sheet also asks (seen while probing) | passed |
 | Edit once vs every; past days unchanged | `modifyOnce`, `modifyEvery` (routine_block_edit + client `new_block_id`) | `blocks.test.ts` (past Monday keeps 975), api `blocks.test.ts` | `recordings/edit.mp4`, `edit-*`, `edit-once-saved-*`, `edit-every-*` | passed |
-| Move day (Move to <day>) | `moveOnce`, `moveEvery` | `blocks.test.ts`, api (same week, target in a term) | `edit-move-*` (label), moves themselves automated only | passed (automated) / partial (runtime) |
+| Move day (Move to <day>) | `moveOnce`, `moveEvery` | `blocks.test.ts`, api (same week, target in a term) | `e2e/move_block.yaml`: `move-once-*`, `move-every-*` (sheet → Day without Gym → Saturday 24 card shows Gym 5:00, beside the seeded Saturday Gym at 4:00); `../flow04-move-toast.png` | passed |
 | Skip / delete + Undo (6 s) | `skipOnce`, `deleteBlock`, close/reopen/restore | `blocks.test.ts` (Undo mutations), api (reopen, restore) | `add.mp4` (Deleted → Undo → Put back), `edit.mp4` (Skipped → Undo), `delete-undo-*`, `skip-undo-*` | passed |
 | Offline add then sync | outbox, local effects, quiet vs catch-up sync toast | `syncEngine.test.ts` (8), `blocks.test.ts` | `recordings/offline-add.mp4`, `offline-add-sheet-*`, `offline-add-waiting-*`, `offline-add-synced-dark.png` (frame from the video) | passed (API stopped; airplane mode can't be simulated) |
 | Server re-validation | `apps/api/src/sync/service.ts` | api `blocks.test.ts` (14): past date, outside term, foreign routine/category/block, grid, end ≤ start, taken id, stale version | — | passed |
@@ -59,8 +59,10 @@ Owner approved (2026-10-22): D-43 (new row scrolls into view), D-44 (tall native
 - Time pickers show iOS's own "10:00 PM" format.
 
 ## Known issues
-- A two-line toast (e.g. "Added to Thursday. You'll get a nudge 10 min before.") can partly cover the last row of
-  Rest of today for its 3.8 s, because the list can't scroll that row any higher (`perm-allowed-toast-dark.png`).
+- Fixed after review (2026-10-22): while a toast shows, lists pad their end by the toast's height and the new row
+  is kept clear of it (`toast-room-two-lines-dark.png`).
+- Moving a block onto a day doesn't check overlaps there (the edit sheet has no overlap check; prototype neither):
+  the moved Gym 5:00–6:15 overlaps Saturday's own Gym 4:00–5:15 — ASSUMED, worth a look with Flow 05/06.
 - Dev builds show the LogBox banner "Open debugger to view warnings" over the nav in some captures (the open
   onAnimatedValueUpdate finding below), e.g. `edit-once-saved-light.png` in an earlier run.
 - The LogBox "onAnimatedValueUpdate" dev warning (Flow 03 finding) also follows native sheet transitions.
