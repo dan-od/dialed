@@ -66,6 +66,9 @@ describe('overlap and the primary button', () => {
     expect(addPrimaryLabel({ overlap: true, overlapOk: false, saving: false })).toBe('Add block');
     expect(addPrimaryLabel({ overlap: true, overlapOk: true, saving: false })).toBe('Add anyway');
     expect(addPrimaryLabel({ overlap: false, overlapOk: false, saving: true })).toBe('Adding');
+    expect(
+      addPrimaryLabel({ overlap: false, overlapOk: false, saving: false, routine: true }),
+    ).toBe('Add to routine');
   });
 });
 

@@ -13,7 +13,10 @@ import {
   type TextInputInstance,
   type ViewInstance,
 } from 'react-native';
+import { randomUUID } from 'expo-crypto';
 import { useApp } from '../../AppProvider';
+import { addBlock } from '../../routines/draft';
+import { useRoutinesUi } from '../../routines/RoutinesUi';
 import { useBlocksUi, type AddDraft, type NudgeChoice } from '../../blocks/BlocksUi';
 import {
   addPrimaryLabel,
@@ -64,7 +67,8 @@ export default function AddSheet() {
   const f = ui.add;
   const [errors, setErrors] = useState<AddErrors>({});
   const [saving, setSaving] = useState(false);
-  const [leaving, setLeaving] = useState(false);
+  const [leaving, setLeaving] = useState<false | 'tabs' | 'editor'>(false);
+  const [editorId, setEditorId] = useState<string | null>(null);
   const [discard, setDiscard] = useState(false);
   const [perm, setPerm] = useState<Perm>('undetermined');
   const [recent, setRecent] = useState<string[]>([]);
@@ -83,19 +87,36 @@ export default function AddSheet() {
     setDiscard(true);
   });
   useEffect(() => {
-    if (leaving) router.dismissAll();
-  }, [leaving, router]);
+    if (!leaving) return;
+    // Routine mode returns to the editor (under Add and maybe Get a nudge); day mode to the tabs.
+    if (leaving === 'editor' && ui.add === null && editorId)
+      router.dismissTo({ pathname: '/routine/[id]', params: { id: editorId } });
+    else router.dismissAll();
+  }, [leaving, router, ui.add, editorId]);
 
   const schedule = data?.schedule;
-  const day = useMemo(
-    () => (f && schedule ? resolveDay(f.date, schedule).blocks : []),
-    [f, schedule],
-  );
+  const routinesUi = useRoutinesUi();
+  const routineMode = f?.mode === 'routine';
+  const day = useMemo((): {
+    title: string;
+    start_min: number;
+    end_min: number;
+    quiet: boolean;
+  }[] => {
+    if (!f || !schedule) return [];
+    if (f.mode !== 'routine') return resolveDay(f.date, schedule).blocks;
+    // Routine mode checks the draft's weekday (prototype overlapOf against routine[f.day]).
+    const quiet = new Set(schedule.categories.filter((x) => x.quiet).map((x) => x.id));
+    return (routinesUi.draft?.days[f.weekday ?? 0] ?? []).map((b) => ({
+      ...b,
+      quiet: quiet.has(b.category_id),
+    }));
+  }, [f, schedule, routinesUi.draft]);
   const term = f && schedule ? termFor(f.date, schedule.terms) : null;
   const routine = term ? schedule?.routines.find((r) => r.term_id === term.id) : undefined;
   if (!f || !schedule) return null;
 
-  const weekday = WEEKDAYS[weekdayOf(f.date)]!;
+  const weekday = WEEKDAYS[routineMode ? (f.weekday ?? 0) : weekdayOf(f.date)]!;
   const cats = schedule.categories.filter((x) => !x.deleted_at);
   const cat = cats.find((x) => x.id === f.category_id) ?? null;
   const swatch = (x: { color_dark: string; color_light: string }) =>
@@ -124,6 +145,27 @@ export default function AddSheet() {
         end_min: f.end,
         category_id: f.category_id!,
       };
+      if (f.mode === 'routine') {
+        // Into the editor's draft; nothing is queued until Save routine.
+        const id = randomUUID();
+        routinesUi.update((x) => addBlock(x, f.weekday ?? 0, fields, () => id));
+        if (withAlert && f.alert !== null) routinesUi.setAlert(id, f.alert);
+        routinesUi.setHighlight(id);
+        setEditorId(f.routineId ?? null);
+        setLeaving('editor');
+        ui.setAdd(null);
+        haptic.success();
+        toast(
+          addToast({
+            weekday,
+            repeat: true,
+            online: true,
+            alert: withAlert ? f.alert : null,
+            perm: permission,
+          }),
+        );
+        return;
+      }
       const repeat = f.repeat && !!routine;
       const r = repeat
         ? await blocks.addRoutine(routine!.id, weekdayOf(f.date), fields, f.date, f.date)
@@ -131,7 +173,7 @@ export default function AddSheet() {
       if (withAlert && f.alert !== null && r.key)
         await blocks.setAlert(r.key.split(':')[0]!, f.alert);
       ui.flash(r.key);
-      setLeaving(true);
+      setLeaving('tabs');
       ui.setAdd(null);
       haptic.success();
       toast(
@@ -193,8 +235,11 @@ export default function AddSheet() {
   return (
     <SheetScroll>
       <View accessibilityLabel="Add a block" accessibilityViewIsModal style={{ gap: 14 }}>
-        <SheetHeader title={`Add to ${weekday}`} onClose={() => router.back()} />
-        {!online ? (
+        <SheetHeader
+          title={routineMode ? `Add to every ${weekday}` : `Add to ${weekday}`}
+          onClose={() => router.back()}
+        />
+        {!online && !routineMode ? (
           <Notice
             inline
             stamp="Offline"
@@ -345,7 +390,7 @@ export default function AddSheet() {
         {overlap ? <Notice inline stamp="Overlap" text={overlapText(overlap)} /> : null}
 
         <Group>
-          {routine ? (
+          {routine && !routineMode ? (
             <GroupRow
               icon={<RepeatIcon color={c.acc2} />}
               label={`Repeat every ${weekday}`}
@@ -389,7 +434,12 @@ export default function AddSheet() {
 
         <Button
           testID="add-save"
-          label={addPrimaryLabel({ overlap: !!overlap, overlapOk: f.overlapOk, saving })}
+          label={addPrimaryLabel({
+            overlap: !!overlap,
+            overlapOk: f.overlapOk,
+            saving,
+            routine: routineMode,
+          })}
           busy={saving}
           onPress={() => void onAdd()}
         />
@@ -408,7 +458,7 @@ export default function AddSheet() {
             haptic.warning();
             setDiscard(false);
             ui.setAdd(null);
-            setLeaving(true);
+            setLeaving('tabs');
           }}
         />
       </Dialog>

@@ -14,6 +14,10 @@ import type { AddForm, EditState, Perm } from './form';
 export interface AddDraft extends AddForm {
   date: IsoDate;
   dirty: boolean;
+  /** Flow 05 "Add to Mons": the block goes into the routine editor's draft for this weekday (no outbox). */
+  mode?: 'routine';
+  weekday?: number;
+  routineId?: string;
 }
 export interface EditDraft {
   block: ResolvedBlock;
