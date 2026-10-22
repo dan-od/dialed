@@ -10,6 +10,8 @@ export interface Profile {
   quiet_end_min: number;
   week_start: number;
   theme: 'system' | 'light' | 'dark';
+  /** Free-form prefs; Flow 04 keeps per-block alerts here (D-32). */
+  profile_json?: { block_alerts?: Record<string, number> } | null;
   version: number;
 }
 

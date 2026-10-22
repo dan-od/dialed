@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   Pressable,
   useWindowDimensions,
@@ -8,6 +8,12 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { fonts, useTheme } from '../theme/theme';
 import { T } from '../ui/Text';
 import { navScroll, type NavScrollState } from './navCollapse';
@@ -78,17 +84,29 @@ export function RestOfToday({
               accessibilityRole="button"
               accessibilityLabel={r.a11y}
               onPress={() => onRow(r)}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 14,
-                paddingVertical: 11,
-                minHeight: 48,
-                borderBottomWidth: 1.5,
-                borderBottomColor: c.sheetLine,
-                opacity: pressed ? 0.7 : 1,
-              })}
+              style={({ pressed }) => [
+                {
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 14,
+                  paddingVertical: 11,
+                  minHeight: 48,
+                  borderBottomWidth: 1.5,
+                  borderBottomColor: c.sheetLine,
+                  opacity: pressed ? 0.7 : 1,
+                },
+                // Prototype `.row.new`: outlined in the row's text colour, with a one-off 1.2 s flash ring.
+                r.isNew && {
+                  marginVertical: 4,
+                  marginHorizontal: -10,
+                  paddingHorizontal: 10,
+                  borderRadius: 14,
+                  borderWidth: 2,
+                  borderColor: c.sheetFg,
+                },
+              ]}
             >
+              {r.isNew ? <FlashRing /> : null}
               <Text
                 style={{
                   width: 62 * fontScale,
@@ -109,19 +127,38 @@ export function RestOfToday({
                   gap: stacked ? 0 : 14,
                 }}
               >
-                <T
-                  size={16}
-                  weight={r.quiet ? '500' : '700'}
-                  color={c.sheetFg}
-                  style={{ flex: stacked ? undefined : 1 }}
+                <View
+                  style={{
+                    flex: stacked ? undefined : 1,
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    columnGap: 6,
+                  }}
                 >
-                  {r.title}
+                  <T size={16} weight={r.quiet ? '500' : '700'} color={c.sheetFg}>
+                    {r.title}
+                  </T>
+                  {r.isNew ? (
+                    <View
+                      style={{
+                        backgroundColor: c.sheetFg,
+                        borderRadius: 9,
+                        paddingHorizontal: 7,
+                        paddingVertical: 2,
+                      }}
+                    >
+                      <T size={11} weight="800" color={c.sheetBg} style={{ lineHeight: 14 }}>
+                        New
+                      </T>
+                    </View>
+                  ) : null}
                   {r.pending ? (
                     <T size={12} weight="600" color={c.sheetFg}>
-                      {' · waiting to sync'}
+                      · waiting to sync
                     </T>
                   ) : null}
-                </T>
+                </View>
                 <T size={13} weight="600" color={c.sheetFg}>
                   {r.duration}
                 </T>
@@ -131,5 +168,36 @@ export function RestOfToday({
         )}
       </View>
     </ScrollView>
+  );
+}
+
+/** `@keyframes flash`: a 6 pt ring fading out over 1.2 s (none with Reduce Motion). */
+function FlashRing() {
+  const reduce = useReducedMotion();
+  const v = useSharedValue(reduce ? 0 : 1);
+  useEffect(() => {
+    v.value = withTiming(0, { duration: 1200 });
+  }, [v]);
+  const style = useAnimatedStyle(() => ({
+    opacity: v.value,
+    transform: [{ scale: 1 + 0.02 * v.value }],
+  }));
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: 'absolute',
+          top: -8,
+          bottom: -8,
+          left: -8,
+          right: -8,
+          borderRadius: 20,
+          borderWidth: 6,
+          borderColor: 'rgba(255,241,232,0.35)',
+        },
+        style,
+      ]}
+    />
   );
 }

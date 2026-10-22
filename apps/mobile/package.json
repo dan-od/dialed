@@ -7,6 +7,7 @@
     "@dialed/schedule": "workspace:*",
     "@dialed/tokens": "workspace:*",
     "@expo-google-fonts/anton": "^0.4.2",
+    "@react-native-community/datetimepicker": "9.2.1",
     "expo": "~58.0.16",
     "expo-constants": "~58.0.12",
     "expo-crypto": "~58.0.7",
@@ -16,6 +17,7 @@
     "expo-image": "~58.0.16",
     "expo-linking": "~58.0.13",
     "expo-network": "~58.0.3",
+    "expo-notifications": "~58.1.6",
     "expo-router": "~58.0.24",
     "expo-secure-store": "~58.0.2",
     "expo-splash-screen": "~58.0.10",
@@ -48,7 +50,7 @@
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "test": "NODE_ENV=test jest --ci"
+    "test": "NODE_ENV=test jest --ci --no-watchman"
   },
   "private": true,
   "jest": {

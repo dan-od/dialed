@@ -277,6 +277,34 @@ export class Blocks {
     };
   }
 
+  /** Create a category from the picker (Flow 09 service): unique name per account, ignoring case. */
+  async createCategory(
+    name: string,
+    group: string,
+    [dark, light]: [string, string],
+  ): Promise<{ ok: true; id: string } | { ok: false; message: string }> {
+    const clean = name.trim().replace(/\s+/g, ' ');
+    const { schedule } = await this.store.load();
+    const live = schedule.categories.filter((c) => !c.deleted_at);
+    const same = live.find((c) => c.name.toLowerCase() === clean.toLowerCase());
+    if (same) return { ok: false, message: `You already have ${same.name}.` };
+    const id = this.uuid();
+    await this.send({
+      entity: 'category',
+      op: 'upsert',
+      id,
+      base_version: 0,
+      fields: {
+        name: clean,
+        group_name: group,
+        color_dark: dark,
+        color_light: light,
+        sort: Math.max(0, ...live.map((c) => c.sort)) + 1,
+      },
+    });
+    return { ok: true, id };
+  }
+
   /** Per-block push alert (D-32), stored in profile_json.block_alerts and scheduled on this phone. */
   async setAlert(blockId: string, minutes: AlertChoice) {
     const p = await this.store.getRow('profile', 'me');

@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { useApp } from '../../../AppProvider';
+import { newEditDraft, useBlocksUi } from '../../../blocks/BlocksUi';
 import { dateLabel, useClock } from '../../../clock/clock';
 import { DayHeader } from '../../../day/DayHeader';
 import { DayHero } from '../../../day/DayHero';
@@ -24,16 +25,17 @@ export default function DayScreen() {
   const { width } = useWindowDimensions();
   const { data, sync, online, session, syncNow, toggleTheme } = useApp();
   const { setMini } = useNavState();
+  const ui = useBlocksUi();
   const profile = data?.profile ?? null;
   const tz = profile?.time_zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const clock = useClock(tz);
   const name =
     profile?.display_name || (session.status === 'signedIn' ? session.user.display_name : '');
 
-  const pendingIds = useMemo(() => new Set<string>(), []);
   const model = useMemo(() => {
     if (!data) return null;
     const today = resolveDay(clock.date, data.schedule);
+    const pendingIds = new Set(data.pending);
     const tomorrow = resolveDay(addDays(clock.date, 1), data.schedule);
     return {
       // No routine block in any term → the setup chooser (C-0102), not an empty "Free day".
@@ -48,9 +50,11 @@ export default function DayScreen() {
         isLight,
         colors: { acc: c.acc, barPast: c.barPast, barFut: c.barFut },
         pendingIds,
+        highlight: ui.highlight,
       }),
+      blocks: today.blocks,
     };
-  }, [data, clock, profile, width, isLight, c, pendingIds]);
+  }, [data, clock, profile, width, isLight, c, ui.highlight]);
 
   const soon = () => toast('That arrives with the next build step.');
 
@@ -94,7 +98,12 @@ export default function DayScreen() {
             <RestOfToday
               rows={model.m.rows}
               label={model.m.restLabel}
-              onRow={soon}
+              onRow={(r) => {
+                const b = model.blocks.find((x) => x.key === r.key);
+                if (!b) return;
+                ui.setEdit(newEditDraft(b));
+                router.push('/edit');
+              }}
               onCollapse={setMini}
             />
           </>
