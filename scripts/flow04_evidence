@@ -30,7 +30,8 @@ record() { # record <name> <maestro args…>
 }
 ONLY="${ONLY:-all}"
 want() { [[ "$ONLY" == all || "$ONLY" == "$1" ]]; }
-collect() { find "$RAW" -path "*takeScreenshot*" -name "*.png" -exec cp {} "$EV/screens/" \; ; }
+# Oldest first, so a retried or re-run step's newest screenshot wins.
+collect() { find "$RAW" -path "*takeScreenshot*" -name "*.png" -print0 | xargs -0 ls -tr | while read -r f; do cp "$f" "$EV/screens/"; done; }
 trap collect EXIT
 "$ROOT/scripts/dev_flow04_cleanup"
 xcrun simctl ui "$DEVICE" appearance dark
