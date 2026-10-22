@@ -1,0 +1,15 @@
+# Back online: the queued add syncs on its own ("Synced 1 change."); then it is removed again.
+appId: me.okoro.dialed
+---
+# The toast can come before Maestro's driver is up (it's in the recording); the pill clearing is the check.
+- extendedWaitUntil: { notVisible: '1 to sync.*', timeout: 90000 }
+- runFlow:
+    when: { visible: 'Synced 1 change.' }
+    commands:
+      - takeScreenshot: offline-add-synced-${THEME}
+      - extendedWaitUntil: { notVisible: 'Synced 1 change.', timeout: 8000 }
+- runFlow: _rest_to_bottom.yaml
+- tapOn: 'Edit Pitch prep.*'
+- extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
+- tapOn: { id: 'edit-remove' }
+- extendedWaitUntil: { visible: 'Deleted Pitch prep.', timeout: 5000 }

@@ -1,0 +1,21 @@
+# Flow 04 offline add (API stopped): the sheet says it saves on the phone; the row waits to sync; pill counts it.
+appId: me.okoro.dialed
+---
+- runFlow: _today.yaml
+- extendedWaitUntil: { visible: 'Offline', timeout: 30000 }
+- runFlow: _open_add.yaml
+- extendedWaitUntil: { visible: 'This saves on your phone and syncs when you reconnect.', timeout: 5000 }
+- tapOn: { id: 'add-name' }
+- inputText: 'Pitch prep'
+- pressKey: Enter
+- waitForAnimationToEnd: { timeout: 2000 }
+- tapOn: { id: 'add-category' }
+- extendedWaitUntil: { visible: 'Search or create a category', timeout: 5000 }
+- tapOn: 'Sermon Sync'
+- extendedWaitUntil: { visible: 'Category, Sermon Sync.*', timeout: 5000 }
+- takeScreenshot: offline-add-sheet-${THEME}
+- tapOn: { id: 'add-save' }
+- extendedWaitUntil: { visible: 'Saved on this phone. It syncs when you’re back online.', timeout: 8000 }
+- assertVisible: '1 to sync.*'
+- extendedWaitUntil: { visible: '.*waiting to sync.*', timeout: 5000 }
+- takeScreenshot: offline-add-waiting-${THEME}
