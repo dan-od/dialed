@@ -20,6 +20,7 @@ appId: me.okoro.dialed
 - extendedWaitUntil: { visible: 'Weeks', timeout: 10000 }
 - waitForAnimationToEnd: { timeout: 3000 }
 - takeScreenshot: month-${THEME}
+- scrollUntilVisible: { element: 'Oct 12 to 18.*', direction: DOWN, timeout: 10000, centerElement: true }
 - tapOn: 'Oct 12 to 18.*'
 - extendedWaitUntil: { visible: 'Oct 12–18', timeout: 10000 }
 - waitForAnimationToEnd: { timeout: 3000 }

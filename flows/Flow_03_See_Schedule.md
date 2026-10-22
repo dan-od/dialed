@@ -31,10 +31,10 @@ Exits: Flow 04 (+, row tap), Flow 05 (Routines), Flow 06 (AI mark), Flow 01 (ava
 | Sync conflict | toast "<Title> was changed on another device. Your edit wasn't applied." Reapply |
 | Sync error (server) | pill "Sync paused" tap → retry; no data loss |
 | Day crossing midnight / DST | resolves new date; wall-clock minutes unchanged |
-| Week with no blocks | lanes empty with "0h" and a dashed "Plan this week" button (→ Flow 06) |
+| Week with no blocks | lanes empty with "0h" (D-41). The dashed "Plan this week" button (→ Flow 06) is prototyped with Flow 06 and waits for owner approval |
 
 ## Interaction surface and transitions
-Day, Week, Month: **tab pages** (root, no transition between tabs other than 120 ms fade; each page plays its entrance once per visit). Cards: **pushed page** with horizontal snap. Account: sheet (Flow 01). Motion per Design_Identity (hero rise 600 ms, bars 800 ms stagger 30 ms, lanes wipe 50 ms stagger, month bars 20 ms stagger, nav rise after 150 ms; nav collapse/expand 250 ms). Haptics: selection on Lanes/Cards switch and card snap; light on sync done; none on tab change. Reduce Motion: fades only.
+Day, Week, Month: **tab pages** (root, no transition between tabs other than a 120 ms fade (D-40); each page plays its entrance once per visit). Cards: **pushed page** with horizontal snap. Account: sheet (Flow 01). Motion per Design_Identity (hero rise 600 ms, bars 800 ms stagger 30 ms, lanes wipe 50 ms stagger, month bars 20 ms stagger, nav rise after 150 ms; nav collapse/expand 450 ms (D-40)). Haptics: selection on Lanes/Cards switch and card snap; light on sync done; none on tab change. Reduce Motion: fades only.
 
 ## Actions and functions
 | Action | Function | Notes |

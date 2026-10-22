@@ -1,6 +1,7 @@
 # Flow 01: Account sheet from the Day avatar → Sign out? dialog → Welcome, local data wiped.
 appId: me.okoro.dialed
 ---
+- runFlow: _relaunch.yaml
 - tapOn: 'Account: .*'
 - extendedWaitUntil: { visible: 'Signed in with', timeout: 10000 }
 - takeScreenshot: account
