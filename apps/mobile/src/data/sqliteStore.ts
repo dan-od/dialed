@@ -122,6 +122,22 @@ export class SQLiteStore implements LocalStore {
     );
   }
 
+  async getMeta(key: string) {
+    const r = await this.conn.getFirstAsync<{ value: string }>(
+      `SELECT value FROM meta WHERE key = ?`,
+      `pref:${key}`,
+    );
+    return r?.value ?? null;
+  }
+
+  async setMeta(key: string, value: string) {
+    await this.conn.runAsync(
+      `INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)`,
+      `pref:${key}`,
+      value,
+    );
+  }
+
   /** Session end: nothing of the Planner's stays on the device (C-01x). */
   async wipe() {
     await this.conn.withExclusiveTransactionAsync(async (txn) => {

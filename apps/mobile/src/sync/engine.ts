@@ -1,7 +1,7 @@
 import type { Mutation, MutationResult, PullResponse, SyncChange } from '@dialed/contracts';
 import { randomUUID } from 'expo-crypto';
 import { ApiError } from '../api/errors';
-import { localEffect, mutationTarget } from '../data/shape';
+import { localEffects, mutationTarget } from '../data/shape';
 import type { LocalStore } from '../data/types';
 
 export interface SyncApi {
@@ -62,11 +62,8 @@ export class SyncEngine {
 
   /** Queue an edit: visible at once on this phone, sent when online. */
   async enqueue(m: Mutation) {
-    const target = mutationTarget(m);
-    if (target) {
-      const effect = localEffect(m, await this.store.getRow(target.entity, target.id));
-      if (effect) await this.store.upsertRows([effect]);
-    }
+    const effects = await localEffects(m, (e, id) => this.store.getRow(e, id));
+    if (effects.length) await this.store.upsertRows(effects);
     await this.store.enqueue(m);
     this.setStatus({ pending: (await this.store.outbox()).length });
     this.events.changed();
@@ -203,10 +200,8 @@ export class SyncEngine {
   /** Pending edits stay on top of pulled rows until the server answers. */
   private async rebasePending() {
     for (const item of await this.store.outbox()) {
-      const target = mutationTarget(item.mutation);
-      if (!target) continue;
-      const effect = localEffect(item.mutation, await this.store.getRow(target.entity, target.id));
-      if (effect) await this.store.upsertRows([effect]);
+      const effects = await localEffects(item.mutation, (e, id) => this.store.getRow(e, id));
+      if (effects.length) await this.store.upsertRows(effects);
     }
   }
 

@@ -57,6 +57,12 @@ export class MemoryStore implements LocalStore {
   async removeOutbox(seqs: number[]) {
     this.box = this.box.filter((b) => !seqs.includes(b.seq));
   }
+  async getMeta(key: string) {
+    return this.meta.get(`pref:${key}`) ?? null;
+  }
+  async setMeta(key: string, value: string) {
+    this.meta.set(`pref:${key}`, value);
+  }
   async wipe() {
     for (const t of this.tables.values()) t.clear();
     this.meta.clear();

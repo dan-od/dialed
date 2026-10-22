@@ -59,45 +59,129 @@ export function toLocalData(rows: Record<SyncEntity, Row[]>): LocalData {
     })),
   };
   const p = rows.profile[0];
-  return { schedule, profile: p ? (p as unknown as Profile) : null };
+  const pendingIds = Object.values(rows)
+    .flat()
+    .filter((r) => r._pending)
+    .map((r) => String(r.id));
+  return { schedule, profile: p ? (p as unknown as Profile) : null, pending: pendingIds };
 }
 
 export const rowId = (c: SyncChange) => (c.entity === 'profile' ? 'me' : String(c.row.id));
 
+type GetRow = (entity: SyncEntity, id: string) => Promise<Row | null>;
+const pending = (row: Row): Row => ({ ...row, _pending: true });
 /**
- * Optimistic local effect of a queued mutation. Also re-applied on top of every pull so pending edits
- * stay visible until the server answers ("· waiting to sync").
+ * Every applied mutation bumps the row version by one, so queued edits can chain offline. Predicted from the
+ * mutation's base_version (not the row) so re-applying on top of a pull stays idempotent.
  */
-export function localEffect(m: Mutation, current: Row | null): SyncChange | null {
+const next = (m: { base_version: number }): number => m.base_version + 1;
+
+/**
+ * Optimistic local effect of a queued mutation (one or more rows). Also re-applied on top of every pull so
+ * pending edits stay visible until the server answers ("· waiting to sync"). Mirrors the server's rules in
+ * apps/api/src/sync/service.ts closely enough to predict versions and new row ids.
+ */
+export async function localEffects(m: Mutation, get: GetRow): Promise<SyncChange[]> {
   switch (m.entity) {
-    case 'profile':
-      return current
-        ? { entity: 'profile', op: 'upsert', row: { ...current, ...m.fields, _pending: true } }
-        : null;
+    case 'profile': {
+      const cur = await get('profile', 'me');
+      if (!cur) return [];
+      const { block_alerts, ...rest } = m.fields;
+      const json = { ...((cur.profile_json as Row | null) ?? {}) };
+      if (block_alerts) {
+        const alerts = { ...((json.block_alerts as Row | undefined) ?? {}) };
+        for (const [k, v] of Object.entries(block_alerts)) {
+          if (v === null) delete alerts[k];
+          else alerts[k] = v;
+        }
+        json.block_alerts = alerts;
+      }
+      return [
+        {
+          entity: 'profile',
+          op: 'upsert',
+          row: pending({ ...cur, ...rest, profile_json: json, version: next(m) }),
+        },
+      ];
+    }
     case 'override':
     case 'category':
     case 'term':
-      if (m.op === 'delete')
-        return current
-          ? {
-              entity: m.entity,
-              op: 'upsert',
-              row: { ...current, deleted_at: new Date().toISOString(), _pending: true },
-            }
-          : null;
-      return {
-        entity: m.entity,
-        op: 'upsert',
-        row: { ...(current ?? { version: 0 }), ...m.fields, id: m.id, _pending: true },
+    case 'routine_block': {
+      const cur = await get(m.entity, m.id);
+      if (m.op === 'delete' || m.op === 'restore') {
+        if (!cur) return [];
+        const deleted_at = m.op === 'delete' ? new Date().toISOString() : null;
+        return [
+          {
+            entity: m.entity,
+            op: 'upsert',
+            row: pending({ ...cur, deleted_at, version: next(m) }),
+          },
+        ];
+      }
+      const base: Row = cur ?? {
+        version: 0,
+        deleted_at: null,
+        ...(m.entity === 'routine_block' ? { effective_to: null } : {}),
       };
+      return [
+        {
+          entity: m.entity,
+          op: 'upsert',
+          row: pending({ ...base, ...m.fields, id: m.id, version: next(m) }),
+        },
+      ];
+    }
+    case 'routine_block_edit': {
+      const cur = await get('routine_block', m.block_id);
+      if (!cur) return [];
+      const E = m.effective_from;
+      const from = String(cur.effective_from);
+      const at = (row: Row): SyncChange => ({
+        entity: 'routine_block',
+        op: 'upsert',
+        row: pending({ ...row, version: next(m) }),
+      });
+      if (m.reopen) return [at({ ...cur, effective_to: null, deleted_at: null })];
+      if (m.close)
+        return [
+          at(
+            E <= from
+              ? { ...cur, deleted_at: new Date().toISOString() }
+              : { ...cur, effective_to: E },
+          ),
+        ];
+      const fields = m.fields ?? {};
+      if (E <= from) return [at({ ...cur, ...fields })];
+      if (!m.new_block_id) return [at({ ...cur, effective_to: E })]; // new row arrives with the server result
+      // On a re-apply the old row is already closed at E; the new version keeps the original end.
+      const again = await get('routine_block', m.new_block_id);
+      const to = again ? (again.effective_to ?? null) : (cur.effective_to ?? null);
+      return [
+        at({ ...cur, effective_to: E }),
+        {
+          entity: 'routine_block',
+          op: 'upsert',
+          row: pending({
+            ...cur,
+            ...fields,
+            id: m.new_block_id,
+            effective_from: E,
+            effective_to: to,
+            version: 1,
+          }),
+        },
+      ];
+    }
     default:
-      return null; // compound mutations: server result is applied after push (Flow 04/05)
+      return [];
   }
 }
 
+/** The row a mutation's base_version refers to (conflict Reapply). */
 export function mutationTarget(m: Mutation): { entity: SyncEntity; id: string } | null {
   if (m.entity === 'profile') return { entity: 'profile', id: 'me' };
-  if (m.entity === 'override' || m.entity === 'category' || m.entity === 'term')
-    return { entity: m.entity, id: m.id };
-  return null;
+  if (m.entity === 'routine_block_edit') return { entity: 'routine_block', id: m.block_id };
+  return { entity: m.entity, id: m.id };
 }
