@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Flow 05 runtime evidence on the iOS Simulator (Maestro + simctl video). Needs the dev client installed
+# (scripts/ios_dev), Metro on :8081, the API running and the owner signed in. Every flow removes what it adds.
+# Writes evidence/flows/Flow_05/{screens,recordings}. Usage: ONLY=tour|remove|copy|save|light ./scripts/flow05_evidence [udid]
+# Not automated here (they need the app reinstalled or the API stopped by hand): e2e/perm_deny.yaml and
+# e2e/perm_allow.yaml (each on a fresh install), e2e/offline_add_1.yaml (API stopped) → start the API →
+# e2e/offline_add_2.yaml.
+source "$(dirname "$0")/lib/common.sh"
+ensure_xcode_env
+DEVICE="${1:-$(xcrun simctl list devices booted | grep -oE '[0-9A-F-]{36}' | head -1)}"
+export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}" MAESTRO_DRIVER_STARTUP_TIMEOUT=180000 MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
+EV="$ROOT/evidence/flows/Flow_05"
+RAW="$EV/e2e-evidence"
+mkdir -p "$EV/screens" "$EV/recordings" "$RAW"
+run() { pkill -f "xcodebuild test-without-building -xctestrun" 2>/dev/null || true; (cd "$ROOT/apps/mobile" && maestro --device "$DEVICE" test --test-output-dir "$RAW/$1" "${@:2}"); }
+retry() { local n; for n in 1 2 3; do "$@" && return 0; log "attempt $n failed; retrying"; done; return 1; }
+record() { # record <name> <maestro args…>
+  local name="$1"; shift
+  xcrun simctl io "$DEVICE" recordVideo --codec h264 --force "$EV/recordings/$name.mp4" >/dev/null 2>&1 &
+  local rec=$!
+  sleep 2
+  run "$name" "$@"; local rc=$?
+  kill -INT "$rec"; wait "$rec" 2>/dev/null || true
+  # Half resolution H.264 keeps each recording ~2–3 MB in git (raw simctl video is ~40 MB).
+  if command -v ffmpeg >/dev/null; then
+    ffmpeg -loglevel error -y -i "$EV/recordings/$name.mp4" -vf "scale=586:-2,fps=30" -c:v libx264 -crf 27 \
+      -preset slow -pix_fmt yuv420p -an "$EV/recordings/$name.small.mp4" && mv "$EV/recordings/$name.small.mp4" "$EV/recordings/$name.mp4"
+  fi
+  return $rc
+}
+ONLY="${ONLY:-all}"
+want() { [[ "$ONLY" == all || "$ONLY" == "$1" ]]; }
+# Oldest first, so a retried or re-run step's newest screenshot wins.
+collect() { find "$RAW" -path "*takeScreenshot*" -name "*.png" -print0 | xargs -0 ls -tr | while read -r f; do cp "$f" "$EV/screens/"; done; }
+trap collect EXIT
+"$ROOT/scripts/dev_evidence_cleanup"
+xcrun simctl ui "$DEVICE" appearance dark
+if want tour; then log "Routines, Terms, editor"; retry run tour -e THEME=dark e2e/routines_tour.yaml; fi
+if want remove; then log "Recording: remove + Undo"; retry record remove -e THEME=dark e2e/routine_remove.yaml; fi
+if want copy; then log "Recording: copy day, discard"; retry record copy -e THEME=dark e2e/routine_copy.yaml; fi
+if want save; then log "Recording: add in routine mode, save from next Monday"; "$ROOT/scripts/dev_evidence_cleanup"; retry record save -e THEME=dark e2e/routine_save.yaml; fi
+if want light; then
+  "$ROOT/scripts/dev_evidence_cleanup"
+  xcrun simctl ui "$DEVICE" appearance light
+  log "Light theme screens"
+  retry run tour-light -e THEME=light e2e/routines_tour.yaml
+  retry run copy-light -e THEME=light e2e/routine_copy.yaml
+  xcrun simctl ui "$DEVICE" appearance dark
+fi
+"$ROOT/scripts/dev_evidence_cleanup"
+log "Flow 05 evidence written to $EV"

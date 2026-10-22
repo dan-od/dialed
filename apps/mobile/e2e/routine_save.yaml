@@ -1,0 +1,37 @@
+# Flow 05 save (build seed, through the UI): Monday Gym 4:15 pm removed and a block added in routine mode,
+# saved from next Monday; the Save sheet offers Next Monday / Today / Pick a date. Run the cleanup after.
+appId: me.okoro.dialed
+---
+- runFlow: _editor.yaml
+- tapOn: 'Remove Gym from every Monday'
+- tapOn: { id: 'add-to-day' }
+- extendedWaitUntil: { visible: 'Add to every Monday', timeout: 5000 }
+- tapOn: { id: 'add-name' }
+- inputText: 'Capstone reading'
+- pressKey: Enter
+- waitForAnimationToEnd: { timeout: 2000 }
+- tapOn: { id: 'add-category' }
+- extendedWaitUntil: { visible: 'Search or create a category', timeout: 5000 }
+- tapOn: 'Study'
+- extendedWaitUntil: { visible: 'Add to routine', timeout: 5000 }
+- takeScreenshot: add-routine-mode-${THEME}
+- tapOn: { id: 'add-save' }
+- extendedWaitUntil: { visible: 'Added to every Monday.', timeout: 5000 }
+- takeScreenshot: editor-added-${THEME}
+- runFlow: _sheet_to_bottom.yaml
+- tapOn: { id: 'save-routine' }
+- extendedWaitUntil: { visible: 'Save Fall term\?', timeout: 5000 }
+- takeScreenshot: save-sheet-next-monday-${THEME}
+- tapOn: { id: 'eff-today' }
+- extendedWaitUntil: { visible: 'Changes start today.*', timeout: 3000 }
+- takeScreenshot: save-sheet-today-${THEME}
+- tapOn: { id: 'eff-nextMonday' }
+- tapOn: { id: 'apply-go' }
+- extendedWaitUntil: { visible: 'Fall term saved. Changes start Mon Oct 26.', timeout: 8000 }
+- takeScreenshot: saved-${THEME}
+- tapOn: { id: 'routine-card' }
+- extendedWaitUntil: { visible: 'Every Monday', timeout: 10000 }
+- runFlow: _sheet_to_bottom.yaml
+- assertNotVisible: 'Remove Gym from every Monday'
+- assertVisible: 'Remove Capstone reading from every Monday'
+- takeScreenshot: editor-after-save-${THEME}

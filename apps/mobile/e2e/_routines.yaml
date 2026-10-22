@@ -1,0 +1,9 @@
+# Day (dev clock: today 1:15 pm) → Month → Routines.
+appId: me.okoro.dialed
+---
+- runFlow: _today.yaml
+- tapOn: Month
+- extendedWaitUntil: { visible: 'Routines', timeout: 10000 }
+- tapOn: 'Routines'
+- extendedWaitUntil: { visible: 'Your repeating weeks.*', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }

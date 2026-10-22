@@ -60,7 +60,7 @@ export default function TermsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <Header left={<BackLink label="Back" onPress={() => router.back()} />} />
+      <Header left={<BackLink label="Routines" onPress={() => router.back()} />} />
       <ToastAwareScroll base={60} contentContainerStyle={{ paddingTop: 8 }}>
         <View style={{ paddingHorizontal: 20 }}>
           <H1 size={56}>Terms and dates</H1>

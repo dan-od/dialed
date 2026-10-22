@@ -1,9 +1,9 @@
-import { act, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { useEffect } from 'react';
 import { Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RestOfToday } from '../day/RestOfToday';
-import { ToastProvider, useToast } from '../ui/Toast';
+import { ToastHost, ToastProvider, useToast } from '../ui/Toast';
 
 const rows = [
   {
@@ -45,5 +45,32 @@ describe('Rest of today while a toast shows', () => {
     expect(pad()).toBe(120);
     await act(async () => r.rerender(tree('Added to Thursday. You’ll get a nudge 10 min before.')));
     expect(pad()).toBeGreaterThan(120);
+  });
+});
+
+describe('toast action', () => {
+  it('a toast shown by the action (Undo → "Put back.") stays up', async () => {
+    function Undoable() {
+      const toast = useToast();
+      useEffect(() => {
+        toast('Removed Gym from Mondays.', { label: 'Undo', onPress: () => toast('Put back.') });
+      }, [toast]);
+      return null;
+    }
+    await render(
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 390, height: 844 },
+          insets: { top: 59, left: 0, right: 0, bottom: 34 },
+        }}
+      >
+        <ToastProvider>
+          <Undoable />
+          <ToastHost />
+        </ToastProvider>
+      </SafeAreaProvider>,
+    );
+    await act(async () => fireEvent.press(screen.getByText('Undo')));
+    expect(screen.getByText('Put back.')).toBeTruthy();
   });
 });
