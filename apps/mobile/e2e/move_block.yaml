@@ -1,5 +1,5 @@
 # Flow 04 move: Gym (Thursday) → Saturday, this week only, then every week; each shown landing on Saturday in
-# the Week tab's day cards. Run scripts/dev_flow04_cleanup between and after (moves have no Undo).
+# the Week tab's day cards. Run scripts/dev_evidence_cleanup between and after (moves have no Undo).
 appId: me.okoro.dialed
 ---
 - runFlow: _today.yaml

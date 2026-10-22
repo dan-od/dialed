@@ -31,7 +31,8 @@ SELECT '$OWNER', rev.revision, 'routine_block', gone.id, 'upsert', to_jsonb(gone
 WITH gone AS (
   UPDATE overrides SET deleted_at = now(), version = version + 1
   WHERE user_id = '$OWNER' AND source = 'user' AND deleted_at IS NULL
-    AND (title IN ('Capstone reading', 'Prayers, login flow', 'Read Acts 2', 'Read', 'Pitch prep') OR kind IN ('skip', 'modify', 'move'))
+    AND (title IN ('Capstone reading', 'Prayers, login flow', 'Read Acts 2', 'Read', 'Pitch prep')
+         OR (kind IN ('skip', 'modify', 'move') AND note IS NULL)) -- seed overrides carry a note (Thanksgiving)
   RETURNING *
 ), rev AS (
   INSERT INTO revisions(user_id, revision, updated_at) SELECT '$OWNER', 1, now() WHERE EXISTS (SELECT 1 FROM gone)
@@ -39,16 +40,15 @@ WITH gone AS (
 )
 INSERT INTO change_log(user_id, revision, entity, entity_id, op, row_json)
 SELECT '$OWNER', rev.revision, 'override', gone.id, 'upsert', to_jsonb(gone) - 'user_id' FROM gone, rev;
--- Every-week edits made by evidence runs (rename, move to another weekday): drop today's user versions and
--- reopen the seed version they closed, so the owner's routine is back to the seed.
+-- Every-week edits and routine saves made by evidence runs (Flow 04 rename/move, Flow 05 Save routine): drop
+-- user versions starting today or later and reopen the seed versions they closed, so the routine is the seed.
 WITH gone AS (
   UPDATE routine_blocks SET deleted_at = now(), version = version + 1
   WHERE user_id = '$OWNER' AND source = 'user' AND deleted_at IS NULL AND effective_from >= current_date
-    AND title ~ '^Gym' RETURNING *
+  RETURNING *
 ), reopened AS (
   UPDATE routine_blocks SET effective_to = NULL, version = version + 1
   WHERE user_id = '$OWNER' AND source = 'seed' AND deleted_at IS NULL AND effective_to >= current_date - 1
-    AND title ~ '^Gym'
     AND EXISTS (SELECT 1 FROM gone) RETURNING *
 ), rev AS (
   INSERT INTO revisions(user_id, revision, updated_at) SELECT '$OWNER', 1, now()
@@ -77,4 +77,4 @@ SELECT '$OWNER', rev.revision, 'profile', changed.id, 'upsert',
 FROM changed, rev;
 COMMIT;
 SQL
-log "Flow 04 test data removed (if any was there)."
+log "Evidence test data removed (if any was there)."
