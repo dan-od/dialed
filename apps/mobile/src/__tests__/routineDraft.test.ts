@@ -249,8 +249,8 @@ describe('routine draft (Flow 05)', () => {
     );
     const r = copyDay(d, 0, [1], ids, new Set([CLASS]));
     expect(r.draft.days[1]!.map((b) => b.title)).toEqual([
-      'Lecture',
       'Advanced Networking I',
+      'Lecture',
       'Lunch',
       'Gym',
     ]);
