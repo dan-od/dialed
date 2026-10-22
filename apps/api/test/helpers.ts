@@ -41,11 +41,12 @@ export function testConfig(over: Partial<Config> = {}): Config {
 export async function makeApp(
   over: Partial<Config> = {},
   logStream?: { write(line: string): void },
+  now?: () => Date,
 ) {
   const config = testConfig(over);
   const { pool, db } = createDb(config.DATABASE_URL);
   const email = new MemoryTransport();
-  const app = await buildApp(config, { pool, db, email, logStream });
+  const app = await buildApp(config, { pool, db, email, logStream, now });
   await app.ready();
   return {
     app,
@@ -73,3 +74,6 @@ export async function login(t: TestApp, email: string, password = DEV_PASSWORD) 
   if (r.statusCode !== 200) throw new Error(`login ${email} → ${r.statusCode} ${r.body}`);
   return r.json() as { access_token: string; refresh_token: string; user: { id: string } };
 }
+
+/** BUILD_AGENT test clock: 2026-10-20 12:00 America/Toronto. */
+export const TEST_NOW = () => new Date('2026-10-20T16:00:00Z');

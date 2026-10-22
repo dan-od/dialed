@@ -80,13 +80,29 @@ export const ProfileFields = z.strictObject({
   quiet_end_min: minute.optional(),
   week_start: z.number().int().min(0).max(6).optional(),
   theme: z.enum(['system', 'light', 'dark']).optional(),
+  /** Per-block alert (D-32): minutes before start (0 = when it starts); null clears it. Stored in profile_json. */
+  block_alerts: z
+    .record(z.uuid(), z.union([z.literal(0), z.literal(10), z.literal(30), z.null()]))
+    .optional(),
+});
+
+/** A new routine block ("add every <weekday>", Flow 04). Edits to existing blocks go through routine_block_edit. */
+export const RoutineBlockFields = z.strictObject({
+  routine_id: z.uuid(),
+  weekday: z.number().int().min(0).max(6),
+  start_min: minute,
+  end_min: minute,
+  title: z.string().trim().min(1).max(80),
+  category_id: z.uuid(),
+  effective_from: isoDate,
 });
 
 const simple = <E extends string, F extends z.ZodType>(entity: E, fields: F) =>
   z.strictObject({
     ...base,
     entity: z.literal(entity),
-    op: z.enum(['upsert', 'delete']),
+    // restore = undo a delete (clears deleted_at)
+    op: z.enum(['upsert', 'delete', 'restore']),
     id: z.uuid(),
     base_version: z.number().int().min(0),
     fields: fields.optional(),
@@ -109,12 +125,15 @@ export const RoutineBlockEditMutation = z.strictObject({
     .optional(),
   close: z.literal(true).optional(),
   reopen: z.literal(true).optional(),
+  /** Client-chosen id for the new version row (close + insert), so offline edits keep stable ids. */
+  new_block_id: z.uuid().optional(),
 });
 
 export const Mutation = z.discriminatedUnion('entity', [
   simple('override', OverrideFields),
   simple('category', CategoryFields),
   simple('term', TermFields),
+  simple('routine_block', RoutineBlockFields),
   z.strictObject({
     ...base,
     entity: z.literal('profile'),
