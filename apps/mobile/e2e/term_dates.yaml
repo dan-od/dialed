@@ -1,0 +1,16 @@
+# Flow 05 term dates: Fall term ends Dec 11 → Dec 18 in the native calendar; saved inline with the toast.
+# scripts/dev_evidence_cleanup puts the seed dates back.
+appId: me.okoro.dialed
+---
+- runFlow: _routines.yaml
+- tapOn: 'Exam weeks.*'
+- extendedWaitUntil: { visible: 'Terms and dates', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- tapOn: { id: 'Fall term-ends_on' }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: term-date-picker-${THEME}
+- tapOn: '18'
+- waitForAnimationToEnd: { timeout: 2000 }
+- tapOn: { point: '50%,12%' }
+- extendedWaitUntil: { visible: 'Saved. Days in the new range fill in from the routine.', timeout: 8000 }
+- takeScreenshot: term-date-saved-${THEME}
