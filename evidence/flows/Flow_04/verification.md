@@ -8,7 +8,7 @@ small-screen pass. Clock: dev preset 5 = 1:15 pm on the real date (Thu 22 Oct 20
 Re-run: `pnpm --filter @dialed/api test` (blocks.test), `pnpm --filter mobile test`, `pnpm --filter @dialed/schedule
 test`, `./scripts/flow04_evidence`; by hand (see the script header): `e2e/perm_deny.yaml`, `e2e/perm_allow.yaml`
 (fresh install each), `e2e/offline_add_1.yaml` → start API → `e2e/offline_add_2.yaml`. Every flow removes what it
-adds; `scripts/dev_flow04_cleanup` clears leftovers from an aborted run (dev database only).
+adds; `scripts/dev_evidence_cleanup` clears leftovers from an aborted run (dev database only).
 
 | Requirement | Implementation | Automated | Runtime evidence | Status |
 |---|---|---|---|---|
@@ -84,6 +84,6 @@ Owner approved (2026-10-22): D-43 (new row scrolls into view), D-44 (tall native
   launch permissions would otherwise answer it).
 - "Synced 1 change." fired before Maestro's driver attached in the offline run; the screenshot is a frame from
   `offline-add.mp4`. The automated check is the pill clearing.
-- All Flow 04 writes went to the owner's local dev data and were removed again (`scripts/dev_flow04_cleanup`
+- All Flow 04 writes went to the owner's local dev data and were removed again (`scripts/dev_evidence_cleanup`
   also reset the owner's theme to "system" — Flow 03's offline proof had left it on dark). Every-week renames
   of Gym leave extra effective-dated versions (Gym class → Gym from today); the resolved schedule is unchanged.
