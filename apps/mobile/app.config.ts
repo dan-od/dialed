@@ -4,6 +4,7 @@ import type { ExpoConfig } from 'expo/config';
 // (CLIENT_QUESTIONS #7); App Group for widgets will be group.me.okoro.dialed.
 const APP_NAME = process.env.APP_NAME ?? 'Dialed';
 const BUNDLE_ID = process.env.DIALED_BUNDLE_ID ?? 'me.okoro.dialed';
+const TEAM_TIER = process.env.APPLE_TEAM_TIER ?? 'personal';
 
 const config: ExpoConfig = {
   name: APP_NAME,
@@ -27,6 +28,11 @@ const config: ExpoConfig = {
     'expo-sqlite',
     'expo-secure-store',
     'expo-font',
+    // Flow 04 native time pickers (5-minute interval).
+    '@react-native-community/datetimepicker',
+    // Local reminders (Flow 04 per-block alerts). A Personal Team has no APNs entitlement (D-39, §13), so the
+    // aps-environment entitlement is only added on the paid tier.
+    ['expo-notifications', { enableRemoteNotifications: TEAM_TIER === 'paid' }],
   ],
   experiments: { typedRoutes: true, reactCompiler: true },
   extra: {
@@ -34,7 +40,7 @@ const config: ExpoConfig = {
     // Simulator reaches the Mac's API at localhost (ATS allows local networking in dev builds).
     apiBaseUrl: process.env.DIALED_API_URL ?? 'http://localhost:8080',
     // D-39: free Apple account → no Sign in with Apple, no APNs, no universal links.
-    appleTeamTier: process.env.APPLE_TEAM_TIER ?? 'personal',
+    appleTeamTier: TEAM_TIER,
     // D-35 screens awaiting a flow-prototype approval stay behind this flag (off by default).
     features: { d35Screens: process.env.DIALED_FEATURE_D35 === 'true' },
   },

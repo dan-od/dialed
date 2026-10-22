@@ -126,3 +126,36 @@ export const RepeatIcon = ({ color, size = 18 }: P) => (
     <Path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4" />
   </Svg>
 );
+export const BellIcon = ({ color, size = 18 }: P) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+    <Path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z" />
+    <Path d="M10 21h4" />
+  </Svg>
+);
+export const CheckIcon = ({ color, size = 16 }: P) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2.6}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <Path d="M5 12l5 5L19 7" />
+  </Svg>
+);
+export const ChevronIcon = ({ color, size = 16 }: P) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2.4}
+    strokeLinecap="round"
+  >
+    <Path d="M9 6l6 6-6 6" />
+  </Svg>
+);

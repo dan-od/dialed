@@ -25,6 +25,8 @@ export interface RowModel {
   duration: string;
   quiet: boolean;
   pending: boolean;
+  /** Just added or changed: "New" chip + flash (Flow 04). */
+  isNew: boolean;
   a11y: string;
 }
 
@@ -63,6 +65,7 @@ export function dayModel(opts: {
   isLight: boolean;
   colors: { acc: string; barPast: string; barFut: string };
   pendingIds?: Set<string>;
+  highlight?: string | null;
 }): DayModel {
   const { blocks, minute, dayStart, dayEnd } = opts;
   const s = nowState(blocks, minute);
@@ -127,8 +130,9 @@ export function dayModel(opts: {
       title: b.title,
       duration: formatDuration(b.end_min - b.start_min),
       quiet: b.quiet,
-      pending: !!(b.override_id && opts.pendingIds?.has(b.override_id)),
-      a11y: `Edit ${b.title}, ${formatClock(b.start_min)}`,
+      pending: [b.override_id, b.routine_block_id].some((id) => !!id && opts.pendingIds?.has(id)),
+      isNew: b.key === opts.highlight,
+      a11y: `Edit ${b.title}, ${formatClock(b.start_min)}${b.key === opts.highlight ? ', new' : ''}`,
     };
   });
   return {

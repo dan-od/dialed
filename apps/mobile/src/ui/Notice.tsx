@@ -9,11 +9,14 @@ export function Notice({
   text,
   action,
   kind = 'warn',
+  inline,
 }: {
   stamp: string;
   text: string;
   action?: { label: string; onPress: () => void };
   kind?: 'warn' | 'err' | 'quiet';
+  /** Inside a sheet (`.note.in-sheet`): no page margins. */
+  inline?: boolean;
 }) {
   const { c } = useTheme();
   const bg = kind === 'err' ? c.err : kind === 'quiet' ? c.surf2 : c.stamp;
@@ -23,7 +26,12 @@ export function Notice({
       entering={FadeIn.duration(200)}
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"
-      style={{ marginTop: 14, marginHorizontal: 20, alignItems: 'flex-start', gap: 7 }}
+      style={{
+        marginTop: inline ? 0 : 14,
+        marginHorizontal: inline ? 0 : 20,
+        alignItems: 'flex-start',
+        gap: 7,
+      }}
     >
       <View
         style={{
@@ -58,12 +66,17 @@ export function Notice({
             height: 40,
             paddingHorizontal: 16,
             borderRadius: 12,
-            backgroundColor: c.acc,
+            backgroundColor: kind === 'quiet' ? c.surf : c.acc,
             justifyContent: 'center',
           }}
         >
           <Text
-            style={{ fontFamily: fonts.display, fontSize: 17, letterSpacing: 0.3, color: c.ink }}
+            style={{
+              fontFamily: fonts.display,
+              fontSize: 17,
+              letterSpacing: 0.3,
+              color: kind === 'quiet' ? c.text : c.ink,
+            }}
           >
             {action.label}
           </Text>

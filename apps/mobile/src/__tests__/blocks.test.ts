@@ -337,4 +337,27 @@ describe('blocks service (Flow 04)', () => {
     await blocks.addOneOff(TODAY, { title: 'A', start_min: 1320, end_min: 1330, category_id: GYM });
     expect((await blocks.recentCategories())[0]).toBe(GYM);
   });
+  it('create a category: category upsert with the swatch pair; names are unique ignoring case', async () => {
+    const { blocks, sent, store } = await setup();
+    const r = await blocks.createCategory('Bible study', 'Life', ['#9FE0D0', '#2BA58A']);
+    expect(r).toEqual({ ok: true, id: expect.any(String) });
+    expect((await sent())[0]).toMatchObject({
+      entity: 'category',
+      op: 'upsert',
+      base_version: 0,
+      fields: {
+        name: 'Bible study',
+        group_name: 'Life',
+        color_dark: '#9FE0D0',
+        color_light: '#2BA58A',
+      },
+    });
+    expect((await store.load()).schedule.categories.some((c) => c.name === 'Bible study')).toBe(
+      true,
+    );
+    expect(await blocks.createCategory('  bible STUDY ', 'Life', ['#9FE0D0', '#2BA58A'])).toEqual({
+      ok: false,
+      message: 'You already have Bible study.',
+    });
+  });
 });

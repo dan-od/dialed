@@ -1,12 +1,17 @@
+import { resolveDay } from '@dialed/schedule';
 import { Tabs, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useApp } from '../../../AppProvider';
+import { newAddDraft, useBlocksUi } from '../../../blocks/BlocksUi';
+import { now } from '../../../clock/clock';
 import { FloatingNav, type Tab } from '../../../day/FloatingNav';
 import { NavStateProvider, useNavState } from '../../../day/navState';
-import { useToast, useToastAnchor } from '../../../ui/Toast';
+import { useToastAnchor } from '../../../ui/Toast';
 
 function Nav({ state }: { state: { index: number; routes: { name: string }[] } }) {
   const router = useRouter();
-  const toast = useToast();
+  const { data } = useApp();
+  const ui = useBlocksUi();
   const insets = useSafeAreaInsets();
   const { mini, setMini } = useNavState();
   const active = (state.routes[state.index]?.name ?? 'day') as Tab;
@@ -21,7 +26,14 @@ function Nav({ state }: { state: { index: number; routes: { name: string }[] } }
         setMini(false);
         router.navigate(`/${t}`);
       }}
-      onPlus={() => toast('Adding blocks arrives with the next build step.')}
+      onPlus={() => {
+        if (!data) return;
+        const tz = data.profile?.time_zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const t = now(tz); // the Day's clock (dev clock aware)
+        ui.flash(null);
+        ui.setAdd(newAddDraft(t.date, t.minute, resolveDay(t.date, data.schedule).blocks));
+        router.push('/add');
+      }}
       onExpand={() => setMini(false)}
     />
   );

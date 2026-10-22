@@ -14,9 +14,11 @@ import {
 import { AppState } from 'react-native';
 import { ApiClient, type TokenSource } from './api/client';
 import { API_BASE_URL } from './config';
+import { Blocks } from './blocks/service';
 import { SQLiteStore } from './data/sqliteStore';
 import type { LocalData, LocalStore } from './data/types';
 import { haptic } from './lib/haptics';
+import { cancelReminders, rescheduleReminders } from './notifications/reminders';
 import {
   clearPending,
   clearSession,
@@ -37,6 +39,8 @@ interface AppValue {
   data: LocalData | null;
   sync: SyncStatus;
   online: boolean;
+  /** Flow 04 block changes (local first, through the outbox). */
+  blocks: Blocks;
   /** After verify / login / reset: persist tokens, start syncing (pull since=0). */
   signIn(t: TokensOut): Promise<void>;
   signOut(): Promise<void>;
@@ -76,6 +80,18 @@ class SessionTokens implements TokenSource {
 const tokens = new SessionTokens();
 const api = new ApiClient(API_BASE_URL, tokens);
 
+/** The running engine, outside React state (the Blocks service enqueues through it). */
+class EngineHub {
+  private engine: SyncEngine | null = null;
+  attach(e: SyncEngine | null) {
+    this.engine = e;
+  }
+  async enqueue(m: Mutation) {
+    if (!this.engine) throw new Error('Not signed in');
+    await this.engine.enqueue(m);
+  }
+}
+
 const EMPTY_SYNC: SyncStatus = { pending: 0, syncing: false, problem: null, hasData: false };
 
 export function AppProvider({
@@ -94,6 +110,18 @@ export function AppProvider({
   const engineRef = useRef<SyncEngine | null>(null);
 
   const reload = useCallback(async () => setData(await store.load()), [store]);
+  const [hub] = useState(() => new EngineHub());
+  const blocks = useMemo(() => new Blocks(store, (m) => hub.enqueue(m)), [store, hub]);
+
+  // Local reminders follow the data: next 48 h of explicit block alerts (D-32), quiet hours respected.
+  useEffect(() => {
+    const p = data?.profile;
+    if (!data || !p) return;
+    void rescheduleReminders(data.schedule, p.profile_json?.block_alerts ?? {}, p.time_zone, {
+      start: p.quiet_start_min,
+      end: p.quiet_end_min,
+    }).catch(() => {});
+  }, [data]);
 
   const startEngine = useCallback(async () => {
     engineRef.current?.stop();
@@ -123,25 +151,27 @@ export function AppProvider({
       },
     );
     engineRef.current = engine;
+    hub.attach(engine);
     await engine.start();
     await reload();
     void engine.sync();
-  }, [reload, store, toast]);
+  }, [hub, reload, store, toast]);
 
   /** sessionEnded() (identity-session contract): wipe SQLite + Keychain, back to Welcome. */
   const sessionEnded = useCallback(
     async (reason: 'revoked' | 'signout') => {
       engineRef.current?.stop();
       engineRef.current = null;
+      hub.attach(null);
       tokens.session = null;
-      await Promise.allSettled([store.wipe(), clearSession(), clearPending()]);
+      await Promise.allSettled([store.wipe(), clearSession(), clearPending(), cancelReminders()]);
       // Live Activities, local notifications, widget snapshot and device unregister join here with Flow 08.
       setData(null);
       setSync(EMPTY_SYNC);
       setSession({ status: 'signedOut' });
       if (reason === 'revoked') toast('You were signed out. Sign in again.');
     },
-    [store, toast],
+    [hub, store, toast],
   );
   useEffect(() => {
     tokens.onEnded = sessionEnded;
@@ -233,6 +263,7 @@ export function AppProvider({
     data,
     sync,
     online: online && sync.problem !== 'offline',
+    blocks,
     signIn,
     signOut,
     syncNow: () => void engineRef.current?.sync(),
