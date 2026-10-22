@@ -1,0 +1,6 @@
+# Scrolls the open sheet to its end (Maestro's scrollUntilVisible stops while the target is still at the edge).
+appId: me.okoro.dialed
+---
+- swipe: { start: '50%,80%', end: '50%,30%', duration: 400 }
+- swipe: { start: '50%,80%', end: '50%,30%', duration: 400 }
+- waitForAnimationToEnd: { timeout: 3000 }

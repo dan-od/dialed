@@ -13,8 +13,8 @@ export default function AppLayout() {
     sheetCornerRadius: 28,
     contentStyle: { backgroundColor: c.sheetSurf },
   } as const;
-  // Form sheets keep one tall detent (prototype: up to 768 of 824 pt) so the keyboard never resizes them
-  // under the finger; their content scrolls instead.
+  // Form sheets keep one tall detent (prototype: up to 768 of 824 pt, the Day still visible above) so the
+  // keyboard never resizes them under the finger; their content scrolls (SheetScroll pads the off-screen part).
   const form = { ...sheet, sheetAllowedDetents: [0.93] };
   return (
     <BlocksUiProvider>
