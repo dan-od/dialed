@@ -3,7 +3,11 @@
 appId: me.okoro.dialed
 ---
 - runFlow: _today.yaml
-- scrollUntilVisible: { element: 'Edit Gym, .*', direction: DOWN, timeout: 10000, centerElement: true }
+- runFlow:
+    when: { notVisible: 'Edit Gym, .*' }
+    commands:
+      - runFlow: _rest_to_bottom.yaml
+- extendedWaitUntil: { visible: 'Edit Gym, .*', timeout: 5000 }
 - tapOn: 'Edit Gym, .*'
 - extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
 - assertVisible: 'No changes yet'
@@ -13,7 +17,11 @@ appId: me.okoro.dialed
 - takeScreenshot: edit-move-${THEME}
 - tapOn: 'Close'
 # This day only
-- scrollUntilVisible: { element: 'Edit Gym, .*', direction: DOWN, timeout: 10000, centerElement: true }
+- runFlow:
+    when: { notVisible: 'Edit Gym, .*' }
+    commands:
+      - runFlow: _rest_to_bottom.yaml
+- extendedWaitUntil: { visible: 'Edit Gym, .*', timeout: 5000 }
 - tapOn: 'Edit Gym, .*'
 - extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
 - tapOn: { id: 'edit-name' }
@@ -21,8 +29,8 @@ appId: me.okoro.dialed
 - pressKey: Enter
 - waitForAnimationToEnd: { timeout: 2000 }
 - tapOn: { id: 'edit-save' }
-- extendedWaitUntil: { visible: 'Changed for this .* only.', timeout: 5000 }
-- scrollUntilVisible: { element: 'Edit Gym, legs.*new', direction: DOWN, timeout: 10000, centerElement: true }
+- extendedWaitUntil: { visible: 'Edit Gym, legs.*new', timeout: 5000 }
+- assertVisible: 'Changed for this .* only.'
 - takeScreenshot: edit-once-saved-${THEME}
 - tapOn: 'Edit Gym, legs.*'
 - extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
@@ -32,7 +40,11 @@ appId: me.okoro.dialed
 - tapOn: { id: 'edit-save' }
 - extendedWaitUntil: { visible: 'Changed for this .* only.', timeout: 5000 }
 # Every week: rename, then back
-- scrollUntilVisible: { element: 'Edit Gym, .*', direction: DOWN, timeout: 10000, centerElement: true }
+- runFlow:
+    when: { notVisible: 'Edit Gym, .*' }
+    commands:
+      - runFlow: _rest_to_bottom.yaml
+- extendedWaitUntil: { visible: 'Edit Gym, .*', timeout: 5000 }
 - tapOn: 'Edit Gym, .*'
 - extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
 - tapOn: { id: 'edit-scope-every' }
@@ -43,7 +55,11 @@ appId: me.okoro.dialed
 - takeScreenshot: edit-every-${THEME}
 - tapOn: { id: 'edit-save' }
 - extendedWaitUntil: { visible: 'Updated every .*', timeout: 5000 }
-- scrollUntilVisible: { element: 'Edit Gym class.*', direction: DOWN, timeout: 10000, centerElement: true }
+- runFlow:
+    when: { notVisible: 'Edit Gym class.*' }
+    commands:
+      - runFlow: _rest_to_bottom.yaml
+- extendedWaitUntil: { visible: 'Edit Gym class.*', timeout: 5000 }
 - tapOn: 'Edit Gym class.*'
 - extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
 - tapOn: { id: 'edit-scope-every' }
@@ -53,7 +69,11 @@ appId: me.okoro.dialed
 - tapOn: { id: 'edit-save' }
 - extendedWaitUntil: { visible: 'Updated every .*', timeout: 5000 }
 # Skip → Undo
-- scrollUntilVisible: { element: 'Edit Gym, .*', direction: DOWN, timeout: 10000, centerElement: true }
+- runFlow:
+    when: { notVisible: 'Edit Gym, .*' }
+    commands:
+      - runFlow: _rest_to_bottom.yaml
+- extendedWaitUntil: { visible: 'Edit Gym, .*', timeout: 5000 }
 - tapOn: 'Edit Gym, .*'
 - extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
 - tapOn: { id: 'edit-remove' }
@@ -62,4 +82,8 @@ appId: me.okoro.dialed
 - takeScreenshot: skip-undo-${THEME}
 - tapOn: 'Undo'
 - extendedWaitUntil: { visible: 'Put back.', timeout: 5000 }
-- scrollUntilVisible: { element: 'Edit Gym, .*', direction: DOWN, timeout: 10000, centerElement: true }
+- runFlow:
+    when: { notVisible: 'Edit Gym, .*' }
+    commands:
+      - runFlow: _rest_to_bottom.yaml
+- extendedWaitUntil: { visible: 'Edit Gym, .*', timeout: 5000 }

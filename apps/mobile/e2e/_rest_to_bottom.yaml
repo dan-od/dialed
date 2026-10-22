@@ -1,0 +1,6 @@
+# Scrolls the Rest of today panel (not the hero) to its end, so its last row clears the floating nav.
+appId: me.okoro.dialed
+---
+- swipe: { start: '50%,78%', end: '50%,52%', duration: 400 }
+- swipe: { start: '50%,78%', end: '50%,52%', duration: 400 }
+- waitForAnimationToEnd: { timeout: 3000 }

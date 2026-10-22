@@ -1,0 +1,18 @@
+# Flow 04 permission granted: Get a nudge → Allow → "You’ll get a nudge 10 min before." Needs notifications
+# undetermined (fresh install). Removes what it adds.
+appId: me.okoro.dialed
+---
+- runFlow: _today_ask.yaml
+- runFlow: _add_read_acts.yaml
+- tapOn: { id: 'add-save' }
+- extendedWaitUntil: { visible: 'Get a nudge before blocks start', timeout: 5000 }
+- takeScreenshot: nudge-${THEME}
+- tapOn: { id: 'nudge-on' }
+# The iOS prompt follows; Maestro's launch permissions answer it with Allow (recorded in permission-allowed.mp4).
+- runFlow:
+    when: { visible: 'Allow' }
+    commands:
+      - tapOn: { point: '70%,59%' }
+- extendedWaitUntil: { visible: 'Added to .*You’ll get a nudge 10 min before.', timeout: 8000 }
+- takeScreenshot: perm-allowed-toast-${THEME}
+- runFlow: _delete_read_acts.yaml
