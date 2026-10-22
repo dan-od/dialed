@@ -1,0 +1,59 @@
+# Flow 04 Edit block on Gym (seeded routine): sheet, move chips (Move to <day>), this day only rename,
+# every week rename (then renamed back), Skip it this <day> → Undo.
+appId: me.okoro.dialed
+---
+- runFlow: _today.yaml
+- scrollUntilVisible: { element: 'Edit Gym, .*', direction: DOWN, timeout: 10000, centerElement: true }
+- tapOn: 'Edit Gym, .*'
+- extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
+- assertVisible: 'No changes yet'
+- takeScreenshot: edit-${THEME}
+- tapOn: { id: 'edit-day-5' }
+- assertVisible: 'Move to Saturday'
+- takeScreenshot: edit-move-${THEME}
+- tapOn: 'Close'
+# This day only
+- scrollUntilVisible: { element: 'Edit Gym, .*', direction: DOWN, timeout: 10000, centerElement: true }
+- tapOn: 'Edit Gym, .*'
+- extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
+- tapOn: { id: 'edit-name' }
+- inputText: ', legs'
+- tapOn: { id: 'edit-save' }
+- extendedWaitUntil: { visible: 'Changed for this .* only.', timeout: 5000 }
+- scrollUntilVisible: { element: 'Edit Gym, legs.*new', direction: DOWN, timeout: 10000, centerElement: true }
+- takeScreenshot: edit-once-saved-${THEME}
+- tapOn: 'Edit Gym, legs.*'
+- extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
+- tapOn: { id: 'edit-name' }
+- eraseText: 6
+- tapOn: { id: 'edit-save' }
+- extendedWaitUntil: { visible: 'Changed for this .* only.', timeout: 5000 }
+# Every week: rename, then back
+- scrollUntilVisible: { element: 'Edit Gym, .*', direction: DOWN, timeout: 10000, centerElement: true }
+- tapOn: 'Edit Gym, .*'
+- extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
+- tapOn: { id: 'edit-scope-every' }
+- tapOn: { id: 'edit-name' }
+- inputText: ' class'
+- takeScreenshot: edit-every-${THEME}
+- tapOn: { id: 'edit-save' }
+- extendedWaitUntil: { visible: 'Updated every .*', timeout: 5000 }
+- scrollUntilVisible: { element: 'Edit Gym class.*', direction: DOWN, timeout: 10000, centerElement: true }
+- tapOn: 'Edit Gym class.*'
+- extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
+- tapOn: { id: 'edit-scope-every' }
+- tapOn: { id: 'edit-name' }
+- eraseText: 6
+- tapOn: { id: 'edit-save' }
+- extendedWaitUntil: { visible: 'Updated every .*', timeout: 5000 }
+# Skip → Undo
+- scrollUntilVisible: { element: 'Edit Gym, .*', direction: DOWN, timeout: 10000, centerElement: true }
+- tapOn: 'Edit Gym, .*'
+- extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
+- tapOn: { id: 'edit-remove' }
+- extendedWaitUntil: { visible: 'Skipped Gym this .*', timeout: 5000 }
+- assertNotVisible: 'Edit Gym, .*'
+- takeScreenshot: skip-undo-${THEME}
+- tapOn: 'Undo'
+- extendedWaitUntil: { visible: 'Put back.', timeout: 5000 }
+- scrollUntilVisible: { element: 'Edit Gym, .*', direction: DOWN, timeout: 10000, centerElement: true }

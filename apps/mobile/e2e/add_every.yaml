@@ -1,0 +1,33 @@
+# Flow 04 build seed: add "Capstone reading" every <today's weekday>; the Day shows it with a New chip.
+# Cleans up: Delete block → Undo (Put back) → Delete block again.
+appId: me.okoro.dialed
+---
+- runFlow: _today.yaml
+- tapOn: 'Add a block'
+- extendedWaitUntil: { visible: 'Add to .*', timeout: 10000 }
+- takeScreenshot: add-blank-${THEME}
+- tapOn: { id: 'add-name' }
+- inputText: 'Capstone reading'
+- tapOn: { id: 'add-category' }
+- extendedWaitUntil: { visible: 'Category', timeout: 5000 }
+- takeScreenshot: cat-${THEME}
+- tapOn: 'Study'
+- extendedWaitUntil: { visible: 'Category, Study.*', timeout: 5000 }
+- tapOn: { id: 'add-repeat' }
+- takeScreenshot: add-filled-${THEME}
+- tapOn: { id: 'add-save' }
+- extendedWaitUntil: { visible: 'Added to every .*', timeout: 10000 }
+- scrollUntilVisible: { element: 'Edit Capstone reading.*, new', direction: DOWN, timeout: 10000, centerElement: true }
+- takeScreenshot: add-saved-new-${THEME}
+- tapOn: 'Edit Capstone reading.*'
+- extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
+- tapOn: { id: 'edit-remove' }
+- extendedWaitUntil: { visible: 'Deleted Capstone reading.', timeout: 5000 }
+- takeScreenshot: delete-undo-${THEME}
+- tapOn: 'Undo'
+- extendedWaitUntil: { visible: 'Put back.', timeout: 5000 }
+- scrollUntilVisible: { element: 'Edit Capstone reading.*', direction: DOWN, timeout: 10000, centerElement: true }
+- tapOn: 'Edit Capstone reading.*'
+- extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
+- tapOn: { id: 'edit-remove' }
+- extendedWaitUntil: { visible: 'Deleted Capstone reading.', timeout: 5000 }

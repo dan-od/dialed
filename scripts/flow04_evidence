@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Flow 04 runtime evidence on the iOS Simulator (Maestro + simctl video). Needs the dev client installed
+# (scripts/ios_dev), Metro on :8081, the API running and the owner signed in. Every flow removes what it adds.
+# Writes evidence/flows/Flow_04/{screens,recordings}. Usage: ONLY=add|invalid|edit ./scripts/flow04_evidence [udid]
+source "$(dirname "$0")/lib/common.sh"
+ensure_xcode_env
+DEVICE="${1:-$(xcrun simctl list devices booted | grep -oE '[0-9A-F-]{36}' | head -1)}"
+export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}" MAESTRO_DRIVER_STARTUP_TIMEOUT=180000 MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
+EV="$ROOT/evidence/flows/Flow_04"
+RAW="$EV/e2e-evidence"
+mkdir -p "$EV/screens" "$EV/recordings" "$RAW"
+run() { pkill -f "xcodebuild test-without-building -xctestrun" 2>/dev/null || true; (cd "$ROOT/apps/mobile" && maestro --device "$DEVICE" test --test-output-dir "$RAW/$1" "${@:2}"); }
+retry() { local n; for n in 1 2 3; do "$@" && return 0; log "attempt $n failed; retrying"; done; return 1; }
+record() { # record <name> <maestro args…>
+  local name="$1"; shift
+  xcrun simctl io "$DEVICE" recordVideo --codec h264 --force "$EV/recordings/$name.mp4" >/dev/null 2>&1 &
+  local rec=$!
+  sleep 2
+  run "$name" "$@"; local rc=$?
+  kill -INT "$rec"; wait "$rec" 2>/dev/null || true
+  return $rc
+}
+ONLY="${ONLY:-all}"
+want() { [[ "$ONLY" == all || "$ONLY" == "$1" ]]; }
+collect() { find "$RAW" -path "*takeScreenshot*" -name "*.png" -exec cp {} "$EV/screens/" \; ; }
+trap collect EXIT
+xcrun simctl ui "$DEVICE" appearance dark
+if want add; then log "Recording: add every week → New → delete → Undo"; retry record add -e THEME=dark e2e/add_every.yaml; fi
+if want invalid; then log "Recording: invalid, category create, overlap, discard"; retry record category -e THEME=dark e2e/add_invalid_overlap.yaml; fi
+if want edit; then log "Recording: edit once / every, move chips, skip → Undo"; retry record edit -e THEME=dark e2e/edit_block.yaml; fi
+if want light; then
+  xcrun simctl ui "$DEVICE" appearance light
+  log "Light theme screens"
+  retry run add-light -e THEME=light e2e/add_every.yaml
+  retry run edit-light -e THEME=light e2e/edit_block.yaml
+  xcrun simctl ui "$DEVICE" appearance dark
+fi
+log "Flow 04 evidence written to $EV"

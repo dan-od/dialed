@@ -20,19 +20,26 @@ export function setDevClock(v: { date: string; minute: number; second?: number }
 }
 
 // The prototype's three clock points on its sample day (Mon Oct 19, 2026), 15 s before Sermon Sync ends
-// (minute-boundary proof), then back to the real clock.
-const DEV_PRESETS: { minute: number; second?: number }[] = [
+// (minute-boundary proof), then 1:15 pm on the real date (Flow 04: the server only takes "every week"
+// changes from today on), then back to the real clock.
+const DEV_PRESETS: { minute: number; second?: number; realDate?: boolean }[] = [
   { minute: 795 },
   { minute: 1220 },
   { minute: 1410 },
   { minute: 869, second: 45 },
+  { minute: 795, realDate: true },
 ];
+const deviceToday = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 let devIndex = -1;
 /** Dev-only: long-press the Day date label to cycle the preset clocks. */
 export function cycleDevClock() {
   if (!__DEV__) return;
   devIndex = devIndex + 1 >= DEV_PRESETS.length ? -1 : devIndex + 1;
-  setDevClock(devIndex === -1 ? null : { date: '2026-10-19', ...DEV_PRESETS[devIndex]! });
+  const p = DEV_PRESETS[devIndex];
+  setDevClock(p ? { date: p.realDate ? deviceToday() : '2026-10-19', ...p } : null);
 }
 
 function devMs(): number | null {

@@ -1,0 +1,41 @@
+# Flow 04 add-invalid (name + category errors), add-overlap (2h runs into the next block → Add anyway),
+# category create card, and the Discard dialog. Nothing is saved except the created category.
+appId: me.okoro.dialed
+---
+- runFlow: _today.yaml
+- tapOn: 'Add a block'
+- extendedWaitUntil: { visible: 'Add to .*', timeout: 10000 }
+- tapOn: { id: 'add-save' }
+- extendedWaitUntil: { visible: 'Give the block a name.*', timeout: 5000 }
+- assertVisible: 'Pick a category so it gets the right colour and totals.'
+- takeScreenshot: add-invalid-${THEME}
+- tapOn: { id: 'add-name' }
+- inputText: 'Prayers, login flow'
+- tapOn: 'Length 2h'
+- tapOn: 'New category'
+- extendedWaitUntil: { visible: 'Category', timeout: 5000 }
+- tapOn: { id: 'cat-search' }
+- inputText: 'Bible study'
+- extendedWaitUntil: { visible: 'Create “Bible study”', timeout: 5000 }
+- takeScreenshot: cat-create-${THEME}
+- tapOn: { id: 'cat-create' }
+- runFlow:
+    when: { visible: 'You already have Bible study.' }
+    commands:
+      - eraseText: 20
+      - inputText: 'Prayers'
+      - tapOn: 'Prayers'
+- extendedWaitUntil: { visible: 'Category, .*', timeout: 5000 }
+- runFlow:
+    when: { visible: 'This runs into .*' }
+    commands:
+      - takeScreenshot: add-overlap-${THEME}
+      - tapOn: { id: 'add-save' }
+      - extendedWaitUntil: { visible: 'Add anyway', timeout: 5000 }
+      - takeScreenshot: add-overlap-anyway-${THEME}
+- tapOn: 'Close'
+- extendedWaitUntil: { visible: 'Discard this block?', timeout: 5000 }
+- takeScreenshot: discard-${THEME}
+- tapOn: 'Discard'
+- extendedWaitUntil: { visible: 'Rest of today', timeout: 5000 }
+- assertNotVisible: 'Add to .*'
