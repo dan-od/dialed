@@ -417,7 +417,8 @@ export class SyncService {
     const { rows } = await tx.execute<{
       name: string;
     }>(sql`select name from terms where user_id = ${userId}
-      and deleted_at is null and not is_draft and starts_on <= ${date} and ends_on >= ${date} limit 1`);
+      and deleted_at is null and not is_draft and starts_on <= ${date} and ends_on >= ${date}
+      order by starts_on limit 1`); // overlapping terms: the earlier start wins (as packages/schedule termFor)
     return rows[0] ?? null;
   }
 
