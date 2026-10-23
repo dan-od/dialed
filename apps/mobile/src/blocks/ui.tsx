@@ -382,3 +382,77 @@ export function DateField({
     </View>
   );
 }
+
+/**
+ * Starts / Ends dates as plain text fields; one native date wheel opens under the pair at full width (in a half
+ * column it clipped). `onClose` runs when the wheel closes or switches field, so a page can save once.
+ */
+export function DateRange({
+  start,
+  end,
+  onStart,
+  onEnd,
+  onClose,
+  badEnd,
+  minimum,
+  stacked,
+  testIDs = ['starts', 'ends'],
+}: {
+  start: string;
+  end: string;
+  onStart: (iso: string) => void;
+  onEnd: (iso: string) => void;
+  onClose?: () => void;
+  badEnd?: boolean;
+  minimum?: string;
+  /** Large Dynamic Type: the fields stack. */
+  stacked?: boolean;
+  testIDs?: [string, string];
+}) {
+  const { isLight, c } = useTheme();
+  const [open, setOpen] = useState<'start' | 'end' | null>(null);
+  const toggle = (k: 'start' | 'end') => {
+    if (open) onClose?.();
+    setOpen(open === k ? null : k);
+  };
+  return (
+    <View style={{ gap: 8 }}>
+      <View style={{ flexDirection: stacked ? 'column' : 'row', gap: 8 }}>
+        <PlainField
+          label="Starts"
+          testID={testIDs[0]}
+          value={dateText(start)}
+          open={open === 'start'}
+          onPress={() => toggle('start')}
+        />
+        <PlainField
+          label="Ends"
+          testID={testIDs[1]}
+          value={dateText(end)}
+          open={open === 'end'}
+          bad={badEnd}
+          onPress={() => toggle('end')}
+        />
+      </View>
+      {open ? (
+        <View style={{ alignItems: 'center' }}>
+          <DateTimePicker
+            testID={`${testIDs[open === 'start' ? 0 : 1]}-wheel`}
+            accessibilityLabel={open === 'start' ? 'Starts' : 'Ends'}
+            mode="date"
+            display="spinner"
+            value={asDay(open === 'start' ? start : end)}
+            minimumDate={minimum ? asDay(minimum) : undefined}
+            themeVariant={isLight ? 'light' : 'dark'}
+            textColor={c.text}
+            onValueChange={(_e, d) => {
+              if (!d) return;
+              if (open === 'start') onStart(isoOf(d));
+              else onEnd(isoOf(d));
+            }}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
+}
