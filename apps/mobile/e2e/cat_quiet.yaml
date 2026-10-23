@@ -1,0 +1,16 @@
+# D-35 Quiet switch (flag on: EXPO_PUBLIC_FEATURE_D35=true on Metro): Meal opens with no palette swatch picked
+# (its colour isn't in the palette) and Quiet on; the switch swaps the explanation. Nothing is saved.
+appId: me.okoro.dialed
+---
+- runFlow: _settings.yaml
+- tapOn: { id: 'set-cats' }
+- extendedWaitUntil: { visible: 'Colours show in every view.*', timeout: 10000 }
+- scrollUntilVisible: { element: { id: 'cat-Meal' }, direction: DOWN, timeout: 8000 }
+- tapOn: { id: 'cat-Meal' }
+- extendedWaitUntil: { visible: 'No Live Activity or reminders.*', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: cat-quiet-on-${THEME}
+- tapOn: { id: 'ce-quiet' }
+- extendedWaitUntil: { visible: 'Gets a Live Activity during its blocks.*', timeout: 5000 }
+- takeScreenshot: cat-quiet-off-${THEME}
+- tapOn: 'Close'

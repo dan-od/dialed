@@ -122,7 +122,7 @@ export function SetRow({
           minWidth: 0,
           flexDirection: stacked || small ? 'column' : 'row',
           alignItems: stacked || small ? 'flex-start' : 'center',
-          gap: small ? 2 : 12,
+          gap: small || stacked ? 2 : 12,
         }}
       >
         <T size={16} weight="600" color={color ?? c.text} style={{ flexShrink: 1 }}>
