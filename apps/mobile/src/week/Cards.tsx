@@ -86,8 +86,10 @@ export function DayCard({
         <View
           key={r.key}
           style={{
+            // Top-aligned with one 20 pt first line, not baseline: Yoga sizes baseline rows by the first line,
+            // which clipped wrapped titles ("Speedwatch Ontario") on some layouts (owner review of v11).
             flexDirection: 'row',
-            alignItems: 'baseline',
+            alignItems: 'flex-start',
             gap: 10,
             paddingVertical: 4,
             opacity: r.past ? 0.45 : 1,
@@ -106,7 +108,7 @@ export function DayCard({
               width: 9,
               height: 9,
               borderRadius: 3,
-              alignSelf: 'center',
+              marginTop: 5.5,
               backgroundColor: card.today ? c.ink : r.color,
             }}
           />
@@ -116,7 +118,7 @@ export function DayCard({
               flex: 1,
               minWidth: 0,
               flexDirection: stacked ? 'column' : 'row',
-              alignItems: stacked ? 'flex-start' : 'baseline',
+              alignItems: 'flex-start',
               gap: stacked ? 0 : 10,
             }}
           >
@@ -124,11 +126,11 @@ export function DayCard({
               size={14}
               weight={r.current ? '800' : '600'}
               color={fg}
-              style={{ flex: stacked ? undefined : 1, minWidth: 0, lineHeight: 18 }}
+              style={{ flex: stacked ? undefined : 1, minWidth: 0, lineHeight: 20 }}
             >
               {r.title}
             </T>
-            <T size={12} weight="600" color={fg} style={{ opacity: 0.75 }}>
+            <T size={12} weight="600" color={fg} style={{ opacity: 0.75, lineHeight: 20 }}>
               {r.duration}
             </T>
           </View>

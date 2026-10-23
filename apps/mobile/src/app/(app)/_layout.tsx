@@ -14,9 +14,9 @@ export default function AppLayout() {
     sheetCornerRadius: 28,
     contentStyle: { backgroundColor: c.sheetSurf },
   } as const;
-  // Form sheets keep one tall detent (prototype: up to 768 of 824 pt, the Day still visible above) so the
-  // keyboard never resizes them under the finger; their content scrolls (SheetScroll pads the off-screen part).
-  const form = { ...sheet, sheetAllowedDetents: [0.93] };
+  // Add, Edit and Category open at the full-height (large) detent (owner review of v11, D-47) so the keyboard and
+  // the time wheel never squash them; their content scrolls (SheetScroll pads the off-screen part).
+  const form = { ...sheet, sheetAllowedDetents: [1.0] };
   const page = { animation: 'slide_from_right', contentStyle: { backgroundColor: c.bg } } as const;
   return (
     <BlocksUiProvider>

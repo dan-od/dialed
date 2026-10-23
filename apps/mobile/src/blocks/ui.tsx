@@ -1,5 +1,6 @@
 import { formatClock } from '@dialed/schedule';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, View, type ViewStyle } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -14,10 +15,17 @@ import { T } from '../ui/Text';
 
 export function SheetScroll({ children }: { children: ReactNode }) {
   const { c } = useTheme();
+  // Full-height sheets reach the home indicator; the last button scrolls clear of it.
+  const { bottom } = useSafeAreaInsets();
   return (
     <ScrollView
       style={{ backgroundColor: c.sheetSurf }}
-      contentContainerStyle={{ paddingTop: 22, paddingHorizontal: 20, paddingBottom: 28, gap: 14 }}
+      contentContainerStyle={{
+        paddingTop: 22,
+        paddingHorizontal: 20,
+        paddingBottom: 28 + bottom,
+        gap: 14,
+      }}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="interactive"
       automaticallyAdjustKeyboardInsets
