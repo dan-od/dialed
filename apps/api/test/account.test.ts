@@ -1,5 +1,7 @@
 import { strFromU8, unzipSync } from 'fflate';
+import type { ScheduleData } from '@dialed/schedule';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { calendar } from '../src/account/service';
 import { ALICE, BOB, OWNER, login, makeApp, TEST_NOW, type TestApp } from './helpers';
 
 // Flow 09: this phone's notification prefs (PUT /v1/devices/current) and Export my data (GET /v1/account/export).
@@ -70,6 +72,57 @@ describe('device prefs', () => {
     }
     const anon = await t.app.inject({ method: 'PUT', url: '/v1/devices/current', payload: {} });
     expect(anon.statusCode).toBe(401);
+  });
+});
+
+describe('calendar file', () => {
+  it('escapes text per RFC 5545 and ends midnight blocks on the next day', () => {
+    const data = {
+      categories: [
+        {
+          id: 'c',
+          name: 'Study, deep',
+          group_name: 'School',
+          color_dark: '#000000',
+          color_light: '#000000',
+          weight: 1,
+          quiet: false,
+          protected: false,
+          sort: 0,
+          deleted_at: null,
+        },
+      ],
+      terms: [
+        {
+          id: 't',
+          name: 'Fall',
+          starts_on: '2026-09-14',
+          ends_on: '2026-12-11',
+          is_draft: false,
+          deleted_at: null,
+        },
+      ],
+      routines: [{ id: 'r', term_id: 't', name: 'Fall' }],
+      routineBlocks: [
+        {
+          id: '11111111-1111-4111-8111-111111111111',
+          routine_id: 'r',
+          weekday: 1,
+          start_min: 1380,
+          end_min: 1440,
+          title: 'Read; plan, next\\one',
+          category_id: 'c',
+          effective_from: '2026-09-14',
+          effective_to: null,
+          deleted_at: null,
+        },
+      ],
+      overrides: [],
+    } as unknown as ScheduleData;
+    const ics = calendar(data, '2026-10-20', 'America/Toronto', new Date('2026-10-20T16:00:00Z'));
+    expect(ics).toContain('SUMMARY:Read\\; plan\\, next\\\\one\r\n');
+    expect(ics).toContain('CATEGORIES:Study\\, deep\r\n');
+    expect(ics).toContain('DTEND;TZID=America/Toronto:20261021T000000\r\n');
   });
 });
 
