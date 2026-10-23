@@ -23,7 +23,7 @@ then start it). `scripts/dev_evidence_cleanup` puts the owner's routine, terms a
 | Add to Mons (Flow 04 sheet, routine mode → draft, no outbox) | `add.tsx` routine mode | `blockForm.test.ts` ("Add to routine") | `add-routine-mode-*`, `editor-added-*` ("Added to every Monday.", highlighted row) | passed |
 | Terms: dates inline, status tags, gap/overlap notices, rules | `terms.tsx`, `termNotices`, `termStatus` | `routinesModel.test.ts`; api term tests (ends before starts, save, new term + routine id) | `terms-*`, `terms-rules-*`, `term-date-picker-dark.png`, `term-date-saved-dark.png` (Dec 11 → Dec 18 saved; overlap notice appears) | passed |
 | Overlapping terms: earlier start wins | `packages/schedule termFor`, server `termOn` | `changes.test.ts` | `term-date-saved-dark.png` notice | passed (ASSUMED rule) |
-| Name your term (NAT-11, D-35) | `name-term.tsx` behind `FEATURES.d35Screens`, `createTerm` | `routinesModel.test.ts` (defaults today → +13 weeks, helper, errors); `blocks.test.ts` (term + routine id) | none: the dev build reads the flag as off even when Metro serves it on; not chased (D-35: unverified by design) | unverified by design |
+| Name your term (NAT-11, D-35) | `name-term.tsx` behind `FEATURES.d35Screens` (`EXPO_PUBLIC_FEATURE_D35`, inlined by Metro; bare builds bake `Constants.expoConfig` in at build time, which is why restarting Metro with the old variable did nothing) | `features.test.ts`; `routinesModel.test.ts` (defaults today → +13 weeks, helper, errors); `blocks.test.ts` (term + routine id) | flag on: `name-term-{dark,light}`, `name-term-error-*`, `name-term-created-*` ("Spring term" → empty Monday editor; removed after) | passed with the flag on; ships off until approved |
 | Routines page (active card, other terms, one-off changes) | `routines.tsx`, `oneOffChanges` | `routinesModel.test.ts` | `routines-*` (64h; Mon 10.4 … Sun 3.3 match the prototype) | passed |
 | Light theme | tokens | — | `screens/*-light.png` (10) | passed |
 | 375×667 (iPhone SE) | layouts are width-relative | — | `screens-se/se-*` (6) | passed |
@@ -44,12 +44,11 @@ then start it). `scripts/dev_evidence_cleanup` puts the owner's routine, terms a
 - Discard drops only the local draft (prototype reset the sample routine).
 - Routine-mode Add writes to the draft, not the outbox; push alert default off (D-32).
 - Terms: reached from Routines (Settings is Flow 09), back label "Routines"; Draft/Past tags use `text` on `surf2`
-  (prototype ink on surf2 is 1.2:1 in dark). Light-mode Active/Next tags (ink on ok/warn) are 3.7:1 / 3.4:1 at
-  11 pt — kept as prototype, flagged for the owner.
+  (prototype ink on surf2 is 1.2:1 in dark). Active/Next tags use the onStatus token (ink in dark, cream in light) so they reach 4.5:1 (owner review 2026-10-22).
 - Exam weeks shows "0h" (computed; the seed has no Exam weeks blocks; prototype hard-codes 42h).
 - One-off changes row: the note is the title, the line is generated ("11 blocks skipped · Sermon Sync 2h added");
   the prototype's "Classes off. Only a 2h Sermon Sync session" isn't stored anywhere.
-- The active card's hours are the routine from now on (63h after a save that starts next Monday).
+- The active card shows this week's hours and, when a saved change starts later, a line like "64h → 63h from Mon Oct 26" (owner review 2026-10-22).
 - Winter "Set up" and the Terms Winter hint say timetable import arrives with Flow 02; "Describe a change" says
   planning arrives with Flow 06.
 
