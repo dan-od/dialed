@@ -5,7 +5,7 @@
 #   ONLY=app     17e, dark + light: Add blank/wheel/clash/keep, Edit, Move clash, Week cards, Terms, Terms overlap
 #   ONLY=offline 17e: stop the API first; Day offline (+ queued), Add offline, routine editor offline
 #   ONLY=perm    17e: reinstall first (notifications not determined); Reminders off inline
-# Usage: ONLY=app ./scripts/design_v11_evidence
+# Usage: ONLY=app [THEMES=light] ./scripts/design_v11_evidence
 source "$(dirname "$0")/lib/common.sh"
 ensure_xcode_env
 E17=AC6A1E40-17E8-4CA1-9925-055CE7984A8A
@@ -34,7 +34,7 @@ if want auth; then
   retry run "$SE" signin-se e2e/signin_owner.yaml
 fi
 if want app; then
-  for theme in dark light; do
+  for theme in ${THEMES:-dark light}; do
     xcrun simctl ui "$E17" appearance "$theme"
     retry run "$E17" "app-after-$theme" -e THEME="$theme" e2e/design_v11.yaml
     for n in add-blank add-wheel add-overlap add-keep edit move-clash cards terms; do
@@ -48,13 +48,13 @@ if want app; then
   xcrun simctl ui "$E17" appearance dark
 fi
 if want offline; then
-  for theme in dark light; do
+  for theme in ${THEMES:-dark light}; do
     xcrun simctl ui "$E17" appearance "$theme"
     retry run "$E17" "offline-day-$theme" -e THEME="$theme" e2e/offline_stamp.yaml
     grab "offline-day-$theme" "day-offline-$theme" "after-day-offline-$theme"
   done
   xcrun simctl ui "$E17" appearance dark
-  retry run "$E17" offline-queued e2e/offline_1.yaml
+  [ "${SKIP_DAY:-}" = 1 ] || retry run "$E17" offline-queued e2e/offline_1.yaml
   grab offline-queued day-offline-queued after-day-offline-queued-dark
   retry run "$E17" offline-add -e THEME=dark e2e/offline_add_1.yaml
   grab offline-add offline-add-sheet-dark after-add-offline-dark
