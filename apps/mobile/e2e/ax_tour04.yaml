@@ -6,7 +6,7 @@ appId: me.okoro.dialed
 - runFlow: _open_add.yaml
 - takeScreenshot: ${TAG}-add
 - runFlow: _sheet_to_bottom.yaml
-- tapOn: { id: 'add-save' }
+- runFlow: _add_save.yaml
 - takeScreenshot: ${TAG}-add-bottom
 - scrollUntilVisible: { element: 'Give the block a name.*', direction: UP, timeout: 8000 }
 - takeScreenshot: ${TAG}-add-invalid

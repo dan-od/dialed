@@ -4,7 +4,7 @@ appId: me.okoro.dialed
 ---
 - runFlow: _today.yaml
 - runFlow: _add_read_acts.yaml
-- tapOn: { id: 'add-save' }
+- runFlow: _add_save.yaml
 - extendedWaitUntil: { visible: 'Added to .*You’ll get a nudge 10 min before.', timeout: 8000 }
 - takeScreenshot: toast-room-two-lines-${THEME}
 - runFlow: _delete_read_acts.yaml

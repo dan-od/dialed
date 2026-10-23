@@ -4,7 +4,7 @@ appId: me.okoro.dialed
 ---
 - runFlow: _today_ask.yaml
 - runFlow: _add_read_acts.yaml
-- tapOn: { id: 'add-save' }
+- runFlow: _add_save.yaml
 - extendedWaitUntil: { visible: 'Get a nudge before blocks start', timeout: 5000 }
 - takeScreenshot: nudge-${THEME}
 - tapOn: { id: 'nudge-on' }

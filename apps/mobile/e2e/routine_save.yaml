@@ -15,7 +15,7 @@ appId: me.okoro.dialed
 - tapOn: 'Study'
 - extendedWaitUntil: { visible: 'Add to routine', timeout: 5000 }
 - takeScreenshot: add-routine-mode-${THEME}
-- tapOn: { id: 'add-save' }
+- runFlow: _add_save.yaml
 - extendedWaitUntil: { visible: 'Added to every Monday.', timeout: 5000 }
 - takeScreenshot: editor-added-${THEME}
 - runFlow: _sheet_to_bottom.yaml

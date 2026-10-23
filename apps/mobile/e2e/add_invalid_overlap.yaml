@@ -31,11 +31,11 @@ appId: me.okoro.dialed
       - tapOn: 'Bible study'
 - extendedWaitUntil: { visible: 'Category, Bible study.*', timeout: 5000 }
 - takeScreenshot: add-overlap-${THEME}
-- tapOn: { id: 'add-save' }
+- runFlow: _add_save.yaml
 - extendedWaitUntil: { visible: 'Add anyway', timeout: 5000 }
 - takeScreenshot: add-overlap-anyway-${THEME}
 - runFlow: _wheel_end_8pm.yaml
-- tapOn: { id: 'add-save' }
+- runFlow: _add_save.yaml
 - extendedWaitUntil: { visible: 'End time needs to be after 9:00 pm.', timeout: 5000 }
 - takeScreenshot: add-invalid-time-${THEME}
 - tapOn: 'Close'
@@ -46,7 +46,7 @@ appId: me.okoro.dialed
 - assertNotVisible: 'Add to .*'
 # Blank form: name + category errors; a clean form closes without asking.
 - runFlow: _open_add.yaml
-- tapOn: { id: 'add-save' }
+- runFlow: _add_save.yaml
 - extendedWaitUntil: { visible: 'Give the block a name.*', timeout: 5000 }
 - assertVisible: 'Pick a category so it gets the right colour and totals.'
 - takeScreenshot: add-invalid-${THEME}
