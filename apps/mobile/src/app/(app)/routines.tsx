@@ -12,6 +12,8 @@ import {
   dateRange,
   oneOffChanges,
   otherTermLine,
+  routineChangeLine,
+  routineDayHours,
   shortDate,
   termStatus,
 } from '../../routines/model';
@@ -65,7 +67,11 @@ export default function RoutinesScreen() {
       const w = baseWeek(s, routineId);
       return [0, 1, 2, 3, 4, 5, 6].map((d) => dayHours(w, d, s.categories));
     };
-    const week = hours(routine?.id);
+    // This week's hours (owner review 2026-10-22), with the coming change on its own line.
+    const week = routine
+      ? routineDayHours(s, routine.id, weekStartOf(now.date))
+      : [0, 0, 0, 0, 0, 0, 0];
+    const change = routine ? routineChangeLine(s, routine.id, now.date) : null;
     const others = live
       .filter((t) => t.id !== active?.id && termStatus(t, now.date) !== 'Past')
       .map((t) => {
@@ -76,7 +82,7 @@ export default function RoutinesScreen() {
           total: hours(r?.id).reduce((a, b) => a + b, 0),
         };
       });
-    return { active, routine, week, others, changes: oneOffChanges(s.overrides) };
+    return { active, routine, week, change, others, changes: oneOffChanges(s.overrides) };
   }, [data, now.date]);
 
   const total = m ? Math.round(m.week.reduce((a, b) => a + b, 0)) : 0;
@@ -113,7 +119,7 @@ export default function RoutinesScreen() {
           <Pressable
             testID="routine-card"
             accessibilityRole="button"
-            accessibilityLabel={`${m.active.name}, active now, ${dateRange(m.active)}, ${total} hours a week. Edit week.`}
+            accessibilityLabel={`${m.active.name}, active now, ${dateRange(m.active)}, ${total} hours this week${m.change ? `, ${m.change.replace('→', 'then')}` : ''}. Edit week.`}
             onPress={() => void openEditor()}
             style={({ pressed }) => ({
               marginTop: 16,
@@ -174,6 +180,11 @@ export default function RoutinesScreen() {
                 <T size={12} weight="600" color={c.ink}>
                   a week
                 </T>
+                {m.change ? (
+                  <T size={12} weight="700" color={c.ink}>
+                    {m.change}
+                  </T>
+                ) : null}
               </View>
             </View>
             <View
