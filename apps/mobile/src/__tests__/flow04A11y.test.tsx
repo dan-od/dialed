@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { Chip, GroupRow, SheetHeader } from '../blocks/ui';
-import { Notice } from '../ui/Notice';
+import { FitStrip } from '../blocks/FitStrip';
+import { fitModel } from '../blocks/fit';
 
 // Flow 04 accessibility (static pass): what VoiceOver gets from the sheet pieces. Spoken VoiceOver itself
 // needs a device (the Simulator has no VoiceOver).
@@ -34,17 +35,27 @@ describe('Flow 04 sheet pieces', () => {
     expect(screen.getByRole('header', { name: 'Edit block' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy();
   });
-  it('notice action reaches 44 pt', async () => {
-    await render(
-      <Notice
-        inline
-        kind="quiet"
-        stamp="Reminders off"
-        text="x"
-        action={{ label: 'Turn them on', onPress: () => {} }}
-      />,
-    );
-    const b = screen.getByRole('button', { name: 'Turn them on' });
-    expect(b.props.hitSlop).toEqual({ top: 2, bottom: 2 });
+  it('fit strip: Keep both and the dashed slot are labelled buttons with room to tap', async () => {
+    const m = fitModel({
+      day: [
+        {
+          key: 'w',
+          title: 'WellServices',
+          start_min: 1080,
+          end_min: 1260,
+          quiet: false,
+          color: '#0af',
+        },
+      ],
+      start: 1170,
+      end: 1290,
+      title: 'Study',
+      keep: false,
+    });
+    await render(<FitStrip m={m} onShift={() => {}} onKeep={() => {}} />);
+    const keep = screen.getByRole('button', { name: 'Keep both' });
+    expect(keep.props.hitSlop).toMatchObject({ top: 14, bottom: 14 });
+    expect(screen.getByRole('button', { name: /^Move to / })).toBeTruthy();
+    expect(screen.getByRole('image', { name: /Overlaps WellServices/ })).toBeTruthy();
   });
 });

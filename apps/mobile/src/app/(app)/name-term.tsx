@@ -1,9 +1,8 @@
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 import { useApp } from '../../AppProvider';
-import { ErrorText, Label, SheetHeader, SheetScroll } from '../../blocks/ui';
+import { DateField, ErrorText, Label, SheetHeader, SheetScroll } from '../../blocks/ui';
 import { FEATURES } from '../../config';
 import { haptic } from '../../lib/haptics';
 import { nameTermDefaults, nameTermError, weeksHelper } from '../../routines/model';
@@ -14,16 +13,12 @@ import { T } from '../../ui/Text';
 import { useToast } from '../../ui/Toast';
 import { useSchedule } from '../../week/useSchedule';
 
-const asDate = (iso: string) => new Date(`${iso}T12:00:00`);
-const iso = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
 /**
  * Name your term (NAT-11, prototype "New screens to approve"). D-35: awaiting owner approval, so it only
  * opens with the d35Screens feature flag on.
  */
 export default function NameTermSheet() {
-  const { c, isLight } = useTheme();
+  const { c } = useTheme();
   const router = useRouter();
   const toast = useToast();
   const { blocks } = useApp();
@@ -60,36 +55,14 @@ export default function NameTermSheet() {
   };
 
   const date = (label: string, value: string, set: (v: string) => void) => (
-    <View style={{ flex: 1, gap: 6 }}>
-      <Label>{label}</Label>
-      <View
-        style={{
-          height: 52,
-          borderRadius: 16,
-          borderWidth: 1.5,
-          borderColor: c.line,
-          backgroundColor: c.surf,
-          justifyContent: 'center',
-          alignItems: 'flex-start',
-          paddingHorizontal: 4,
-        }}
-      >
-        <DateTimePicker
-          accessibilityLabel={label}
-          mode="date"
-          display="compact"
-          value={asDate(value)}
-          themeVariant={isLight ? 'light' : 'dark'}
-          accentColor={c.acc}
-          onValueChange={(_e, d) => {
-            if (d) {
-              set(iso(d));
-              setError(null);
-            }
-          }}
-        />
-      </View>
-    </View>
+    <DateField
+      label={label}
+      value={value}
+      onChange={(v) => {
+        set(v);
+        setError(null);
+      }}
+    />
   );
 
   return (
