@@ -1,0 +1,21 @@
+# Flow 09 delete with reassignment: Speedwatch Ontario → its 3 blocks move to Sermon Sync (picked in the iOS menu),
+# then it goes. scripts/dev_evidence_cleanup restores the seed category and blocks.
+appId: me.okoro.dialed
+---
+- runFlow: _settings.yaml
+- tapOn: { id: 'set-cats' }
+- extendedWaitUntil: { visible: 'Colours show in every view.*', timeout: 10000 }
+- tapOn: { id: 'cat-Speedwatch Ontario' }
+- extendedWaitUntil: { visible: '3 blocks a week use it.', timeout: 10000 }
+- tapOn: { id: 'ce-del' }
+- extendedWaitUntil: { visible: '3 blocks a week use it. Move them to:', timeout: 10000 }
+- tapOn: { id: 'cd-to' }
+- extendedWaitUntil: { visible: 'Delete those blocks too', timeout: 5000 }
+- takeScreenshot: delete-menu-${THEME}
+- tapOn: 'Sermon Sync'
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: delete-dialog-${THEME}
+- tapOn: { id: 'cd-go' }
+- extendedWaitUntil: { visible: 'Deleted Speedwatch Ontario.', timeout: 8000 }
+- assertNotVisible: { id: 'cat-Speedwatch Ontario' }
+- takeScreenshot: deleted-${THEME}

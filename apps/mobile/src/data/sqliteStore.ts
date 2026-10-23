@@ -81,6 +81,11 @@ export class SQLiteStore implements LocalStore {
     return toLocalData(rows);
   }
 
+  async rows(entity: SyncEntity) {
+    const all = await this.conn.getAllAsync<{ row: string }>(`SELECT row FROM ${TABLE[entity]}`);
+    return all.map((r) => JSON.parse(r.row) as Record<string, unknown>);
+  }
+
   async getRow(entity: SyncEntity, id: string) {
     const r = await this.conn.getFirstAsync<{ row: string }>(
       `SELECT row FROM ${TABLE[entity]} WHERE id = ?`,

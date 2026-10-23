@@ -1,3 +1,4 @@
+import type { DevicePrefs } from '@dialed/contracts';
 import {
   addDays,
   formatClock,
@@ -41,23 +42,37 @@ export function instantAt(date: IsoDate, minute: number, timeZone: string): Date
 const inQuiet = (minute: number, q: { start: number; end: number }) =>
   q.start <= q.end ? minute >= q.start && minute < q.end : minute >= q.start || minute < q.end;
 
-/** Reminders for blocks with an alert over the next 48 h: after now, outside quiet hours, capped per day. */
+type NotePrefs = Pick<DevicePrefs, 'heads_up_min' | 'meal_notes' | 'daily_cap'>;
+
+/**
+ * Reminders over the next 48 h: explicit block alerts (D-32), else a heads-up before work blocks and a quiet
+ * note when meals and breaks start (Flow 09 prefs); after now, outside quiet hours, capped per day.
+ */
 export function planReminders(
   data: ScheduleData,
   alerts: Record<string, number>,
   now: Date,
   timeZone: string,
   quiet: { start: number; end: number },
+  prefs: NotePrefs = { heads_up_min: null, meal_notes: false, daily_cap: DAILY_CAP },
 ): PlannedReminder[] {
   const today = localNow(now, timeZone).date;
   const out: PlannedReminder[] = [];
   const end = now.getTime() + 48 * 3600_000;
+  const isQuiet = new Set(data.categories.filter((c) => c.quiet).map((c) => c.id));
   for (let i = 0; i <= 2; i++) {
     const date = addDays(today, i);
     let count = 0;
     for (const b of resolveDay(date, data).blocks) {
-      const before = alerts[b.routine_block_id ?? ''] ?? alerts[b.override_id ?? ''];
-      if (before === undefined || count >= DAILY_CAP) continue;
+      const explicit = alerts[b.routine_block_id ?? ''] ?? alerts[b.override_id ?? ''];
+      const before =
+        explicit ??
+        (isQuiet.has(b.category_id)
+          ? prefs.meal_notes
+            ? 0
+            : undefined
+          : (prefs.heads_up_min ?? undefined));
+      if (before === undefined || count >= prefs.daily_cap) continue;
       const minute = b.start_min - before;
       const at = instantAt(date, minute, timeZone);
       if (at <= now || at.getTime() > end || inQuiet(((minute % 1440) + 1440) % 1440, quiet))

@@ -48,12 +48,21 @@ export function Header({ left, right }: { left: ReactNode; right?: ReactNode }) 
   );
 }
 
-export function BackLink({ label, onPress }: { label: string; onPress: () => void }) {
+export function BackLink({
+  label,
+  onPress,
+  a11yLabel,
+}: {
+  label: string;
+  onPress: () => void;
+  /** Spoken label when "Back to <label>" reads wrong (a sheet's plain "Back"). */
+  a11yLabel?: string;
+}) {
   const { c } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Back to ${label}`}
+      accessibilityLabel={a11yLabel ?? `Back to ${label}`}
       onPress={onPress}
       hitSlop={6}
       style={{ height: 44, paddingRight: 12, flexDirection: 'row', alignItems: 'center', gap: 2 }}

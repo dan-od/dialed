@@ -39,6 +39,8 @@ export interface LocalStore {
   upsertRows(changes: SyncChange[]): Promise<void>;
   load(): Promise<LocalData>;
   getRow(entity: SyncEntity, id: string): Promise<Record<string, unknown> | null>;
+  /** Every mirrored row of one entity (local effects that touch many rows: category merge/delete). */
+  rows(entity: SyncEntity): Promise<Record<string, unknown>[]>;
   cursor(): Promise<number>;
   enqueue(m: Mutation): Promise<void>;
   outbox(): Promise<OutboxItem[]>;

@@ -26,7 +26,8 @@ export default function CategorySheet() {
   const router = useRouter();
   const toast = useToast();
   const reduce = useReducedMotion();
-  const { for: target } = useLocalSearchParams<{ for?: 'add' | 'edit' }>();
+  // `create`: from Settings › Categories (Flow 09), the same create card with nothing underneath to fill.
+  const { for: target } = useLocalSearchParams<{ for?: 'add' | 'edit' | 'create' }>();
   const { data, blocks } = useApp();
   const ui = useBlocksUi();
   const [q, setQ] = useState('');
@@ -52,12 +53,17 @@ export default function CategorySheet() {
   const exact = !qq || list.some((x) => norm(x.name) === qq);
 
   const apply = (id: string) => {
+    if (target === 'create') return;
     if (target === 'edit' && ui.edit)
       ui.setEdit({ ...ui.edit, cur: { ...ui.edit.cur, category_id: id } });
     else if (ui.add) ui.setAdd({ ...ui.add, category_id: id, dirty: true });
   };
   const pick = (id: string) => {
     haptic.selection();
+    if (target === 'create') {
+      router.replace({ pathname: '/category-edit', params: { id } });
+      return;
+    }
     apply(id);
     router.back();
   };
@@ -191,7 +197,7 @@ export default function CategorySheet() {
               ) : null}
               <Button
                 testID="cat-create"
-                label="Create and use it"
+                label={target === 'create' ? 'Create' : 'Create and use it'}
                 busy={busy}
                 style={{ marginTop: 12, height: 48 }}
                 onPress={() => void create()}

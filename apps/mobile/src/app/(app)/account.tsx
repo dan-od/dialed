@@ -11,13 +11,11 @@ import { Dialog } from '../../ui/Chrome';
 import { CloseIcon, Mark } from '../../ui/icons';
 import { DisplayTitle } from '../../ui/DisplayTitle';
 import { D, T } from '../../ui/Text';
-import { useToast } from '../../ui/Toast';
 import Constants from 'expo-constants';
 
 export default function AccountSheet() {
   const { c } = useTheme();
   const router = useRouter();
-  const toast = useToast();
   const { session, data, signOut } = useApp();
   const [confirm, setConfirm] = useState(false);
   const user = session.status === 'signedIn' ? session.user : null;
@@ -94,7 +92,14 @@ export default function AccountSheet() {
           </View>
         ))}
       </View>
-      <Button label="Settings" onPress={() => toast('Settings arrive with Flow 09.')} />
+      <Button
+        testID="acc-settings"
+        label="Settings"
+        onPress={() => {
+          router.back();
+          router.push('/settings');
+        }}
+      />
       <Button label="Sign out" kind="secondary" fg={c.err} onPress={() => setConfirm(true)} />
       <View
         style={{

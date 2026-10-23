@@ -38,6 +38,12 @@ export default function AppLayout() {
           <Stack.Screen name="routine-save" options={sheet} />
           <Stack.Screen name="routine-copy" options={sheet} />
           <Stack.Screen name="name-term" options={sheet} />
+          {/* Flow 09: Settings pages pushed from the Account sheet; Edit category (large) with Merge over it. */}
+          <Stack.Screen name="settings" options={page} />
+          <Stack.Screen name="categories" options={page} />
+          <Stack.Screen name="notifications" options={page} />
+          <Stack.Screen name="category-edit" options={form} />
+          <Stack.Screen name="category-merge" options={form} />
         </Stack>
       </RoutinesUiProvider>
     </BlocksUiProvider>

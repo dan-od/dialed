@@ -1,0 +1,8 @@
+# Flow 09 Export my data: the zip comes from the API and opens the iOS share sheet (NAT-08); Close cancels it.
+appId: me.okoro.dialed
+---
+- runFlow: _settings.yaml
+- tapOn: { id: 'set-export' }
+- extendedWaitUntil: { visible: '.*dialed-export.*', timeout: 20000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: export-share-${THEME}

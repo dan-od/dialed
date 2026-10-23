@@ -1,4 +1,11 @@
-import type { Mutation, PullResponse, TokensOut, UserOut } from '@dialed/contracts';
+import {
+  DEFAULT_DEVICE_PREFS,
+  type DevicePrefs,
+  type Mutation,
+  type PullResponse,
+  type TokensOut,
+  type UserOut,
+} from '@dialed/contracts';
 import { randomUUID } from 'expo-crypto';
 import * as Network from 'expo-network';
 import {
@@ -26,6 +33,8 @@ import {
   writeSession,
   type StoredSession,
 } from './session/storage';
+import { DevicePrefsStore } from './settings/prefs';
+import { Categories } from './settings/service';
 import { SyncEngine, type SyncStatus } from './sync/engine';
 import { nextTheme, ThemeProvider, type ThemePref } from './theme/theme';
 import { useToast } from './ui/Toast';
@@ -41,6 +50,11 @@ interface AppValue {
   online: boolean;
   /** Flow 04 block changes (local first, through the outbox). */
   blocks: Blocks;
+  /** Flow 09 category edits, merges and deletes (local first, through the outbox). */
+  categories: Categories;
+  /** This phone's notification prefs (Flow 09): applied at once, sent to PUT /v1/devices/current. */
+  prefs: DevicePrefs;
+  setPrefs(change: Partial<DevicePrefs>): Promise<void>;
   /** The device store (small per-account prefs such as the routine editor's draft). */
   store: LocalStore;
   /** After verify / login / reset: persist tokens, start syncing (pull since=0). */
@@ -114,16 +128,49 @@ export function AppProvider({
   const reload = useCallback(async () => setData(await store.load()), [store]);
   const [hub] = useState(() => new EngineHub());
   const blocks = useMemo(() => new Blocks(store, (m) => hub.enqueue(m)), [store, hub]);
+  const categories = useMemo(() => new Categories(store, (m) => hub.enqueue(m)), [store, hub]);
+  const prefStore = useMemo(
+    () =>
+      new DevicePrefsStore(store, (p) =>
+        api
+          .request<{ prefs: DevicePrefs }>('PUT', '/v1/devices/current', { prefs: p })
+          .then((r) => r.prefs),
+      ),
+    [store],
+  );
+  const [prefs, setPrefsState] = useState<DevicePrefs>(DEFAULT_DEVICE_PREFS);
+  const setPrefs = useCallback(
+    async (change: Partial<DevicePrefs>) => {
+      setPrefsState(await prefStore.set(change));
+      void prefStore.flush();
+    },
+    [prefStore],
+  );
+  /** Signed in: this phone's prefs from the store, then the server's copy unless a change is waiting. */
+  const loadPrefs = useCallback(async () => {
+    setPrefsState(await prefStore.get());
+    await prefStore.flush();
+    try {
+      const r = await api.request<{ prefs: DevicePrefs }>('GET', '/v1/devices/current');
+      await prefStore.adopt(r.prefs);
+      setPrefsState(await prefStore.get());
+    } catch {
+      /* offline: keep this phone's copy */
+    }
+  }, [prefStore]);
 
   // Local reminders follow the data: next 48 h of explicit block alerts (D-32), quiet hours respected.
   useEffect(() => {
     const p = data?.profile;
     if (!data || !p) return;
-    void rescheduleReminders(data.schedule, p.profile_json?.block_alerts ?? {}, p.time_zone, {
-      start: p.quiet_start_min,
-      end: p.quiet_end_min,
-    }).catch(() => {});
-  }, [data]);
+    void rescheduleReminders(
+      data.schedule,
+      p.profile_json?.block_alerts ?? {},
+      p.time_zone,
+      { start: p.quiet_start_min, end: p.quiet_end_min },
+      prefs,
+    ).catch(() => {});
+  }, [data, prefs]);
 
   const startEngine = useCallback(async () => {
     engineRef.current?.stop();
@@ -157,7 +204,8 @@ export function AppProvider({
     await engine.start();
     await reload();
     void engine.sync();
-  }, [hub, reload, store, toast]);
+    void loadPrefs();
+  }, [hub, reload, store, toast, loadPrefs]);
 
   /** sessionEnded() (identity-session contract): wipe SQLite + Keychain, back to Welcome. */
   const sessionEnded = useCallback(
@@ -170,6 +218,7 @@ export function AppProvider({
       // Live Activities, local notifications, widget snapshot and device unregister join here with Flow 08.
       setData(null);
       setSync(EMPTY_SYNC);
+      setPrefsState(DEFAULT_DEVICE_PREFS);
       setSession({ status: 'signedOut' });
       if (reason === 'revoked') toast('You were signed out. Sign in again.');
     },
@@ -203,7 +252,10 @@ export function AppProvider({
   // Foreground and network regain trigger push + pull.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (st) => {
-      if (st === 'active') void engineRef.current?.sync();
+      if (st === 'active') {
+        void engineRef.current?.sync();
+        void prefStore.flush();
+      }
     });
     const net = Network.addNetworkStateListener((st) => {
       const up = st.isConnected !== false && st.isInternetReachable !== false;
@@ -217,7 +269,7 @@ export function AppProvider({
       sub.remove();
       net.remove();
     };
-  }, []);
+  }, [prefStore]);
 
   const signIn = useCallback(
     async (t: TokensOut) => {
@@ -266,6 +318,9 @@ export function AppProvider({
     sync,
     online: online && sync.problem !== 'offline',
     blocks,
+    categories,
+    prefs,
+    setPrefs,
     store,
     signIn,
     signOut,

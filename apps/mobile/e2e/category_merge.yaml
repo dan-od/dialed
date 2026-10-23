@@ -1,0 +1,20 @@
+# Flow 09 merge + Undo: Speedwatch Ontario into WellServices (3 blocks move; WellServices 6.3h → 10.5h), then
+# Undo puts it back. scripts/dev_evidence_cleanup restores the seed if Undo is missed.
+appId: me.okoro.dialed
+---
+- runFlow: _settings.yaml
+- tapOn: { id: 'set-cats' }
+- extendedWaitUntil: { visible: 'Colours show in every view.*', timeout: 10000 }
+- tapOn: { id: 'cat-Speedwatch Ontario' }
+- extendedWaitUntil: { visible: '3 blocks a week use it.', timeout: 10000 }
+- tapOn: { id: 'ce-merge' }
+- extendedWaitUntil: { visible: 'Merge Speedwatch Ontario', timeout: 10000 }
+- tapOn: { id: 'cm-WellServices' }
+- extendedWaitUntil: { visible: 'Merged Speedwatch Ontario into WellServices. 3 blocks moved.', timeout: 8000 }
+- takeScreenshot: merged-${THEME}
+# The toast lasts 6 s: tap Undo straight away (the list is checked in the screenshot and after Undo).
+- tapOn: 'Undo'
+- extendedWaitUntil: { visible: 'Put back.', timeout: 15000 }
+- extendedWaitUntil: { visible: { id: 'cat-Speedwatch Ontario' }, timeout: 15000 }
+- assertVisible: 'WellServices, 6.3 hours a week'
+- takeScreenshot: merge-undone-${THEME}

@@ -40,12 +40,14 @@ export class ApiClient {
     method: string,
     path: string,
     body?: unknown,
-    opts: { auth?: boolean } = {},
+    opts: { auth?: boolean; bytes?: boolean } = {},
   ): Promise<T> {
     const auth = opts.auth ?? true;
-    const first = await this.send(method, path, body, auth);
+    const bytes = opts.bytes ?? false;
+    const first = await this.send(method, path, body, auth, bytes);
     if (auth && first.status === 401 && first.code === 'token_expired') {
-      if (await this.refresh()) return this.unwrap<T>(await this.send(method, path, body, auth));
+      if (await this.refresh())
+        return this.unwrap<T>(await this.send(method, path, body, auth, bytes));
       throw new ApiError('unauthorized', COPY.unauthorized!, 401);
     }
     if (auth && first.status === 401) {
@@ -71,7 +73,12 @@ export class ApiClient {
     );
   }
 
-  private async send(method: string, path: string, body: unknown, auth: boolean) {
+  /** A file from the API (Export my data): the raw bytes, same auth and errors as `request`. */
+  download(path: string): Promise<ArrayBuffer> {
+    return this.request<ArrayBuffer>('GET', path, undefined, { bytes: true });
+  }
+
+  private async send(method: string, path: string, body: unknown, auth: boolean, bytes = false) {
     const headers: Record<string, string> = {
       'x-request-id': randomUUID(),
       accept: 'application/json',
@@ -94,6 +101,7 @@ export class ApiClient {
     } finally {
       clearTimeout(timer);
     }
+    if (bytes && res.ok) return { status: res.status, json: await res.arrayBuffer() };
     const text = await res.text();
     let json: unknown = null;
     try {

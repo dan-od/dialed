@@ -3,4 +3,9 @@ appId: me.okoro.dialed
 ---
 - launchApp: { stopApp: true }
 - runFlow: _open.yaml
+# _open's blind tap for the "Open in Dialed?" prompt can land on a Day row once Day has loaded: close that sheet.
+- runFlow:
+    when: { visible: 'Edit block' }
+    commands:
+      - tapOn: 'Close'
 - extendedWaitUntil: { visible: 'Rest of today', timeout: 90000 }
