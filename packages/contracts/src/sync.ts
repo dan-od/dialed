@@ -162,6 +162,33 @@ export const RoutineSaveMutation = z.strictObject({
   ops: z.array(RoutineSaveOp).max(200),
 });
 
+/** Flow 09: every block and one-off moves from `from` to `to`, then `from` goes away (one transaction). */
+export const CategoryMergeMutation = z.strictObject({
+  ...base,
+  entity: z.literal('category_merge'),
+  from: z.uuid(),
+  to: z.uuid(),
+  from_version: z.number().int().min(1),
+  to_version: z.number().int().min(1),
+});
+/** Undo of a merge, within 10 minutes of it (Flow 09). */
+export const CategoryUnmergeMutation = z.strictObject({
+  ...base,
+  entity: z.literal('category_unmerge'),
+  merge_id: z.uuid(),
+});
+/** Flow 09 delete: blocks move to `reassign_to`, or end from today (`delete_blocks`); never both. */
+export const CategoryDeleteMutation = z
+  .strictObject({
+    ...base,
+    entity: z.literal('category_delete'),
+    id: z.uuid(),
+    base_version: z.number().int().min(1),
+    reassign_to: z.uuid().optional(),
+    delete_blocks: z.literal(true).optional(),
+  })
+  .refine((m) => !(m.reassign_to && m.delete_blocks), 'Pick where the blocks go, or delete them.');
+
 export const Mutation = z.discriminatedUnion('entity', [
   simple('override', OverrideFields),
   simple('category', CategoryFields),
@@ -176,6 +203,9 @@ export const Mutation = z.discriminatedUnion('entity', [
   }),
   RoutineBlockEditMutation,
   RoutineSaveMutation,
+  CategoryMergeMutation,
+  CategoryUnmergeMutation,
+  CategoryDeleteMutation,
 ]);
 export type Mutation = z.infer<typeof Mutation>;
 
@@ -190,6 +220,9 @@ export const MutationResult = z.object({
   row: z.record(z.string(), z.unknown()).nullable().optional(),
   entity: z.string().optional(),
   revision: z.number().int().optional(),
+  /** category_merge: the merge to pass to category_unmerge, and how many routine blocks moved. */
+  merge_id: z.uuid().optional(),
+  moved: z.number().int().optional(),
 });
 export type MutationResult = z.infer<typeof MutationResult>;
 export const PushResponse = z.object({

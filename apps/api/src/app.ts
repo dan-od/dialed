@@ -10,6 +10,8 @@ import type { Db } from './db/pool';
 import type { EmailTransport } from './email';
 import { AppError, appError } from './lib/errors';
 import { syncRoutes } from './sync/routes';
+import { accountRoutes } from './account/routes';
+import { AccountService } from './account/service';
 import { SyncService } from './sync/service';
 import { publicRoutes } from './public';
 
@@ -104,6 +106,7 @@ export async function buildApp(config: Config, deps: Deps) {
   const jwt = new JwtService(config.jwtPrivateKeyPem, config.JWT_KEY_ID, config.PUBLIC_BASE_URL);
   const auth = new AuthService(deps.db, jwt, deps.email, config);
   const sync = new SyncService(deps.db, deps.now);
+  const account = new AccountService(deps.db, deps.now);
 
   app.get('/healthz', async () => ({ ok: true }));
   app.get('/readyz', async (_req, reply) => {
@@ -117,6 +120,7 @@ export async function buildApp(config: Config, deps: Deps) {
 
   authRoutes(app, auth, jwt, config.RATE_LIMIT_MULTIPLIER);
   syncRoutes(app, sync, jwt, auth);
+  accountRoutes(app, account, jwt, auth);
   publicRoutes(app, config);
   return app;
 }

@@ -194,13 +194,14 @@ export class SyncService {
     try {
       result = await this.db.transaction(async (tx) => {
         const rec = new ChangeRecorder(tx, userId);
-        const { entity, row } = await this.dispatch(tx, rec, userId, m);
+        const { entity, row, extra } = await this.dispatch(tx, rec, userId, m);
         return {
           client_mutation_id: m.client_mutation_id,
           status: 'applied',
           entity,
           row: syncRow(entity, row),
           revision: await rec.currentRevision(),
+          ...extra,
         };
       });
     } catch (e) {
@@ -265,8 +266,14 @@ export class SyncService {
     rec: ChangeRecorder,
     userId: string,
     m: Mutation,
-  ): Promise<{ entity: SyncEntity; row: Row }> {
+  ): Promise<{ entity: SyncEntity; row: Row; extra?: Partial<MutationResult> }> {
     switch (m.entity) {
+      case 'category_merge':
+        return this.categoryMerge(tx, rec, userId, m);
+      case 'category_unmerge':
+        return { entity: 'category', row: await this.categoryUnmerge(tx, rec, userId, m) };
+      case 'category_delete':
+        return { entity: 'category', row: await this.categoryDelete(tx, rec, userId, m) };
       case 'profile':
         return {
           entity: 'profile',
@@ -363,6 +370,8 @@ export class SyncService {
     }
 
     if (m.op === 'delete') {
+      if (m.entity === 'category' && (await this.categoryUse(tx, userId, m.id)) > 0)
+        throw new Rejected('in_use', 'Blocks still use it. Pick where they go first.');
       const { rows } =
         await tx.execute<Row>(sql`update ${sql.raw(table)} set deleted_at = now(), version = version + 1
         where id = ${m.id} and user_id = ${userId} returning *`);
@@ -562,6 +571,165 @@ export class SyncService {
     return rows[0]!;
   }
 
+  /** Live routine blocks and one-offs that use a category. */
+  private async categoryUse(tx: Tx, userId: string, id: string): Promise<number> {
+    const { rows } = await tx.execute<{ n: number }>(sql`select
+      (select count(*) from routine_blocks where user_id = ${userId} and category_id = ${id} and deleted_at is null)
+      + (select count(*) from overrides where user_id = ${userId} and category_id = ${id} and deleted_at is null) as n`);
+    return Number(rows[0]?.n ?? 0);
+  }
+
+  /** A live category of this user, locked; someone else's or a deleted one is not_found (never 403). */
+  private async liveCategory(tx: Tx, userId: string, id: string): Promise<Row> {
+    const { rows } = await tx.execute<Row>(
+      sql`select * from categories where id = ${id} and user_id = ${userId} and deleted_at is null for update`,
+    );
+    if (!rows[0]) throw new Rejected('not_found', 'That isn’t available.');
+    return rows[0];
+  }
+
+  /** Moves every live block and one-off (past ones too: a category is a label) from one category to another. */
+  private async moveCategory(
+    tx: Tx,
+    rec: ChangeRecorder,
+    userId: string,
+    from: string,
+    to: string,
+  ): Promise<{ routine_block_ids: string[]; override_ids: string[] }> {
+    const blocks =
+      await tx.execute<Row>(sql`update routine_blocks set category_id = ${to}, version = version + 1
+      where user_id = ${userId} and category_id = ${from} and deleted_at is null returning *`);
+    for (const r of blocks.rows) await rec.record('routine_block', String(r.id), 'upsert', r);
+    const ovs =
+      await tx.execute<Row>(sql`update overrides set category_id = ${to}, version = version + 1
+      where user_id = ${userId} and category_id = ${from} and deleted_at is null returning *`);
+    for (const r of ovs.rows) await rec.record('override', String(r.id), 'upsert', r);
+    return {
+      routine_block_ids: blocks.rows.map((r) => String(r.id)),
+      override_ids: ovs.rows.map((r) => String(r.id)),
+    };
+  }
+
+  private async softDeleteCategory(tx: Tx, rec: ChangeRecorder, id: string): Promise<Row> {
+    const { rows } = await tx.execute<Row>(
+      sql`update categories set deleted_at = now(), version = version + 1 where id = ${id} returning *`,
+    );
+    await rec.record('category', id, 'upsert', rows[0]!);
+    return rows[0]!;
+  }
+
+  /** Flow 09 merge: atomic; recorded in category_merges so it can be undone for 10 minutes. */
+  private async categoryMerge(
+    tx: Tx,
+    rec: ChangeRecorder,
+    userId: string,
+    m: Extract<Mutation, { entity: 'category_merge' }>,
+  ): Promise<{ entity: SyncEntity; row: Row; extra: Partial<MutationResult> }> {
+    if (m.from === m.to) throw new Rejected('bad_request', 'Pick a different category.');
+    const from = await this.liveCategory(tx, userId, m.from);
+    const to = await this.liveCategory(tx, userId, m.to);
+    if (Number(from.version) !== m.from_version) throw new Conflict(syncRow('category', from));
+    if (Number(to.version) !== m.to_version) throw new Conflict(syncRow('category', to));
+    const moved = await this.moveCategory(tx, rec, userId, m.from, m.to);
+    const { rows } = await tx.execute<{ id: string }>(sql`insert into category_merges
+      (user_id, from_category_id, to_category_id, moved_json, created_at)
+      values (${userId}, ${m.from}, ${m.to}, ${JSON.stringify(moved)}::jsonb, ${this.now().toISOString()}) returning id`);
+    const row = await this.softDeleteCategory(tx, rec, m.from);
+    return {
+      entity: 'category',
+      row,
+      extra: {
+        merge_id: rows[0]!.id,
+        moved: moved.routine_block_ids.length,
+      },
+    };
+  }
+
+  /** Undo a merge (10 minutes): the category comes back and rows that still point at the target move back. */
+  private async categoryUnmerge(
+    tx: Tx,
+    rec: ChangeRecorder,
+    userId: string,
+    m: Extract<Mutation, { entity: 'category_unmerge' }>,
+  ): Promise<Row> {
+    const found = await tx.execute<{
+      from_category_id: string;
+      to_category_id: string;
+      moved_json: { routine_block_ids: string[]; override_ids: string[] };
+      created_at: Date;
+      undone_at: Date | null;
+    }>(
+      sql`select * from category_merges where id = ${m.merge_id} and user_id = ${userId} for update`,
+    );
+    const merge = found.rows[0];
+    if (!merge || merge.undone_at) throw new Rejected('not_found', 'That isn’t available.');
+    if (this.now().getTime() - new Date(merge.created_at).getTime() > 10 * 60_000)
+      throw new Rejected('too_late', 'That merge can’t be undone any more.');
+    const back =
+      await tx.execute<Row>(sql`update categories set deleted_at = null, version = version + 1
+      where id = ${merge.from_category_id} and user_id = ${userId} returning *`);
+    await rec.record('category', merge.from_category_id, 'upsert', back.rows[0]!);
+    const ids = merge.moved_json;
+    const from = merge.from_category_id;
+    const to = merge.to_category_id;
+    if (ids.routine_block_ids.length) {
+      const r =
+        await tx.execute<Row>(sql`update routine_blocks set category_id = ${from}, version = version + 1
+        where user_id = ${userId} and category_id = ${to}
+          and id in (${sql.join(
+            ids.routine_block_ids.map((i) => sql`${i}::uuid`),
+            sql`, `,
+          )}) returning *`);
+      for (const x of r.rows) await rec.record('routine_block', String(x.id), 'upsert', x);
+    }
+    if (ids.override_ids.length) {
+      const r =
+        await tx.execute<Row>(sql`update overrides set category_id = ${from}, version = version + 1
+        where user_id = ${userId} and category_id = ${to}
+          and id in (${sql.join(
+            ids.override_ids.map((i) => sql`${i}::uuid`),
+            sql`, `,
+          )}) returning *`);
+      for (const x of r.rows) await rec.record('override', String(x.id), 'upsert', x);
+    }
+    await tx.execute(
+      sql`update category_merges set undone_at = ${this.now().toISOString()} where id = ${m.merge_id}`,
+    );
+    return back.rows[0]!;
+  }
+
+  /** Flow 09 delete: blocks move to another category, or end from today (past days keep theirs); then it goes. */
+  private async categoryDelete(
+    tx: Tx,
+    rec: ChangeRecorder,
+    userId: string,
+    m: Extract<Mutation, { entity: 'category_delete' }>,
+  ): Promise<Row> {
+    const cat = await this.liveCategory(tx, userId, m.id);
+    if (Number(cat.version) !== m.base_version) throw new Conflict(syncRow('category', cat));
+    if (m.reassign_to) {
+      if (m.reassign_to === m.id) throw new Rejected('bad_request', 'Pick a different category.');
+      await this.liveCategory(tx, userId, m.reassign_to);
+      await this.moveCategory(tx, rec, userId, m.id, m.reassign_to);
+    } else if (m.delete_blocks) {
+      const today = await this.today(tx, userId);
+      const del = await tx.execute<Row>(sql`update routine_blocks set
+          deleted_at = case when effective_from >= ${today} then now() else deleted_at end,
+          effective_to = case when effective_from >= ${today} then effective_to else ${today}::date end,
+          version = version + 1
+        where user_id = ${userId} and category_id = ${m.id} and deleted_at is null
+          and (effective_to is null or effective_to > ${today}) returning *`);
+      for (const r of del.rows) await rec.record('routine_block', String(r.id), 'upsert', r);
+      const ovs =
+        await tx.execute<Row>(sql`update overrides set deleted_at = now(), version = version + 1
+        where user_id = ${userId} and category_id = ${m.id} and deleted_at is null and on_date >= ${today} returning *`);
+      for (const r of ovs.rows) await rec.record('override', String(r.id), 'upsert', r);
+    } else if ((await this.categoryUse(tx, userId, m.id)) > 0) {
+      throw new Rejected('in_use', 'Blocks still use it. Pick where they go first.');
+    }
+    return this.softDeleteCategory(tx, rec, m.id);
+  }
+
   /** Flow 04 "every week" edits: close + insert, or in-place on the same effective day. Past days never change. */
   private async routineBlockEdit(
     tx: Tx,
@@ -634,6 +802,7 @@ export class SyncService {
 
 function entityOf(m: Mutation): string {
   if (m.entity === 'routine_save') return 'routine';
+  if (m.entity.startsWith('category_')) return 'category';
   return m.entity === 'routine_block_edit' ? 'routine_block' : m.entity;
 }
 
