@@ -16,3 +16,4 @@ apps/mobile/web-build/
 
 # raw Maestro run folders (logs, per-step screenshots); curated screens live in evidence/flows/*/screens
 evidence/flows/*/e2e-*/
+evidence/design-v11/raw/
