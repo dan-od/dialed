@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { View, type TextInputInstance } from 'react-native';
 import { useApp } from '../../AppProvider';
-import { AuthNotices } from '../../auth/AuthNotices';
+import { AuthNotices, emailProblem } from '../../auth/AuthNotices';
 import { useAuthCall } from '../../auth/useAuthCall';
 import { validateAuth, type AuthErrors } from '../../auth/validate';
 import { haptic } from '../../lib/haptics';
@@ -58,6 +58,10 @@ export default function SignUp() {
     }
   }
 
+  // v11: the email's own problem (taken, invite-only) sits in its error line, the fix as a link.
+  const problem = emailProblem(online ? notice : null, {
+    onSignIn: () => router.replace({ pathname: '/signin', params: { email: email.trim() } }),
+  });
   return (
     <Page>
       <Header left={<BackLink label="Welcome" onPress={() => router.back()} />} />
@@ -84,7 +88,8 @@ export default function SignUp() {
               label="Email"
               value={email}
               onChangeText={setEmail}
-              error={errors.email}
+              error={errors.email ?? problem?.text}
+              errorLink={errors.email ? undefined : problem?.link}
               textContentType="emailAddress"
               autoComplete="email"
               keyboardType="email-address"
@@ -111,9 +116,7 @@ export default function SignUp() {
         </View>
         <AuthNotices
           notice={online ? notice : { kind: 'offline' }}
-          email={email.trim()}
           offlineVerb="make an account"
-          onSignIn={() => router.replace({ pathname: '/signin', params: { email: email.trim() } })}
           onRetry={submit}
         />
         <View style={{ paddingHorizontal: 20, marginTop: 18, gap: 10 }}>

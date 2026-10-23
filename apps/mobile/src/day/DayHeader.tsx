@@ -5,6 +5,7 @@ import { useTheme } from '../theme/theme';
 import { IconButton } from '../ui/Button';
 import { Header } from '../ui/Chrome';
 import { AiMark, ThemeIcon } from '../ui/icons';
+import { OfflinePill } from '../ui/Inline';
 import { Spinner } from '../ui/Spinner';
 import { D, T } from '../ui/Text';
 
@@ -63,6 +64,8 @@ export function DayHeader(props: {
   pending: number;
   syncing: boolean;
   paused: boolean;
+  /** v11: offline, the date stacks over the offline pill ("Offline · N to sync"), which replaces the sync pill. */
+  offline?: boolean;
   onSync: () => void;
   onAccount: () => void;
   onPlan: () => void;
@@ -72,18 +75,28 @@ export function DayHeader(props: {
   return (
     <Header
       left={
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
+        <View
+          style={
+            props.offline
+              ? { flexDirection: 'column', alignItems: 'flex-start', gap: 6, flexShrink: 1 }
+              : { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }
+          }
+        >
           <Pressable onLongPress={__DEV__ ? cycleDevClock : undefined} accessible={false}>
             <T accessibilityRole="header" size={16} weight="700">
               {props.date}
             </T>
           </Pressable>
-          <SyncPill
-            pending={props.pending}
-            syncing={props.syncing}
-            paused={props.paused}
-            onPress={props.onSync}
-          />
+          {props.offline ? (
+            <OfflinePill pending={props.pending} />
+          ) : (
+            <SyncPill
+              pending={props.pending}
+              syncing={props.syncing}
+              paused={props.paused}
+              onPress={props.onSync}
+            />
+          )}
         </View>
       }
       right={

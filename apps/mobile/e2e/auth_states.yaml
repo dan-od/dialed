@@ -1,0 +1,33 @@
+# Flow 01 field problems (Part 1 before/after): email already has an account; nobody with this email.
+# Signs out (clears state); sign back in with signin_owner.yaml.
+appId: me.okoro.dialed
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow: _open.yaml
+- extendedWaitUntil: { visible: Sign up with email, timeout: 90000 }
+- tapOn: Sign up with email
+- tapOn: Show password
+- tapOn: { id: signup-name }
+- inputText: Owner
+- pressKey: Enter
+- inputText: owner@dialed.test
+- pressKey: Enter
+- inputText: longenough1
+- pressKey: Enter
+- extendedWaitUntil: { visible: '.*(already|Already).*', timeout: 15000 }
+- hideKeyboard
+- takeScreenshot: ${TAG}-taken-${THEME}
+- tapOn: 'Sign in instead'
+- extendedWaitUntil: { visible: Welcome back, timeout: 10000 }
+- tapOn: Show password
+- tapOn: { id: signin-email }
+- eraseText: 40
+- inputText: nobody-here@dialed.test
+- pressKey: Enter
+- inputText: longenough1
+- pressKey: Enter
+- extendedWaitUntil: { visible: '.*(Nobody|nobody).*', timeout: 15000 }
+- hideKeyboard
+- takeScreenshot: ${TAG}-none-${THEME}
