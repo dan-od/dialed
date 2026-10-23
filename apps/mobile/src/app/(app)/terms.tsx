@@ -34,12 +34,12 @@ export default function TermsScreen() {
     .sort((a, b) => a.starts_on.localeCompare(b.starts_on));
   const notices = termNotices(terms);
 
-  // Tags: Draft/Past use text on surf2 (the prototype's ink on surf2 is 1.2:1 in dark).
+  // Tags ≥ 4.5:1: Active/Next use onStatus (cream in light), Draft/Past text on surf2 (owner review 2026-10-22).
   const tag = (s: TermStatus) =>
     s === 'Active'
-      ? { bg: c.ok, fg: c.ink }
+      ? { bg: c.ok, fg: c.onStatus }
       : s === 'Next'
-        ? { bg: c.warn, fg: c.ink }
+        ? { bg: c.warn, fg: c.onStatus }
         : { bg: c.surf2, fg: c.text };
 
   const change = async (id: string, starts: string, ends: string) => {

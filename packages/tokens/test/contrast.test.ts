@@ -9,6 +9,10 @@ describe('contrast rules', () => {
     it(`${theme}: stamp text (ink on stamp) ≥ 4.5:1`, () => {
       expect(contrast(c.ink, c.stamp)).toBeGreaterThanOrEqual(4.5);
     });
+    it(`${theme}: status tags (Active / Next) text ≥ 4.5:1 (owner review 2026-10-22)`, () => {
+      expect(contrast(c.onStatus, c.ok)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(c.onStatus, c.warn)).toBeGreaterThanOrEqual(4.5);
+    });
     it(`${theme}: toast text ≥ 4.5:1 and action label ≥ 4.5:1`, () => {
       expect(contrast(c.toastFg, c.toastBg)).toBeGreaterThanOrEqual(4.5);
       expect(contrast(c.toastActFg, c.toastActBg)).toBeGreaterThanOrEqual(4.5);
