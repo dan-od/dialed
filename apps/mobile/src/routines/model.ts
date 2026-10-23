@@ -6,6 +6,7 @@ import {
   weekStartOf,
   type IsoDate,
   type Override,
+  type ScheduleData,
   type Term,
 } from '@dialed/schedule';
 import { WEEKDAY_SHORT, WEEKDAYS } from '../blocks/form';
@@ -166,4 +167,52 @@ export function oneOffChanges(overrides: Override[], limit = 5): OneOffRow[] {
         line: parts.join(' · '),
       };
     });
+}
+
+// ----- routines card -----
+/** Hours of work per day (Mon → Sun) the routine puts in the week starting `weekStart` (each day's own versions;
+ * meals and breaks don't count). */
+export function routineDayHours(
+  data: ScheduleData,
+  routineId: string,
+  weekStart: IsoDate,
+): number[] {
+  const quiet = new Set(data.categories.filter((c) => c.quiet).map((c) => c.id));
+  return [0, 1, 2, 3, 4, 5, 6].map((d) => {
+    const date = addDays(weekStart, d);
+    let min = 0;
+    for (const b of data.routineBlocks) {
+      if (b.routine_id !== routineId || b.deleted_at || b.weekday !== d || quiet.has(b.category_id))
+        continue;
+      if (b.effective_from <= date && (b.effective_to === null || date < b.effective_to))
+        min += b.end_min - b.start_min;
+    }
+    return min / 60;
+  });
+}
+export const routineWeekHours = (data: ScheduleData, routineId: string, weekStart: IsoDate) =>
+  routineDayHours(data, routineId, weekStart).reduce((a, b) => a + b, 0);
+
+/** "64h → 63h from Mon Oct 26" when a saved change starts after this week's hours (null when nothing changes). */
+export function routineChangeLine(
+  data: ScheduleData,
+  routineId: string,
+  today: IsoDate,
+): string | null {
+  const dates = data.routineBlocks
+    .filter((b) => b.routine_id === routineId && !b.deleted_at)
+    .flatMap((b) => [b.effective_from, b.effective_to])
+    .filter((d): d is IsoDate => !!d && d > today)
+    .sort();
+  const now = routineWeekHours(data, routineId, weekStartOf(today));
+  for (const d of dates) {
+    const later = routineWeekHours(
+      data,
+      routineId,
+      weekStartOf(d) <= today ? addDays(weekStartOf(d), 7) : weekStartOf(d),
+    );
+    if (Math.round(later) !== Math.round(now))
+      return `${Math.round(now)}h → ${Math.round(later)}h from ${toastDate(d)}`;
+  }
+  return null;
 }

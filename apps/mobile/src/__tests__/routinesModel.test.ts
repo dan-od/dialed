@@ -12,6 +12,8 @@ import {
   otherTermLine,
   removedToast,
   replacesLine,
+  routineChangeLine,
+  routineWeekHours,
   saveSentence,
   saveToast,
   termDateError,
@@ -167,5 +169,74 @@ describe('one-off changes on Routines', () => {
         line: '11 blocks skipped · Sermon Sync 2h added',
       },
     ]);
+  });
+});
+
+describe('Routines card hours (owner review 2026-10-22: this week, plus the coming change)', () => {
+  const cat = {
+    id: 'w',
+    name: 'Work',
+    group_name: 'x',
+    color_dark: '#000000',
+    color_light: '#000000',
+    weight: 1,
+    quiet: false,
+    protected: false,
+    sort: 0,
+    deleted_at: null,
+  };
+  const meal = { ...cat, id: 'm', quiet: true };
+  const b = (
+    id: string,
+    weekday: number,
+    start: number,
+    end: number,
+    cat_id: string,
+    from: string,
+    to: string | null = null,
+  ) => ({
+    id,
+    routine_id: 'r',
+    weekday,
+    start_min: start,
+    end_min: end,
+    title: id,
+    category_id: cat_id,
+    effective_from: from,
+    effective_to: to,
+    deleted_at: null,
+  });
+  const data = {
+    categories: [cat, meal],
+    terms: [
+      {
+        id: 't',
+        name: 'Fall term',
+        starts_on: '2026-09-14',
+        ends_on: '2026-12-11',
+        is_draft: false,
+        deleted_at: null,
+      },
+    ],
+    routines: [{ id: 'r', term_id: 't', name: 'Fall term' }],
+    routineBlocks: [
+      b('gym', 0, 960, 1035, 'w', '2026-09-14', '2026-10-26'), // ends next Monday
+      b('class', 1, 600, 720, 'w', '2026-09-14'),
+      b('lunch', 1, 720, 760, 'm', '2026-09-14'),
+    ],
+    overrides: [],
+  };
+  it('this week counts the blocks that apply this week (work only)', () => {
+    expect(routineWeekHours(data, 'r', '2026-10-19')).toBe(3.25);
+  });
+  it('a saved change that starts later shows as "3h → 2h from Mon Oct 26"', () => {
+    expect(routineChangeLine(data, 'r', '2026-10-22')).toBe('3h → 2h from Mon Oct 26');
+  });
+  it('no line when nothing changes ahead', () => {
+    const flat = {
+      ...data,
+      routineBlocks: data.routineBlocks.map((x) => ({ ...x, effective_to: null })),
+    };
+    expect(routineChangeLine(flat, 'r', '2026-10-22')).toBeNull();
   });
 });
