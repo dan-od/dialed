@@ -1,5 +1,6 @@
+import { formatClock } from '@dialed/schedule';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, View, type ViewStyle } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '../theme/theme';
@@ -201,50 +202,175 @@ export function GroupRow({
 
 const asDate = (min: number) => new Date(2000, 0, 1, Math.floor(min / 60) % 24, min % 60);
 
-/** Native iOS time picker (compact, 5-minute steps) in the prototype's 52 pt field box. */
-export function TimeField({
+/** The prototype's `.inp` field showing plain text (no iOS capsule); tapping it opens the native wheel. */
+export function PlainField({
   label,
   value,
-  onChange,
+  open,
   bad,
+  onPress,
   testID,
+  a11yLabel,
 }: {
   label: string;
-  value: number;
-  onChange: (min: number) => void;
+  value: string;
+  open: boolean;
   bad?: boolean;
+  onPress: () => void;
   testID?: string;
+  a11yLabel?: string;
 }) {
-  const { c, isLight } = useTheme();
+  const { c } = useTheme();
   return (
     <View style={{ flex: 1, gap: 6, minWidth: 0 }}>
       <Label>{label}</Label>
-      <View
+      <Pressable
+        testID={testID}
+        accessibilityRole="button"
+        accessibilityLabel={a11yLabel ?? `${label}, ${value}`}
+        accessibilityHint={open ? 'Closes the picker' : 'Opens the picker'}
+        accessibilityState={{ expanded: open }}
+        onPress={onPress}
         style={{
-          height: 52,
+          minHeight: 52,
           borderRadius: 16,
           borderWidth: 1.5,
-          borderColor: bad ? c.err : c.line,
+          borderColor: bad ? c.err : open ? c.acc : c.line,
           backgroundColor: c.surf,
           justifyContent: 'center',
-          alignItems: 'flex-start',
-          paddingHorizontal: 6,
+          paddingHorizontal: 14,
         }}
       >
-        <DateTimePicker
-          testID={testID}
-          accessibilityLabel={label}
-          mode="time"
-          display="compact"
-          minuteInterval={5}
-          value={asDate(value)}
-          themeVariant={isLight ? 'light' : 'dark'}
-          accentColor={c.acc}
-          onValueChange={(_e, d) => {
-            if (d) onChange(d.getHours() * 60 + d.getMinutes());
-          }}
+        <T size={15} weight="600" numberOfLines={1}>
+          {value}
+        </T>
+      </Pressable>
+    </View>
+  );
+}
+
+/**
+ * Starts / Ends as plain text fields; tapping one opens the native wheel (5-minute steps) under the pair, tapping
+ * it again (or the other field) closes or switches it. Owner direction 2026-10-23: no grey capsule.
+ */
+export function TimeRange({
+  start,
+  end,
+  onStart,
+  onEnd,
+  badEnd,
+  testIDs = ['start', 'end'],
+}: {
+  start: number;
+  end: number;
+  onStart: (min: number) => void;
+  onEnd: (min: number) => void;
+  badEnd?: boolean;
+  testIDs?: [string, string];
+}) {
+  const { isLight, c } = useTheme();
+  const [open, setOpen] = useState<'start' | 'end' | null>(null);
+  const value = open === 'start' ? start : end;
+  return (
+    <View style={{ gap: 8 }}>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <PlainField
+          label="Starts"
+          testID={testIDs[0]}
+          value={formatClock(start)}
+          open={open === 'start'}
+          onPress={() => setOpen((o) => (o === 'start' ? null : 'start'))}
+        />
+        <PlainField
+          label="Ends"
+          testID={testIDs[1]}
+          value={formatClock(end)}
+          open={open === 'end'}
+          bad={badEnd}
+          onPress={() => setOpen((o) => (o === 'end' ? null : 'end'))}
         />
       </View>
+      {open ? (
+        <View style={{ alignItems: 'center' }}>
+          <DateTimePicker
+            testID={`${testIDs[open === 'start' ? 0 : 1]}-wheel`}
+            accessibilityLabel={open === 'start' ? 'Starts' : 'Ends'}
+            mode="time"
+            display="spinner"
+            minuteInterval={5}
+            value={asDate(value)}
+            themeVariant={isLight ? 'light' : 'dark'}
+            textColor={c.text}
+            onValueChange={(_e, d) => {
+              if (!d) return;
+              const m = d.getHours() * 60 + d.getMinutes();
+              if (open === 'start') onStart(m);
+              else onEnd(m);
+            }}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+const asDay = (iso: string) => new Date(`${iso}T12:00:00`);
+const isoOf = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** "Sep 14, 2026" */
+export const dateText = (iso: string) =>
+  `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${Number(iso.slice(8, 10))}, ${iso.slice(0, 4)}`;
+
+/** A date as plain text in the field box; tapping opens the native date wheel under it. */
+export function DateField({
+  label,
+  value,
+  onChange,
+  minimum,
+  bad,
+  testID,
+  onClose,
+}: {
+  label: string;
+  value: string;
+  onChange: (iso: string) => void;
+  minimum?: string;
+  bad?: boolean;
+  testID?: string;
+  /** Called when the wheel closes (save once, not on every tick). */
+  onClose?: () => void;
+}) {
+  const { isLight, c } = useTheme();
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ flex: 1, gap: 8, minWidth: 0 }}>
+      <PlainField
+        label={label}
+        testID={testID}
+        value={dateText(value)}
+        open={open}
+        bad={bad}
+        onPress={() => {
+          if (open) onClose?.();
+          setOpen(!open);
+        }}
+      />
+      {open ? (
+        <DateTimePicker
+          testID={testID ? `${testID}-wheel` : undefined}
+          accessibilityLabel={label}
+          mode="date"
+          display="spinner"
+          value={asDay(value)}
+          minimumDate={minimum ? asDay(minimum) : undefined}
+          themeVariant={isLight ? 'light' : 'dark'}
+          textColor={c.text}
+          onValueChange={(_e, d) => {
+            if (d) onChange(isoOf(d));
+          }}
+        />
+      ) : null}
     </View>
   );
 }

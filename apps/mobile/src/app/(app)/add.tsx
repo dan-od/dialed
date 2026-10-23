@@ -1,4 +1,4 @@
-import { overlapOf, resolveDay, termFor, weekdayOf } from '@dialed/schedule';
+import { formatClock, overlapOf, resolveDay, termFor, weekdayOf } from '@dialed/schedule';
 import { usePreventRemove, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -25,7 +25,6 @@ import {
   LENGTHS,
   lengthChip,
   overlapSpoken,
-  overlapText,
   setEnd,
   setLength,
   setStart,
@@ -42,16 +41,17 @@ import {
   Label,
   SheetHeader,
   SheetScroll,
-  TimeField,
+  TimeRange,
 } from '../../blocks/ui';
-import { APP_NAME } from '../../config';
 import { haptic } from '../../lib/haptics';
 import { notificationPermission } from '../../notifications/reminders';
 import { useTheme } from '../../theme/theme';
 import { Button } from '../../ui/Button';
 import { Dialog } from '../../ui/Chrome';
 import { BellIcon, ChevronIcon, RepeatIcon } from '../../ui/icons';
-import { Notice } from '../../ui/Notice';
+import { InlineMessage, OfflineLine } from '../../ui/Inline';
+import { FitStrip } from '../../blocks/FitStrip';
+import { fitModel, type FitBlock } from '../../blocks/fit';
 import { LARGE_TEXT } from '../../ui/largeText';
 import { T } from '../../ui/Text';
 import { useToast } from '../../ui/Toast';
@@ -62,7 +62,7 @@ export default function AddSheet() {
   const large = useWindowDimensions().fontScale >= LARGE_TEXT;
   const router = useRouter();
   const toast = useToast();
-  const { data, blocks, online } = useApp();
+  const { data, blocks, online, sync } = useApp();
   const ui = useBlocksUi();
   const f = ui.add;
   const [errors, setErrors] = useState<AddErrors>({});
@@ -97,21 +97,28 @@ export default function AddSheet() {
   const schedule = data?.schedule;
   const routinesUi = useRoutinesUi();
   const routineMode = f?.mode === 'routine';
-  const day = useMemo((): {
-    title: string;
-    start_min: number;
-    end_min: number;
-    quiet: boolean;
-  }[] => {
+  const day = useMemo((): FitBlock[] => {
     if (!f || !schedule) return [];
-    if (f.mode !== 'routine') return resolveDay(f.date, schedule).blocks;
-    // Routine mode checks the draft's weekday (prototype overlapOf against routine[f.day]).
-    const quiet = new Set(schedule.categories.filter((x) => x.quiet).map((x) => x.id));
+    const byId = new Map(schedule.categories.map((x) => [x.id, x]));
+    const color = (id: string) => {
+      const k = byId.get(id);
+      return k ? (isLight ? k.color_light : k.color_dark) : '#888888';
+    };
+    if (f.mode !== 'routine')
+      return resolveDay(f.date, schedule).blocks.map((b) => ({
+        ...b,
+        color: color(b.category_id),
+      }));
+    // Routine mode checks the draft's weekday (prototype blocksFor → routine[f.day]).
     return (routinesUi.draft?.days[f.weekday ?? 0] ?? []).map((b) => ({
-      ...b,
-      quiet: quiet.has(b.category_id),
+      key: b.id,
+      title: b.title,
+      start_min: b.start_min,
+      end_min: b.end_min,
+      quiet: !!byId.get(b.category_id)?.quiet,
+      color: color(b.category_id),
     }));
-  }, [f, schedule, routinesUi.draft]);
+  }, [f, schedule, routinesUi.draft, isLight]);
   const term = f && schedule ? termFor(f.date, schedule.terms) : null;
   const routine = term ? schedule?.routines.find((r) => r.term_id === term.id) : undefined;
   if (!f || !schedule) return null;
@@ -122,6 +129,8 @@ export default function AddSheet() {
   const swatch = (x: { color_dark: string; color_light: string }) =>
     isLight ? x.color_light : x.color_dark;
   const overlap = overlapOf(day, f.start, f.end);
+  // v11 fit strip: the day around the block; a clash is a state of it (Keep both = overlapOk).
+  const fit = fitModel({ day, start: f.start, end: f.end, title: f.title, keep: f.overlapOk });
   const len = lengthChip(f);
   const alertLabel = ALERTS.find((a) => a.value === f.alert)!.label;
 
@@ -240,9 +249,9 @@ export default function AddSheet() {
           onClose={() => router.back()}
         />
         {!online && !routineMode ? (
-          <Notice
-            inline
-            stamp="Offline"
+          <OfflineLine
+            inSheet
+            pending={sync.pending}
             text="This saves on your phone and syncs when you reconnect."
           />
         ) : null}
@@ -347,22 +356,15 @@ export default function AddSheet() {
           </View>
         </View>
 
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TimeField
-            label="Starts"
-            testID="add-start"
-            value={f.start}
-            onChange={(m) => setTimes(setStart(f, m))}
+        <View ref={endRef}>
+          <TimeRange
+            start={f.start}
+            end={f.end}
+            testIDs={['add-start', 'add-end']}
+            badEnd={!!errors.time}
+            onStart={(m) => setTimes(setStart(f, m))}
+            onEnd={(m) => setTimes(setEnd(f, m))}
           />
-          <View ref={endRef} style={{ flex: 1 }}>
-            <TimeField
-              label="Ends"
-              testID="add-end"
-              value={f.end}
-              bad={!!errors.time}
-              onChange={(m) => setTimes(setEnd(f, m))}
-            />
-          </View>
         </View>
         {errors.time ? <ErrorText>{errors.time}</ErrorText> : null}
 
@@ -387,7 +389,17 @@ export default function AddSheet() {
           ))}
         </View>
 
-        {overlap ? <Notice inline stamp="Overlap" text={overlapText(overlap)} /> : null}
+        <FitStrip
+          m={fit}
+          onShift={(start) => {
+            const t = { start, end: start + (f.end - f.start) };
+            setTimes(t);
+            AccessibilityInfo.announceForAccessibility(
+              `Moved to ${formatClock(t.start)} to ${formatClock(t.end)}.`,
+            );
+          }}
+          onKeep={() => ui.setAdd({ ...f, overlapOk: !f.overlapOk, dirty: true })}
+        />
 
         <Group>
           {routine && !routineMode ? (
@@ -420,13 +432,18 @@ export default function AddSheet() {
             }
           />
           {perm === 'denied' && f.alert !== null ? (
-            <View style={{ paddingTop: 4, paddingHorizontal: 14, paddingBottom: 14 }}>
-              <Notice
-                inline
-                stamp="Reminders off"
-                kind="quiet"
-                text={`iPhone Settings has notifications turned off for ${APP_NAME}, so this alert won’t fire.`}
-                action={{ label: 'Turn them on', onPress: () => router.push('/reminders-help') }}
+            <View style={{ paddingTop: 10, paddingRight: 14, paddingBottom: 12, paddingLeft: 42 }}>
+              <InlineMessage
+                inSheet
+                parts={[
+                  { hot: 'Off in iPhone Settings,' },
+                  ' so it won’t fire. ',
+                  {
+                    link: 'Turn them on',
+                    onPress: () => router.push('/reminders-help'),
+                    testID: 'perm-help',
+                  },
+                ]}
               />
             </View>
           ) : null}

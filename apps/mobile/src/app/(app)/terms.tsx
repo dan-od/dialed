@@ -1,4 +1,3 @@
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, useWindowDimensions, View } from 'react-native';
@@ -8,25 +7,26 @@ import { aiName } from '../../config';
 import { termDateError, termNotices, termStatus, type TermStatus } from '../../routines/model';
 import { useTheme } from '../../theme/theme';
 import { BackLink, H1, Header, Sub } from '../../ui/Chrome';
-import { Notice } from '../../ui/Notice';
+import { InlineMessage } from '../../ui/Inline';
+import { DateField } from '../../blocks/ui';
 import { T } from '../../ui/Text';
 import { useToast } from '../../ui/Toast';
 import { ToastAwareScroll } from '../../ui/ToastAwareScroll';
 import { useSchedule } from '../../week/useSchedule';
 import { shortDate } from '../../routines/model';
 
-const asDate = (iso: string) => new Date(`${iso}T12:00:00`);
-const iso = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
 /** Terms and dates (Flow 05, prototype `terms`): per-term dates saved inline, gap/overlap notices, rules. */
 export default function TermsScreen() {
-  const { c, isLight } = useTheme();
+  const { c } = useTheme();
   const router = useRouter();
   const toast = useToast();
   const { blocks } = useApp();
   const { data, now } = useSchedule();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Dates being picked, saved once when the wheel closes.
+  const [drafts, setDrafts] = useState<Record<string, { starts_on?: string; ends_on?: string }>>(
+    {},
+  );
   // Large Dynamic Type: the native date fields stack so they don't overflow.
   const large = useWindowDimensions().fontScale >= LARGE_TEXT;
   const terms = (data?.schedule.terms ?? [])
@@ -55,6 +55,11 @@ export default function TermsScreen() {
     });
     try {
       await blocks.updateTerm(id, { starts_on: starts, ends_on: ends });
+      setDrafts((x) => {
+        const { [id]: _done, ...rest } = x;
+        void _done;
+        return rest;
+      });
       toast('Saved. Days in the new range fill in from the routine.');
     } catch {
       toast('Those dates couldn’t be saved on this phone. Try again.');
@@ -124,44 +129,26 @@ export default function TermsScreen() {
                     paddingHorizontal: 16,
                   }}
                 >
-                  {(['starts_on', 'ends_on'] as const).map((k) => (
-                    <View key={k} style={{ flex: large ? undefined : 1, gap: 6 }}>
-                      <T size={13} weight="700" color={c.muted} accessible={false}>
-                        {k === 'starts_on' ? 'Starts' : 'Ends'}
-                      </T>
-                      <View
-                        style={{
-                          minHeight: 44,
-                          borderRadius: 16,
-                          borderWidth: 1.5,
-                          borderColor: errors[t.id] && k === 'ends_on' ? c.err : c.line,
-                          backgroundColor: c.surf,
-                          justifyContent: 'center',
-                          alignItems: 'flex-start',
-                          paddingHorizontal: 4,
-                        }}
-                      >
-                        <DateTimePicker
+                  {(['starts_on', 'ends_on'] as const).map((k) => {
+                    const d = { ...t, ...(drafts[t.id] ?? {}) };
+                    return (
+                      <View key={k} style={{ flex: large ? undefined : 1 }}>
+                        <DateField
+                          label={k === 'starts_on' ? 'Starts' : 'Ends'}
                           testID={`${t.name}-${k}`}
-                          accessibilityLabel={`${t.name} ${k === 'starts_on' ? 'starts' : 'ends'}, ${shortDate(t[k])}`}
-                          mode="date"
-                          display="compact"
-                          value={asDate(t[k])}
-                          themeVariant={isLight ? 'light' : 'dark'}
-                          accentColor={c.acc}
-                          onValueChange={(_e, d) => {
-                            if (!d) return;
-                            const v = iso(d);
-                            void change(
-                              t.id,
-                              k === 'starts_on' ? v : t.starts_on,
-                              k === 'ends_on' ? v : t.ends_on,
-                            );
+                          value={d[k]}
+                          bad={!!errors[t.id] && k === 'ends_on'}
+                          onChange={(v) =>
+                            setDrafts((x) => ({ ...x, [t.id]: { ...(x[t.id] ?? {}), [k]: v } }))
+                          }
+                          onClose={() => {
+                            if (d.starts_on === t.starts_on && d.ends_on === t.ends_on) return;
+                            void change(t.id, d.starts_on, d.ends_on);
                           }}
                         />
                       </View>
-                    </View>
-                  ))}
+                    );
+                  })}
                 </View>
                 {errors[t.id] ? (
                   <T
@@ -175,7 +162,13 @@ export default function TermsScreen() {
                 ) : null}
                 {overlap ? (
                   <View style={{ marginHorizontal: 16, marginBottom: 12 }}>
-                    <Notice inline stamp="Overlap" text={overlap.text} />
+                    <InlineMessage
+                      inSheet
+                      parts={[
+                        { hot: overlap.text.slice(0, overlap.text.indexOf('. ') + 1) },
+                        overlap.text.slice(overlap.text.indexOf('. ') + 1),
+                      ]}
+                    />
                   </View>
                 ) : null}
                 {t.is_draft ? (
@@ -192,9 +185,12 @@ export default function TermsScreen() {
                 ) : null}
               </View>
               {gap ? (
-                <View style={{ marginHorizontal: 20, marginTop: 12 }}>
-                  <Notice inline kind="quiet" stamp="No term" text={gap.text} />
-                </View>
+                <InlineMessage
+                  parts={[
+                    { b: gap.text.slice(0, gap.text.indexOf(' has no term')) },
+                    gap.text.slice(gap.text.indexOf(' has no term')),
+                  ]}
+                />
               ) : null}
             </View>
           );

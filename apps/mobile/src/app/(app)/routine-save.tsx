@@ -1,11 +1,10 @@
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { addDays } from '@dialed/schedule';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, useWindowDimensions, View } from 'react-native';
 import { LARGE_TEXT } from '../../ui/largeText';
 import { useApp } from '../../AppProvider';
-import { SheetScroll } from '../../blocks/ui';
+import { DateField, SheetScroll } from '../../blocks/ui';
 import { haptic } from '../../lib/haptics';
 import { effectiveChoices, saveSentence, saveToast } from '../../routines/model';
 import { useRoutinesUi } from '../../routines/RoutinesUi';
@@ -17,16 +16,13 @@ import { useToast } from '../../ui/Toast';
 import { useSchedule } from '../../week/useSchedule';
 
 type Choice = 'nextMonday' | 'today' | 'pick';
-const asDate = (iso: string) => new Date(`${iso}T12:00:00`);
-const iso = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 /**
  * Save sheet (prototype `applyRoutine`) with the effective-date choice from BACKEND_SETUP §3: Next Monday
  * (default) | Today | Pick a date. Past days never change.
  */
 export default function RoutineSaveSheet() {
-  const { c, isLight } = useTheme();
+  const { c } = useTheme();
   const router = useRouter();
   const toast = useToast();
   const { blocks, online } = useApp();
@@ -130,22 +126,13 @@ export default function RoutineSaveSheet() {
           })}
         </View>
         {choice === 'pick' ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <T weight="600">Starts on</T>
-            <DateTimePicker
-              testID="eff-date"
-              accessibilityLabel="Changes start on"
-              mode="date"
-              display="compact"
-              value={asDate(picked)}
-              minimumDate={asDate(now.date)}
-              themeVariant={isLight ? 'light' : 'dark'}
-              accentColor={c.acc}
-              onValueChange={(_e, d) => {
-                if (d) setPicked(iso(d) < now.date ? now.date : iso(d));
-              }}
-            />
-          </View>
+          <DateField
+            label="Changes start on"
+            testID="eff-date"
+            value={picked}
+            minimum={now.date}
+            onChange={(v) => setPicked(v < now.date ? now.date : v)}
+          />
         ) : null}
         <Button
           testID="apply-go"

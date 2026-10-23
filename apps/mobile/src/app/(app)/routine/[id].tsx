@@ -25,6 +25,7 @@ import { BackLink, Dialog, H1, Header } from '../../../ui/Chrome';
 import { CloseIcon, PlusIcon } from '../../../ui/icons';
 import { D, T } from '../../../ui/Text';
 import { LARGE_TEXT } from '../../../ui/largeText';
+import { OfflineLine } from '../../../ui/Inline';
 import { useToast } from '../../../ui/Toast';
 import { ToastAwareScroll } from '../../../ui/ToastAwareScroll';
 
@@ -37,7 +38,7 @@ export default function RoutineEditor() {
   const reduce = useReducedMotion();
   const large = useWindowDimensions().fontScale >= LARGE_TEXT;
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, online } = useApp();
+  const { data, online, sync } = useApp();
   const ui = useRoutinesUi();
   const blocksUi = useBlocksUi();
   const [meals, setMeals] = useState(false);
@@ -366,9 +367,13 @@ export default function RoutineEditor() {
 
         <View style={{ marginTop: 16, paddingHorizontal: 20 }}>
           {!online ? (
-            <T size={13} weight="600" color={c.muted} style={{ marginBottom: 8 }}>
-              You’re offline. Saving keeps it on this phone until you reconnect.
-            </T>
+            <View style={{ marginBottom: 10 }}>
+              <OfflineLine
+                inSheet
+                pending={sync.pending}
+                text="Saving keeps it on this phone until you reconnect."
+              />
+            </View>
           ) : null}
           <Button
             testID="save-routine"

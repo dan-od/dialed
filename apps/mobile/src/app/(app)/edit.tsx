@@ -1,7 +1,7 @@
-import { addDays, weekStartOf } from '@dialed/schedule';
+import { addDays, formatClock, resolveDay, weekStartOf } from '@dialed/schedule';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, TextInput, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, Pressable, TextInput, useWindowDimensions, View } from 'react-native';
 import { useApp } from '../../AppProvider';
 import { useBlocksUi } from '../../blocks/BlocksUi';
 import {
@@ -15,7 +15,9 @@ import {
   WEEKDAYS,
 } from '../../blocks/form';
 import type { BlockFields } from '../../blocks/service';
-import { ErrorText, Label, SheetHeader, SheetScroll, TimeField } from '../../blocks/ui';
+import { ErrorText, Label, SheetHeader, SheetScroll, TimeRange } from '../../blocks/ui';
+import { FitStrip } from '../../blocks/FitStrip';
+import { fitModel } from '../../blocks/fit';
 import { haptic } from '../../lib/haptics';
 import { useTheme } from '../../theme/theme';
 import { Button } from '../../ui/Button';
@@ -36,6 +38,8 @@ export default function EditSheet() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  // v11 fit strip: Keep both for a clash on the chosen day (owner direction 2026-10-23: Edit and Move too).
+  const [keep, setKeep] = useState(false);
   useEffect(() => {
     if (leaving) router.dismissAll();
   }, [leaving, router]);
@@ -46,7 +50,30 @@ export default function EditSheet() {
   const cat = data.schedule.categories.find((x) => x.id === cur.category_id) ?? null;
   const primary = editPrimaryLabel(orig, cur);
   const remove = removeOutcome({ routine, scope, today, title: orig.title });
-  const set = (p: Partial<typeof cur>) => ui.setEdit({ ...e, cur: { ...cur, ...p } });
+  const set = (p: Partial<typeof cur>) => {
+    setKeep(false);
+    ui.setEdit({ ...e, cur: { ...cur, ...p } });
+  };
+  const target = addDays(weekStartOf(block.date), cur.day);
+  const byId = new Map(data.schedule.categories.map((x) => [x.id, x]));
+  const fit = fitModel({
+    day: resolveDay(target, data.schedule).blocks.map((b) => {
+      const k = byId.get(b.category_id);
+      return { ...b, color: k ? (isLight ? k.color_light : k.color_dark) : c.line };
+    }),
+    start: cur.start,
+    end: cur.end,
+    title: cur.title,
+    keep,
+    ignoreKey: block.key,
+  });
+  const clash = fit.head.kind !== 'free';
+  const primaryLabel =
+    clash && keep && !primary.disabled
+      ? primary.label === 'Save changes'
+        ? 'Save anyway'
+        : `${primary.label} anyway`
+      : primary.label;
 
   const close = (msg: string, action?: { label: string; onPress: () => void }) => {
     setLeaving(true);
@@ -56,6 +83,15 @@ export default function EditSheet() {
 
   const onSave = async () => {
     if (busy || primary.disabled) return;
+    // A clash is never silent: the first tap keeps both (button → "… anyway"), the second saves.
+    if (clash && !keep && fit.head.kind === 'clash') {
+      setKeep(true);
+      haptic.warning();
+      AccessibilityInfo.announceForAccessibility(
+        `This overlaps ${fit.head.title}. Press ${primary.label === 'Save changes' ? 'Save anyway' : `${primary.label} anyway`} to keep both.`,
+      );
+      return;
+    }
     const title = cur.title.trim();
     const bad = !title
       ? 'Give the block a name, like “Capstone reading”.'
@@ -163,28 +199,31 @@ export default function EditSheet() {
           <T weight="700">{cat?.name ?? 'Pick a category'}</T>
           <ChevronIcon color={c.muted} size={14} />
         </Pressable>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TimeField
-            label="Starts"
-            testID="edit-start"
-            value={cur.start}
-            onChange={(m) => {
-              setError(null);
-              set(setStart(cur, m));
-            }}
-          />
-          <TimeField
-            label="Ends"
-            testID="edit-end"
-            value={cur.end}
-            bad={!!error && error.startsWith('End')}
-            onChange={(m) => {
-              setError(null);
-              set(setEnd(cur, m));
-            }}
-          />
-        </View>
+        <TimeRange
+          start={cur.start}
+          end={cur.end}
+          testIDs={['edit-start', 'edit-end']}
+          badEnd={!!error && error.startsWith('End')}
+          onStart={(m) => {
+            setError(null);
+            set(setStart(cur, m));
+          }}
+          onEnd={(m) => {
+            setError(null);
+            set(setEnd(cur, m));
+          }}
+        />
         {error ? <ErrorText>{error}</ErrorText> : null}
+        <FitStrip
+          m={fit}
+          onShift={(start) => {
+            set({ start, end: start + (cur.end - cur.start) });
+            AccessibilityInfo.announceForAccessibility(
+              `Moved to ${formatClock(start)} to ${formatClock(start + cur.end - cur.start)}.`,
+            );
+          }}
+          onKeep={() => setKeep((k) => !k)}
+        />
         <View style={{ gap: 6 }}>
           <Label>Day</Label>
           <View
@@ -276,7 +315,7 @@ export default function EditSheet() {
         ) : null}
         <Button
           testID="edit-save"
-          label={primary.label}
+          label={primaryLabel}
           disabled={primary.disabled}
           busy={busy}
           onPress={() => void onSave()}
