@@ -2,9 +2,9 @@
 appId: me.okoro.dialed
 ---
 - runFlow: _relaunch.yaml
-- extendedWaitUntil: { visible: 'Offline', timeout: 30000 }
-- assertVisible: 'You’re offline. Showing what’s saved on this phone.'
+- extendedWaitUntil: { visible: 'Offline.*', timeout: 30000 }
+- assertVisible: 'Showing what’s saved on this phone.'
 - takeScreenshot: day-offline
 - tapOn: 'Theme: follows system'
-- extendedWaitUntil: { visible: '1 to sync.*', timeout: 10000 }
+- extendedWaitUntil: { visible: '.*1 to sync.*', timeout: 10000 }
 - takeScreenshot: day-offline-queued

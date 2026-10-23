@@ -8,7 +8,7 @@
 - Compared artifacts: prototype states listed in `00_Surface_Coverage.md`.
 
 ## Product character
-Loud, sporty, confident. One loud colour (Signal orange) against near-black ink or warm cream. Huge condensed numerals for times and dates; calm system text for everything else. Notices are tilted "stamps", never boxed alerts. No purple/blue gradients, no generic AI sparkles, no stock card shadows.
+Loud, sporty, confident. One loud colour (Signal orange) against near-black ink or warm cream. Huge condensed numerals for times and dates; calm system text for everything else. Messages live where they belong (under the field, under the title, in the row) as one plain sentence, never boxed alerts (v11, D-45). No purple/blue gradients, no generic AI sparkles, no stock card shadows.
 
 ## Color tokens
 
@@ -92,9 +92,12 @@ Font stack: `Anton` bundled via expo-font (OFL) for display; system font everywh
 - **Day sheet** ("Rest of today"): orange (dark) / ink (light) sheet, rows `time · title · duration`; quiet blocks lighter weight; tap row → Edit block sheet.
 - **Buttons**: primary (`acc`, Anton 20, ink), secondary (`surf2`, SF 15/600), dashed (`acc2` border), destructive text (`err`). Disabled 45% opacity. Busy shows spinner, keeps width.
 - **Switch**: 46×28, on = `acc` with ink knob.
-- **Stamp notice**: Anton 15 label on `warn` (or `err`, `surf2` quiet), rotated −2°, followed by one plain sentence and optional action. Replaces every boxed alert.
+- **Inline message** (v11 `.inl`, D-45): one sentence, SF 14/500 `soft`, line 20; key words bold in `text` or bold `err` ("hot"); the fix as a bold `acc2` text link. Fades up 4pt over 200ms (Reduce Motion: 120ms fade). Field problems are the field's error line with the link after it ("This email already has an account. **Sign in instead**"); page states sit under the title or above the list; settings problems sit under the setting ("Off in iPhone Settings, so it won't fire. **Turn them on**"). When there's a fix, the main button becomes the fix. Replaces the retired stamp notice and every boxed alert.
+- **Offline pill** (v11 `.offpill`, D-46): 28pt, radius 14, `surf2`, an 8pt hollow ring (2pt `acc2` border) and SF 12/700 `soft` "Offline" or "Offline · N to sync", plus one muted 13/500 line saying what still works. On Day it sits under the date in place of the sync pill.
+- **Fit strip** (v11 `.fit`, D-48): under the time fields in Add, Edit and Move, always shown while the times are valid. `track` box 66pt, radius 14; top row (y 7, 24pt, radius 7) the day's other blocks in category colours (quiet blocks 45%), bottom row (y 35) your block in `acc`; ticks every hour (every 2h past a 6h window) under it; header "Free X to Y" in `muted`. On a clash: the overlap hatched across both rows (135° `err` stripes at 38%, 3 on / 5 off, 1.5pt `err` edges, fades in 200ms), your block gets a 2pt `err` border, the header reads "Overlaps <block> by **N min**" (Anton) in `err` with "Keep both" on the right, and the next free slot of the same length (later that day) shows as a dashed `acc2` outline with an 8% `acc` fill; tapping it moves the block there. Keep both clears the hatch ("Sharing time with <block>", Undo) and the primary button reads "Add anyway" / "Move to <day> anyway".
+- **Plain time/date fields** (D-49): the `.inp` box (52pt, radius 16, 1.5pt `line`, `surf`) with plain 15/600 text, no grey iOS capsule; the open field gets an `acc` border and the native wheel (time: 5-minute steps; date) opens once under the pair at full width; tapping the field again closes it.
 - **Toast**: bottom, above nav, `toastBg`, one sentence, optional Anton action (Undo, Describe, Reapply). 4s; 6s with action.
-- **Sheet**: handle, header (title + close), content; stacked sheets allowed (category picker over add). Dismiss by drag, scrim tap (unless destructive dialog), close.
+- **Sheet**: handle, header (title + close), content; stacked sheets allowed (category picker over add). Dismiss by drag, scrim tap (unless destructive dialog), close. Add, Edit and Category open at the full-height (large) detent (D-47); short sheets (nudge, save, copy) fit their content and grow with it; content scrolls clear of the home indicator. No sheet squashes or clips its own sections.
 - **Dialog**: centred, for destructive/irreversible only (discard, sign out, delete category, delete account).
 - **Chips**, **segmented 2-way** (`seg2`), **day chips** (Mon–Sun), **stepper** (− n +), **setting rows** with value + chevron, **radio cards**.
 - **Change card** (Review): tag (New/Moved/Changed/Removed), title, from → to (Anton), note, switch. Off = 50% opacity.

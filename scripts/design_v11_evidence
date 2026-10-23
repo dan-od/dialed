@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Design v11 after-screenshots (evidence/design-v11/after, matching before/). Needs the dev client, Metro on :8081,
+# the API and the owner signed in on both Simulators.
+#   ONLY=auth    SE: email taken / nobody here (API must run with SIGNUP_MODE=open; signs the SE out, then back in)
+#   ONLY=app     17e, dark + light: Add blank/wheel/clash/keep, Edit, Move clash, Week cards, Terms, Terms overlap
+#   ONLY=offline 17e: stop the API first; Day offline (+ queued), Add offline, routine editor offline
+#   ONLY=perm    17e: reinstall first (notifications not determined); Reminders off inline
+# Usage: ONLY=app ./scripts/design_v11_evidence
+source "$(dirname "$0")/lib/common.sh"
+ensure_xcode_env
+E17=AC6A1E40-17E8-4CA1-9925-055CE7984A8A
+SE=83E90C8D-8E0E-4DE6-823E-7ECD2FB7286A
+export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}" MAESTRO_DRIVER_STARTUP_TIMEOUT=180000 MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
+OUT="$ROOT/evidence/design-v11/after"
+RAW="$ROOT/evidence/design-v11/raw"
+mkdir -p "$OUT" "$RAW"
+run() { # run <device> <name> <maestro args…>
+  pkill -f "xcodebuild test-without-building -xctestrun" 2>/dev/null || true
+  (cd "$ROOT/apps/mobile" && maestro --device "$1" test --test-output-dir "$RAW/$2" "${@:3}")
+}
+retry() { local n; for n in 1 2 3; do "$@" && return 0; log "attempt $n failed; retrying"; done; return 1; }
+# grab <run name> <screenshot name> <after name>
+grab() { local f; f=$(ls -t $(find "$RAW/$1" -name "$2.png") 2>/dev/null | head -1); [ -n "$f" ] && cp "$f" "$OUT/$3.png"; }
+want() { [ -z "${ONLY:-}" ] || [ "$ONLY" = "$1" ]; }
+
+if want auth; then
+  for theme in dark light; do
+    xcrun simctl ui "$SE" appearance "$theme"
+    retry run "$SE" "auth-after-$theme" -e THEME="$theme" -e TAG=after e2e/auth_states.yaml
+    grab "auth-after-$theme" "after-taken-$theme" "after-taken-$theme"
+    grab "auth-after-$theme" "after-none-$theme" "after-none-$theme"
+  done
+  xcrun simctl ui "$SE" appearance dark
+  retry run "$SE" signin-se e2e/signin_owner.yaml
+fi
+if want app; then
+  for theme in dark light; do
+    xcrun simctl ui "$E17" appearance "$theme"
+    retry run "$E17" "app-after-$theme" -e THEME="$theme" e2e/design_v11.yaml
+    for n in add-blank add-wheel add-overlap add-keep edit move-clash cards terms; do
+      grab "app-after-$theme" "after-$n-$theme" "after-$n-$theme"
+    done
+    "$ROOT/scripts/dev_evidence_cleanup"
+    retry run "$E17" "terms-after-$theme" -e THEME="$theme" e2e/term_dates.yaml
+    grab "terms-after-$theme" "term-date-saved-$theme" "after-terms-overlap-$theme"
+    "$ROOT/scripts/dev_evidence_cleanup"
+  done
+  xcrun simctl ui "$E17" appearance dark
+fi
+if want offline; then
+  for theme in dark light; do
+    xcrun simctl ui "$E17" appearance "$theme"
+    retry run "$E17" "offline-day-$theme" -e THEME="$theme" e2e/offline_stamp.yaml
+    grab "offline-day-$theme" "day-offline-$theme" "after-day-offline-$theme"
+  done
+  xcrun simctl ui "$E17" appearance dark
+  retry run "$E17" offline-queued e2e/offline_1.yaml
+  grab offline-queued day-offline-queued after-day-offline-queued-dark
+  retry run "$E17" offline-add -e THEME=dark e2e/offline_add_1.yaml
+  grab offline-add offline-add-sheet-dark after-add-offline-dark
+  retry run "$E17" offline-routine -e THEME=dark e2e/routine_offline_save.yaml
+  grab offline-routine offline-editor-dark after-routine-offline-dark
+  log "Queued offline: 'Pitch prep' and a routine save. Start the API, run e2e/offline_add_2.yaml, then scripts/dev_evidence_cleanup."
+fi
+if want perm; then
+  retry run "$E17" perm-after -e THEME=dark e2e/perm_deny.yaml
+  grab perm-after reminders-off-dark after-reminders-off-dark
+fi
+log "Wrote $(ls "$OUT" | wc -l | tr -d ' ') after-screenshots to evidence/design-v11/after."
