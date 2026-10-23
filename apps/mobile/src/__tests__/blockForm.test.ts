@@ -5,7 +5,6 @@ import {
   removeOutcome,
   editPrimaryLabel,
   lengthChip,
-  overlapText,
   setEnd,
   setStart,
   validateAdd,
@@ -56,11 +55,6 @@ describe('times', () => {
 });
 
 describe('overlap and the primary button', () => {
-  it('prototype overlap copy', () => {
-    expect(overlapText({ title: 'WellServices', start_min: 1230, end_min: 1320 })).toBe(
-      'This runs into WellServices, 8:30 pm to 10:00 pm. Keep both, or change the time.',
-    );
-  });
   it('Add block → Add anyway after the first tap on an overlap; Adding while saving', () => {
     expect(addPrimaryLabel({ overlap: false, overlapOk: false, saving: false })).toBe('Add block');
     expect(addPrimaryLabel({ overlap: true, overlapOk: false, saving: false })).toBe('Add block');

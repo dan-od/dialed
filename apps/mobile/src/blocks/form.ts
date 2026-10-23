@@ -76,8 +76,6 @@ export function setLength(t: Times, len: number): Times {
 }
 export const lengthChip = (t: Times) => LENGTHS.find((l) => l.min === t.end - t.start)?.min ?? null;
 
-export const overlapText = (b: { title: string; start_min: number; end_min: number }) =>
-  `This runs into ${b.title}, ${formatClock(b.start_min)} to ${formatClock(b.end_min)}. Keep both, or change the time.`;
 export const overlapSpoken = (title: string) =>
   `This overlaps ${title}. Press Add anyway to keep both.`;
 

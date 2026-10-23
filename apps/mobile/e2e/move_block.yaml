@@ -1,4 +1,4 @@
-# Flow 04 move: Gym (Thursday) → Saturday, this week only, then every week; each shown landing on Saturday in
+# Flow 04 move: Gym (today) → Saturday, this week only, then every week; each shown landing on Saturday in
 # the Week tab's day cards. Run scripts/dev_evidence_cleanup between and after (moves have no Undo).
 appId: me.okoro.dialed
 ---
@@ -13,6 +13,14 @@ appId: me.okoro.dialed
       - tapOn: { id: 'edit-scope-every' }
 - assertVisible: 'Move to Saturday'
 - takeScreenshot: move-${SCOPE}-sheet-${THEME}
+# v11 fit strip in Move: Saturday already has Gym at that time → the clash, hatched; the dashed next free slot moves it.
+- runFlow:
+    when: { visible: { id: 'ov-shift' } }
+    commands:
+      - takeScreenshot: move-${SCOPE}-clash-${THEME}
+      - tapOn: { id: 'ov-shift' }
+      - extendedWaitUntil: { visible: 'Free .* to .*', timeout: 3000 }
+      - takeScreenshot: move-${SCOPE}-shifted-${THEME}
 - tapOn: { id: 'edit-save' }
 - extendedWaitUntil: { visible: 'Moved to .*Saturday.*', timeout: 5000 }
 - assertNotVisible: 'Edit Gym, .*'
