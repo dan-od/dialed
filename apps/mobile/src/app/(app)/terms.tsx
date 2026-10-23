@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, useWindowDimensions, View } from 'react-native';
 import { LARGE_TEXT } from '../../ui/largeText';
 import { useApp } from '../../AppProvider';
@@ -8,7 +8,7 @@ import { termDateError, termNotices, termStatus, type TermStatus } from '../../r
 import { useTheme } from '../../theme/theme';
 import { BackLink, H1, Header, Sub } from '../../ui/Chrome';
 import { InlineMessage } from '../../ui/Inline';
-import { DateField } from '../../blocks/ui';
+import { DateRange } from '../../blocks/ui';
 import { T } from '../../ui/Text';
 import { useToast } from '../../ui/Toast';
 import { ToastAwareScroll } from '../../ui/ToastAwareScroll';
@@ -33,6 +33,31 @@ export default function TermsScreen() {
     .filter((t) => !t.deleted_at)
     .sort((a, b) => a.starts_on.localeCompare(b.starts_on));
   const notices = termNotices(terms);
+
+  // A picked date is saved once, when its wheel closes or the page goes away with it open.
+  const draftsRef = useRef(drafts);
+  draftsRef.current = drafts;
+  const termsRef = useRef(terms);
+  termsRef.current = terms;
+  const draft = (id: string, d: { starts_on?: string; ends_on?: string }) =>
+    setDrafts((x) => ({ ...x, [id]: { ...(x[id] ?? {}), ...d } }));
+  const flush = (id: string) => {
+    const t = termsRef.current.find((x) => x.id === id);
+    const d = draftsRef.current[id];
+    if (!t || !d) return;
+    const starts = d.starts_on ?? t.starts_on;
+    const ends = d.ends_on ?? t.ends_on;
+    if (starts === t.starts_on && ends === t.ends_on) return;
+    void change(id, starts, ends);
+  };
+  const flushRef = useRef(flush);
+  flushRef.current = flush;
+  useEffect(
+    () => () => {
+      for (const id of Object.keys(draftsRef.current)) flushRef.current(id);
+    },
+    [],
+  );
 
   // Tags ≥ 4.5:1: Active/Next use onStatus (cream in light), Draft/Past text on surf2 (owner review 2026-10-22).
   const tag = (s: TermStatus) =>
@@ -121,34 +146,17 @@ export default function TermsScreen() {
                     </T>
                   </View>
                 </View>
-                <View
-                  style={{
-                    flexDirection: large ? 'column' : 'row',
-                    gap: 8,
-                    paddingVertical: 12,
-                    paddingHorizontal: 16,
-                  }}
-                >
-                  {(['starts_on', 'ends_on'] as const).map((k) => {
-                    const d = { ...t, ...(drafts[t.id] ?? {}) };
-                    return (
-                      <View key={k} style={{ flex: large ? undefined : 1 }}>
-                        <DateField
-                          label={k === 'starts_on' ? 'Starts' : 'Ends'}
-                          testID={`${t.name}-${k}`}
-                          value={d[k]}
-                          bad={!!errors[t.id] && k === 'ends_on'}
-                          onChange={(v) =>
-                            setDrafts((x) => ({ ...x, [t.id]: { ...(x[t.id] ?? {}), [k]: v } }))
-                          }
-                          onClose={() => {
-                            if (d.starts_on === t.starts_on && d.ends_on === t.ends_on) return;
-                            void change(t.id, d.starts_on, d.ends_on);
-                          }}
-                        />
-                      </View>
-                    );
-                  })}
+                <View style={{ paddingVertical: 12, paddingHorizontal: 16 }}>
+                  <DateRange
+                    stacked={large}
+                    testIDs={[`${t.name}-starts_on`, `${t.name}-ends_on`]}
+                    start={drafts[t.id]?.starts_on ?? t.starts_on}
+                    end={drafts[t.id]?.ends_on ?? t.ends_on}
+                    badEnd={!!errors[t.id]}
+                    onStart={(v) => draft(t.id, { starts_on: v })}
+                    onEnd={(v) => draft(t.id, { ends_on: v })}
+                    onClose={() => flush(t.id)}
+                  />
                 </View>
                 {errors[t.id] ? (
                   <T

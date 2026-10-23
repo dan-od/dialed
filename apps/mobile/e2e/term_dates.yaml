@@ -1,4 +1,5 @@
-# Flow 05 term dates: Fall term ends Dec 11 → Dec 18 in the native calendar; saved inline with the toast.
+# Flow 05 term dates: Fall term ends Dec 11 → Dec 18 on the native date wheel (v11: plain field, wheel under the
+# pair; the day column's next row is tapped 7 times, iPhone 17e geometry); closing the field saves, with the toast.
 # scripts/dev_evidence_cleanup puts the seed dates back.
 appId: me.okoro.dialed
 ---
@@ -9,8 +10,8 @@ appId: me.okoro.dialed
 - tapOn: { id: 'Fall term-ends_on' }
 - waitForAnimationToEnd: { timeout: 3000 }
 - takeScreenshot: term-date-picker-${THEME}
-- tapOn: '18'
+- tapOn: { point: '55%,66%', repeat: 7, delay: 450 }
 - waitForAnimationToEnd: { timeout: 2000 }
-- tapOn: { point: '50%,12%' }
+- tapOn: { id: 'Fall term-ends_on' }
 - extendedWaitUntil: { visible: 'Saved. Days in the new range fill in from the routine.', timeout: 8000 }
 - takeScreenshot: term-date-saved-${THEME}

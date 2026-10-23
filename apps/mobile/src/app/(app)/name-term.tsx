@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 import { useApp } from '../../AppProvider';
-import { DateField, ErrorText, Label, SheetHeader, SheetScroll } from '../../blocks/ui';
+import { DateRange, ErrorText, Label, SheetHeader, SheetScroll } from '../../blocks/ui';
 import { FEATURES } from '../../config';
 import { haptic } from '../../lib/haptics';
 import { nameTermDefaults, nameTermError, weeksHelper } from '../../routines/model';
@@ -54,17 +54,6 @@ export default function NameTermSheet() {
     }
   };
 
-  const date = (label: string, value: string, set: (v: string) => void) => (
-    <DateField
-      label={label}
-      value={value}
-      onChange={(v) => {
-        set(v);
-        setError(null);
-      }}
-    />
-  );
-
   return (
     <SheetScroll>
       <View accessibilityLabel="Name your term" style={{ gap: 14 }}>
@@ -98,10 +87,20 @@ export default function NameTermSheet() {
             }}
           />
         </View>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {date('Starts', starts, setStarts)}
-          {date('Ends', ends, setEnds)}
-        </View>
+        <DateRange
+          start={starts}
+          end={ends}
+          badEnd={!!error}
+          testIDs={['nt-starts', 'nt-ends']}
+          onStart={(v) => {
+            setStarts(v);
+            setError(null);
+          }}
+          onEnd={(v) => {
+            setEnds(v);
+            setError(null);
+          }}
+        />
         {error ? (
           <ErrorText>{error}</ErrorText>
         ) : (
