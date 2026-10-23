@@ -133,7 +133,7 @@ const local = (date: string, min: number) => {
   return `${d.replaceAll('-', '')}T${pad(Math.floor(m / 60))}${pad(m % 60)}00`;
 };
 const text = (s: string) =>
-  s.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+  s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 
 /** RFC 5545 calendar of the resolved schedule from `from` for 120 days; UID = block id + date. */
 export function calendar(data: ScheduleData, from: string, tz: string, now: Date): string {
