@@ -62,7 +62,11 @@ export class SyncEngine {
 
   /** Queue an edit: visible at once on this phone, sent when online. */
   async enqueue(m: Mutation) {
-    const effects = await localEffects(m, (e, id) => this.store.getRow(e, id));
+    const effects = await localEffects(
+      m,
+      (e, id) => this.store.getRow(e, id),
+      (e) => this.store.rows(e),
+    );
     if (effects.length) await this.store.upsertRows(effects);
     await this.store.enqueue(m);
     this.setStatus({ pending: (await this.store.outbox()).length });
@@ -130,6 +134,9 @@ export class SyncEngine {
         done.push(item.seq);
         if (r.status === 'applied') {
           applied++;
+          // A merge can be undone for 10 minutes: keep the server's merge id for its Undo.
+          if (r.merge_id)
+            await this.store.setMeta(`merge:${item.mutation.client_mutation_id}`, r.merge_id);
           if (r.row && r.entity)
             serverRows.push({ entity: r.entity as SyncChange['entity'], op: 'upsert', row: r.row });
         } else if (r.status === 'conflict') {
@@ -155,6 +162,16 @@ export class SyncEngine {
     const target = mutationTarget(m);
     const row = target ? await this.store.getRow(target.entity, target.id) : null;
     const base = Number(row?.version ?? 0);
+    if (m.entity === 'category_merge') {
+      const to = await this.store.getRow('category', m.to);
+      await this.enqueue({
+        ...m,
+        client_mutation_id: randomUUID(),
+        from_version: base,
+        to_version: Number(to?.version ?? 0),
+      });
+      return;
+    }
     await this.enqueue({ ...m, client_mutation_id: randomUUID(), base_version: base } as Mutation);
   }
 
@@ -202,7 +219,11 @@ export class SyncEngine {
   /** Pending edits stay on top of pulled rows until the server answers. */
   private async rebasePending() {
     for (const item of await this.store.outbox()) {
-      const effects = await localEffects(item.mutation, (e, id) => this.store.getRow(e, id));
+      const effects = await localEffects(
+        item.mutation,
+        (e, id) => this.store.getRow(e, id),
+        (e) => this.store.rows(e),
+      );
       if (effects.length) await this.store.upsertRows(effects);
     }
   }

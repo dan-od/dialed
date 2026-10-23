@@ -1,0 +1,9 @@
+# Day (dev clock: today 1:15 pm) → Account sheet → Settings.
+appId: me.okoro.dialed
+---
+- runFlow: _today.yaml
+- tapOn: 'Account: .*'
+- extendedWaitUntil: { visible: 'Signed in with', timeout: 10000 }
+- tapOn: { id: 'acc-settings' }
+- extendedWaitUntil: { visible: { id: 'set-cats' }, timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }

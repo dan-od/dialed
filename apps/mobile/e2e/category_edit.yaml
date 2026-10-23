@@ -1,0 +1,39 @@
+# Flow 09 rename/recolour: an empty name and a taken name are the field's error line (toasts sit under sheets);
+# Speedwatch Ontario → "Speedwatch", Rose → saved, the Day row and Week lanes use the new colour.
+# scripts/dev_evidence_cleanup puts the seed category back.
+appId: me.okoro.dialed
+---
+- runFlow: _settings.yaml
+- tapOn: { id: 'set-cats' }
+- extendedWaitUntil: { visible: 'Colours show in every view.*', timeout: 10000 }
+- tapOn: { id: 'cat-Speedwatch Ontario' }
+- extendedWaitUntil: { visible: '3 blocks a week use it.', timeout: 10000 }
+- tapOn: { id: 'ce-name' }
+- eraseText: 40
+- hideKeyboard
+- tapOn: { id: 'ce-save' }
+- extendedWaitUntil: { visible: 'Give it a name first.', timeout: 5000 }
+- takeScreenshot: cat-empty-${THEME}
+- tapOn: { id: 'ce-name' }
+- inputText: 'wellservices'
+- hideKeyboard
+- tapOn: { id: 'ce-save' }
+- extendedWaitUntil: { visible: 'You already have a category called WellServices.', timeout: 5000 }
+- takeScreenshot: cat-taken-${THEME}
+- tapOn: { id: 'ce-name' }
+- eraseText: 40
+- inputText: 'Speedwatch'
+- hideKeyboard
+- tapOn: 'Rose'
+- takeScreenshot: cat-recolour-${THEME}
+- tapOn: { id: 'ce-save' }
+- extendedWaitUntil: { visible: 'Saved Speedwatch.', timeout: 5000 }
+- extendedWaitUntil: { visible: { id: 'cat-Speedwatch' }, timeout: 5000 }
+- takeScreenshot: cat-saved-${THEME}
+- tapOn: 'Back to Settings'
+- tapOn: 'Back to Day'
+- extendedWaitUntil: { visible: 'Rest of today', timeout: 10000 }
+- tapOn: Week
+- extendedWaitUntil: { visible: 'Week 43', timeout: 15000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: cat-week-colour-${THEME}

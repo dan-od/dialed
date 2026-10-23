@@ -37,6 +37,9 @@ export class MemoryStore implements LocalStore {
     ) as Record<SyncEntity, Record<string, unknown>[]>;
     return toLocalData(rows);
   }
+  async rows(entity: SyncEntity) {
+    return [...this.tables.get(entity)!.values()];
+  }
   async getRow(entity: SyncEntity, id: string) {
     return this.tables.get(entity)!.get(id) ?? null;
   }

@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, useWindowDimensions, View } from 'react-native';
 import { LARGE_TEXT } from '../../ui/largeText';
@@ -19,6 +19,8 @@ import { shortDate } from '../../routines/model';
 export default function TermsScreen() {
   const { c } = useTheme();
   const router = useRouter();
+  // Opened from Settings (Flow 09) or Routines (Flow 05): the back link names where it goes.
+  const { from } = useLocalSearchParams<{ from?: string }>();
   const toast = useToast();
   const { blocks } = useApp();
   const { data, now } = useSchedule();
@@ -93,7 +95,14 @@ export default function TermsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <Header left={<BackLink label="Routines" onPress={() => router.back()} />} />
+      <Header
+        left={
+          <BackLink
+            label={from === 'settings' ? 'Settings' : 'Routines'}
+            onPress={() => router.back()}
+          />
+        }
+      />
       <ToastAwareScroll base={60} contentContainerStyle={{ paddingTop: 8 }}>
         <View style={{ paddingHorizontal: 20 }}>
           <H1 size={56}>Terms and dates</H1>

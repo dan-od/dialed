@@ -1,3 +1,4 @@
+import type { DevicePrefs } from '@dialed/contracts';
 import type { ScheduleData } from '@dialed/schedule';
 import * as Notifications from 'expo-notifications';
 import type { Perm } from '../blocks/form';
@@ -29,15 +30,16 @@ export async function requestNotificationPermission(): Promise<Perm> {
   );
 }
 
-/** Replace this phone's scheduled reminders with the next 48 h of explicit block alerts. */
+/** Replace this phone's scheduled reminders with the next 48 h: block alerts, heads-ups and meal notes. */
 export async function rescheduleReminders(
   data: ScheduleData,
   alerts: Record<string, number>,
   timeZone: string,
   quiet: { start: number; end: number },
+  prefs?: DevicePrefs,
 ) {
   if ((await notificationPermission()) !== 'granted') return;
-  const planned = planReminders(data, alerts, new Date(), timeZone, quiet);
+  const planned = planReminders(data, alerts, new Date(), timeZone, quiet, prefs);
   await Notifications.cancelAllScheduledNotificationsAsync();
   for (const r of planned) {
     await Notifications.scheduleNotificationAsync({

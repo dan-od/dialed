@@ -1,0 +1,41 @@
+# Flow 09 tour: Settings (values on every row) → Categories (hours per week) → Edit Speedwatch Ontario (palette,
+# group, "3 blocks a week use it.") → Merge sheet → Delete dialog (Cancel) → Notifications (live count) → Terms
+# (back link "Settings"). Nothing is saved.
+appId: me.okoro.dialed
+---
+- runFlow: _settings.yaml
+- takeScreenshot: settings-${THEME}
+- tapOn: { id: 'set-cats' }
+- extendedWaitUntil: { visible: 'Colours show in every view.*', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: categories-${THEME}
+- tapOn: { id: 'cat-Speedwatch Ontario' }
+- extendedWaitUntil: { visible: '3 blocks a week use it.', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: cat-edit-${THEME}
+- tapOn: { id: 'ce-merge' }
+- extendedWaitUntil: { visible: 'Merge Speedwatch Ontario', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: cat-merge-${THEME}
+- tapOn: 'Back to Edit category'
+- extendedWaitUntil: { visible: '3 blocks a week use it.', timeout: 10000 }
+- tapOn: { id: 'ce-del' }
+- extendedWaitUntil: { visible: 'Delete Speedwatch Ontario\?', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: cat-delete-${THEME}
+- tapOn: { id: 'cd-keep' }
+- tapOn: 'Close'
+- extendedWaitUntil: { visible: 'Colours show in every view.*', timeout: 10000 }
+- tapOn: 'Back to Settings'
+- extendedWaitUntil: { visible: { id: 'set-notif' }, timeout: 10000 }
+- tapOn: { id: 'set-notif' }
+- extendedWaitUntil: { visible: 'With these settings.*', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: notifications-${THEME}
+- tapOn: 'Back to Settings'
+- tapOn: { id: 'set-terms' }
+- extendedWaitUntil: { visible: 'Terms and dates', timeout: 10000 }
+- assertVisible: 'Back to Settings'
+- takeScreenshot: terms-from-settings-${THEME}
+- tapOn: 'Back to Settings'
+- extendedWaitUntil: { visible: { id: 'set-cats' }, timeout: 10000 }

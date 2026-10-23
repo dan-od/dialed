@@ -1,0 +1,36 @@
+# Flow 09 notification prefs: heads-up 10 min and meal notes raise the live count; the cap stepper bounds; Line
+# only drops the Live Activity clause and the Settings row reads "Off · max 7". Everything is set back after.
+appId: me.okoro.dialed
+---
+- runFlow: _settings.yaml
+- tapOn: { id: 'set-notif' }
+- extendedWaitUntil: { visible: 'With these settings.*', timeout: 10000 }
+- tapOn: { id: 'ns-heads' }
+- tapOn: '10 min'
+- tapOn: { id: 'ns-meals' }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: notif-on-${THEME}
+- scrollUntilVisible: { element: { id: 'cap-up' }, direction: DOWN, timeout: 8000 }
+- tapOn: { id: 'cap-up' }
+- takeScreenshot: notif-limits-${THEME}
+- swipe: { start: '50%,30%', end: '50%,90%', duration: 400 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- tapOn: { id: 'ns-la' }
+- waitForAnimationToEnd: { timeout: 2000 }
+- assertVisible: '.*for the rest of today\.'
+- takeScreenshot: notif-line-only-${THEME}
+- tapOn: 'Back to Settings'
+- extendedWaitUntil: { visible: 'Off · max 7', timeout: 5000 }
+- takeScreenshot: settings-line-only-${THEME}
+- tapOn: { id: 'set-notif' }
+- extendedWaitUntil: { visible: 'With these settings.*', timeout: 10000 }
+- tapOn: { id: 'ns-la' }
+- tapOn: { id: 'ns-meals' }
+- scrollUntilVisible: { element: { id: 'cap-dn' }, direction: DOWN, timeout: 8000 }
+- tapOn: { id: 'cap-dn' }
+- swipe: { start: '50%,30%', end: '50%,90%', duration: 400 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- tapOn: { id: 'ns-heads' }
+- tapOn: 'Off'
+- tapOn: 'Back to Settings'
+- extendedWaitUntil: { visible: 'Live Activity · max 6', timeout: 5000 }

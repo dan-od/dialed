@@ -1,5 +1,6 @@
 import type { Mutation, SyncChange, SyncEntity } from '@dialed/contracts';
 import type { ScheduleData } from '@dialed/schedule';
+import { now as clockNow } from '../clock/clock';
 import type { LocalData, Profile } from './types';
 
 type Row = Record<string, unknown>;
@@ -69,6 +70,7 @@ export function toLocalData(rows: Record<SyncEntity, Row[]>): LocalData {
 export const rowId = (c: SyncChange) => (c.entity === 'profile' ? 'me' : String(c.row.id));
 
 type GetRow = (entity: SyncEntity, id: string) => Promise<Row | null>;
+type ListRows = (entity: SyncEntity) => Promise<Row[]>;
 const pending = (row: Row): Row => ({ ...row, _pending: true });
 /**
  * Every applied mutation bumps the row version by one, so queued edits can chain offline. Predicted from the
@@ -81,8 +83,24 @@ const next = (m: { base_version: number }): number => m.base_version + 1;
  * pending edits stay visible until the server answers ("· waiting to sync"). Mirrors the server's rules in
  * apps/api/src/sync/service.ts closely enough to predict versions and new row ids.
  */
-export async function localEffects(m: Mutation, get: GetRow): Promise<SyncChange[]> {
+export async function localEffects(
+  m: Mutation,
+  get: GetRow,
+  list: ListRows = async () => [],
+): Promise<SyncChange[]> {
   switch (m.entity) {
+    case 'category_merge':
+      return categoryEffects(m.from, m.from_version, { to: m.to }, get, list);
+    case 'category_delete':
+      return categoryEffects(
+        m.id,
+        m.base_version,
+        m.reassign_to ? { to: m.reassign_to } : m.delete_blocks ? { end: true } : {},
+        get,
+        list,
+      );
+    case 'category_unmerge':
+      return []; // needs the server's merge record; the pull right after brings the rows back
     case 'profile': {
       const cur = await get('profile', 'me');
       if (!cur) return [];
@@ -269,9 +287,64 @@ async function routineSaveEffects(
   return out;
 }
 
+/**
+ * Local mirror of the server's category merge/delete (apps/api categoryMerge, categoryDelete): live blocks and
+ * one-offs move to `to`, or (`end`) end from today with past days kept; then the category goes. Idempotent.
+ */
+async function categoryEffects(
+  id: string,
+  baseVersion: number,
+  how: { to?: string; end?: boolean },
+  get: GetRow,
+  list: ListRows,
+): Promise<SyncChange[]> {
+  const cat = await get('category', id);
+  if (!cat) return [];
+  const out: SyncChange[] = [];
+  const put = (entity: SyncEntity, row: Row) =>
+    out.push({ entity, op: 'upsert', row: pending(row) });
+  const uses = (r: Row) => r.category_id === id && !r.deleted_at;
+  if (how.to) {
+    for (const r of (await list('routine_block')).filter(uses))
+      put('routine_block', { ...r, category_id: how.to, version: Number(r.version) + 1 });
+    for (const r of (await list('override')).filter(uses))
+      put('override', { ...r, category_id: how.to, version: Number(r.version) + 1 });
+  } else if (how.end) {
+    const p = await get('profile', 'me');
+    const today = clockNow(String(p?.time_zone ?? 'America/Toronto')).date;
+    const stamp = new Date().toISOString();
+    for (const r of (await list('routine_block')).filter(uses)) {
+      if (
+        r.effective_to !== null &&
+        r.effective_to !== undefined &&
+        String(r.effective_to) <= today
+      )
+        continue;
+      put(
+        'routine_block',
+        String(r.effective_from) >= today
+          ? { ...r, deleted_at: stamp, version: Number(r.version) + 1 }
+          : { ...r, effective_to: today, version: Number(r.version) + 1 },
+      );
+    }
+    for (const r of (await list('override')).filter(uses))
+      if (String(r.on_date) >= today)
+        put('override', { ...r, deleted_at: stamp, version: Number(r.version) + 1 });
+  }
+  put('category', {
+    ...cat,
+    deleted_at: cat.deleted_at ?? new Date().toISOString(),
+    version: baseVersion + 1,
+  });
+  return out;
+}
+
 /** The row a mutation's base_version refers to (conflict Reapply). */
 export function mutationTarget(m: Mutation): { entity: SyncEntity; id: string } | null {
   if (m.entity === 'profile') return { entity: 'profile', id: 'me' };
+  if (m.entity === 'category_merge') return { entity: 'category', id: m.from };
+  if (m.entity === 'category_unmerge') return null;
+  if (m.entity === 'category_delete') return { entity: 'category', id: m.id };
   if (m.entity === 'routine_save') return { entity: 'routine', id: m.routine_id };
   if (m.entity === 'routine_block_edit') return { entity: 'routine_block', id: m.block_id };
   return { entity: m.entity, id: m.id };
