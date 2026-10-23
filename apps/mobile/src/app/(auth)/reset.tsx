@@ -10,7 +10,7 @@ import { haptic } from '../../lib/haptics';
 import { Button } from '../../ui/Button';
 import { BackLink, FormScroll, H1, Header, Page, Sub } from '../../ui/Chrome';
 import { Field } from '../../ui/Field';
-import { Notice } from '../../ui/Notice';
+import { InlineMessage } from '../../ui/Inline';
 import { useToast } from '../../ui/Toast';
 
 /**
@@ -85,7 +85,12 @@ export default function ResetPassword() {
             <H1 size={56}>That link expired</H1>
             <Sub>Reset links work for 30 minutes and only once.</Sub>
           </View>
-          <Notice stamp="Expired" text="Send a new link from Sign in and use the newest email." />
+          <InlineMessage
+            parts={[
+              { hot: 'This link has expired.' },
+              ' Send a new link from Sign in and use the newest email.',
+            ]}
+          />
           <View style={{ paddingHorizontal: 20, marginTop: 18, gap: 8 }}>
             <Button label="Back to sign in" onPress={() => router.replace('/signin')} />
           </View>

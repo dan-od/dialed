@@ -10,11 +10,14 @@ import {
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { fonts, useTheme } from '../theme/theme';
 import { FormScrollContext } from './Chrome';
+import { Parts } from './Inline';
 import { T } from './Text';
 
 interface Props extends TextInputProps {
   label: string;
   error?: string;
+  /** The fix, as an orange text link at the end of the error line (v11 field problems). */
+  errorLink?: { label: string; onPress: () => void };
   helper?: string;
   password?: boolean;
   code?: boolean;
@@ -22,7 +25,7 @@ interface Props extends TextInputProps {
 
 /** Auth field: label above, 52pt input (68pt Anton for the code), inline error that replaces the helper. */
 export const Field = forwardRef<TextInputInstance, Props>(function Field(
-  { label, error, helper, password, code, style, ...rest },
+  { label, error, errorLink, helper, password, code, style, ...rest },
   ref,
 ) {
   const { c } = useTheme();
@@ -106,6 +109,12 @@ export const Field = forwardRef<TextInputInstance, Props>(function Field(
         <Animated.View entering={FadeIn.duration(200)}>
           <T size={13} weight="600" color={c.err}>
             {error}
+            {errorLink ? (
+              <>
+                {' '}
+                <Parts parts={[{ link: errorLink.label, onPress: errorLink.onPress }]} />
+              </>
+            ) : null}
           </T>
         </Animated.View>
       ) : helper ? (

@@ -12,7 +12,7 @@ import { useNavState } from '../../../day/navState';
 import { RestOfToday } from '../../../day/RestOfToday';
 import { SetupChooser } from '../../../day/SetupChooser';
 import { useTheme } from '../../../theme/theme';
-import { Notice } from '../../../ui/Notice';
+import { OfflineLine } from '../../../ui/Inline';
 import { TabPage } from '../../../ui/TabPage';
 import { Spinner } from '../../../ui/Spinner';
 import { T } from '../../../ui/Text';
@@ -67,13 +67,18 @@ export default function DayScreen() {
           pending={sync.pending}
           syncing={sync.syncing && sync.pending > 0}
           paused={sync.problem === 'paused'}
+          offline={!online}
           onSync={syncNow}
           onAccount={() => router.push('/account')}
           onPlan={soon}
           onTheme={() => void toggleTheme(isLight)}
         />
         {!online ? (
-          <Notice stamp="Offline" text="You’re offline. Showing what’s saved on this phone." />
+          <OfflineLine
+            pending={sync.pending}
+            pill={false}
+            text="Showing what’s saved on this phone."
+          />
         ) : null}
         {!sync.hasData ? (
           <View

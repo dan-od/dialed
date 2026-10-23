@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import { Pressable, View, type TextInputInstance } from 'react-native';
 import type { TokensOut } from '@dialed/contracts';
 import { useApp } from '../../AppProvider';
-import { AuthNotices } from '../../auth/AuthNotices';
+import { AuthNotices, emailProblem } from '../../auth/AuthNotices';
 import { useAuthCall } from '../../auth/useAuthCall';
 import { firstName, validateAuth, type AuthErrors } from '../../auth/validate';
 import { haptic } from '../../lib/haptics';
@@ -87,6 +87,10 @@ export default function SignIn() {
     }
   }
 
+  // v11: no account for this email shows in its error line, with Make an account.
+  const problem = emailProblem(online ? notice : null, {
+    onSignUp: () => router.replace({ pathname: '/signup', params: { email: email.trim() } }),
+  });
   return (
     <Page>
       <Header left={<BackLink label="Welcome" onPress={() => router.back()} />} />
@@ -101,7 +105,8 @@ export default function SignIn() {
               label="Email"
               value={email}
               onChangeText={setEmail}
-              error={errors.email}
+              error={errors.email ?? problem?.text}
+              errorLink={errors.email ? undefined : problem?.link}
               textContentType="emailAddress"
               autoComplete="email"
               keyboardType="email-address"
@@ -136,9 +141,7 @@ export default function SignIn() {
         </View>
         <AuthNotices
           notice={online ? notice : { kind: 'offline' }}
-          email={email.trim()}
           offlineVerb="sign in"
-          onSignUp={() => router.replace({ pathname: '/signup', params: { email: email.trim() } })}
           onRetry={submit}
         />
         <View style={{ paddingHorizontal: 20, marginTop: 16 }}>

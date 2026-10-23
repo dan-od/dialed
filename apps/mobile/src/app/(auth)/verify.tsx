@@ -135,11 +135,7 @@ export default function Verify() {
             ) : null}
           </View>
         </View>
-        <AuthNotices
-          notice={online ? notice : { kind: 'offline' }}
-          email={email}
-          offlineVerb="make an account"
-        />
+        <AuthNotices notice={online ? notice : { kind: 'offline' }} offlineVerb="make an account" />
         <View style={{ paddingHorizontal: 20, marginTop: 22, gap: 8 }}>
           <Button
             kind="secondary"

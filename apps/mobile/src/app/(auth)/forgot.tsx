@@ -10,7 +10,7 @@ import { haptic } from '../../lib/haptics';
 import { Button } from '../../ui/Button';
 import { BackLink, FormScroll, H1, Header, Page, Sub } from '../../ui/Chrome';
 import { Field } from '../../ui/Field';
-import { Notice } from '../../ui/Notice';
+import { InlineMessage } from '../../ui/Inline';
 import { useToast } from '../../ui/Toast';
 
 export default function Forgot() {
@@ -55,9 +55,12 @@ export default function Forgot() {
         </View>
         {sent ? (
           <>
-            <Notice
-              stamp="Sent"
-              text={`Check ${email.trim()}. The link opens ${APP_NAME} on this phone so you can pick a new password.`}
+            <InlineMessage
+              parts={[
+                'Sent to ',
+                { b: email.trim() },
+                `. The link opens ${APP_NAME} on this phone so you can pick a new password.`,
+              ]}
             />
             <View style={{ paddingHorizontal: 20, marginTop: 20, gap: 8 }}>
               <Button label="Back to sign in" onPress={() => router.back()} />
@@ -88,7 +91,6 @@ export default function Forgot() {
             </View>
             <AuthNotices
               notice={online ? notice : { kind: 'offline' }}
-              email={email.trim()}
               offlineVerb="send the link"
             />
             <View style={{ paddingHorizontal: 20, marginTop: 18 }}>

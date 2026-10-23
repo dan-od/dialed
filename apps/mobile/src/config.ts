@@ -19,8 +19,7 @@ export const APPLE_SIGN_IN_ENABLED = APPLE_TEAM_TIER === 'paid';
 // EXPO_PUBLIC_* is inlined by Metro when it bundles (dev server or release export); Constants.expoConfig is baked into
 // bare builds at build time, so it can't be switched by restarting Metro.
 export const FEATURES = {
-  d35Screens:
-    process.env.EXPO_PUBLIC_FEATURE_D35 === 'true' || extra.features?.d35Screens === true,
+  d35Screens: process.env.EXPO_PUBLIC_FEATURE_D35 === 'true' || extra.features?.d35Screens === true,
 };
 
 /** The chosen AI's display name (D-05). Settings (Flow 06/09) will make this dynamic. */
