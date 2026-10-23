@@ -42,6 +42,7 @@ Recorded at Batch 0 (2026-10-20) on the owner's Mac:
 | Expo SDK / React Native / React | 58.0.16 / 0.88.0 / 19.3.0 | `create-expo-app@5.0.0` default template (Expo Router, `src/app`) |
 | CocoaPods / Watchman / gitleaks | 1.17.0 / 2026.10.19.00 / 8.30.1 | Homebrew |
 | @react-native-community/datetimepicker / expo-notifications | 9.2.1 / 58.1.6 | Flow 04: native time picker; local reminders + permission prompt (`enableRemoteNotifications` only on `APPLE_TEAM_TIER=paid`) |
+| fflate (API) / expo-file-system (mobile) | 0.8.2 / 58.0.10 | Flow 09 Export my data: dependency-free zip writer for `dialed-export.zip`; a temp file for the iOS share sheet (RN `Share`, no expo-sharing) |
 | App Groups on Personal Team | not tested yet | Flow 08 |
 
 ## 2. Repository layout (pnpm workspaces)

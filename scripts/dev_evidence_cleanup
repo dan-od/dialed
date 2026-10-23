@@ -7,6 +7,11 @@ source "$(dirname "$0")/lib/common.sh"
 set -a; source "$ROOT/.env"; set +a
 [[ "$NODE_ENV" == development && "$DATABASE_URL" == *"@127.0.0.1:55432/"* ]] || die "Not the local dev database."
 OWNER=c5610ac2-5ae9-57cd-9cd6-a9e11adb97a6
+# The owner's seed rows of one table, inserted into a temp table instead.
+seed_rows() {
+  grep "^INSERT INTO $1(" "$ROOT/backend/seed/0001_seed.sql" | grep "'$OWNER'" \
+    | sed -e "s/^INSERT INTO $1(/INSERT INTO $2(/" -e 's/ ON CONFLICT (id) DO NOTHING;$/;/'
+}
 docker compose -f "$ROOT/infra/docker-compose.yml" exec -T postgres psql -U dialed -d dialed -v ON_ERROR_STOP=1 -q <<SQL
 BEGIN;
 WITH gone AS (
@@ -98,6 +103,38 @@ SELECT '$OWNER', rev.revision, 'profile', changed.id, 'upsert',
     'week_start', changed.week_start, 'theme', changed.theme, 'ai_mode', changed.ai_mode,
     'ai_provider', changed.ai_provider, 'profile_json', changed.profile_json, 'version', changed.version)
 FROM changed, rev;
+-- Flow 09 evidence (rename, recolour, merge, delete): the owner's seed categories, and the categories of seed
+-- blocks and one-offs, back to the seed file's values.
+CREATE TEMP TABLE seedcat (LIKE categories INCLUDING DEFAULTS) ON COMMIT DROP;
+CREATE TEMP TABLE seedrb (LIKE routine_blocks INCLUDING DEFAULTS) ON COMMIT DROP;
+CREATE TEMP TABLE seedov (LIKE overrides INCLUDING DEFAULTS) ON COMMIT DROP;
+$(seed_rows categories seedcat)
+$(seed_rows routine_blocks seedrb)
+$(seed_rows overrides seedov)
+WITH cats AS (
+  UPDATE categories c SET name = s.name, group_name = s.group_name, color_dark = s.color_dark,
+    color_light = s.color_light, quiet = s.quiet, deleted_at = NULL, version = c.version + 1
+  FROM seedcat s WHERE c.id = s.id AND (c.name <> s.name OR c.group_name <> s.group_name
+    OR c.color_dark <> s.color_dark OR c.color_light <> s.color_light OR c.quiet <> s.quiet OR c.deleted_at IS NOT NULL)
+  RETURNING c.*
+), rbs AS (
+  UPDATE routine_blocks r SET category_id = s.category_id, version = r.version + 1
+  FROM seedrb s WHERE r.id = s.id AND r.category_id <> s.category_id RETURNING r.*
+), ovs AS (
+  UPDATE overrides o SET category_id = s.category_id, version = o.version + 1
+  FROM seedov s WHERE o.id = s.id AND o.category_id IS DISTINCT FROM s.category_id RETURNING o.*
+), rev AS (
+  INSERT INTO revisions(user_id, revision, updated_at) SELECT '$OWNER', 1, now()
+  WHERE EXISTS (SELECT 1 FROM cats) OR EXISTS (SELECT 1 FROM rbs) OR EXISTS (SELECT 1 FROM ovs)
+  ON CONFLICT (user_id) DO UPDATE SET revision = revisions.revision + 1, updated_at = now() RETURNING revision
+)
+INSERT INTO change_log(user_id, revision, entity, entity_id, op, row_json)
+SELECT '$OWNER', rev.revision, x.entity, x.id, 'upsert', x.row FROM rev, (
+  SELECT 'category' AS entity, id, to_jsonb(cats) - 'user_id' AS row FROM cats
+  UNION ALL SELECT 'routine_block', id, to_jsonb(rbs) - 'user_id' FROM rbs
+  UNION ALL SELECT 'override', id, to_jsonb(ovs) - 'user_id' FROM ovs) x;
+-- Merges made by evidence runs can no longer be undone (their rows are back).
+UPDATE category_merges SET undone_at = now() WHERE user_id = '$OWNER' AND undone_at IS NULL;
 COMMIT;
 SQL
 log "Evidence test data removed (if any was there)."
