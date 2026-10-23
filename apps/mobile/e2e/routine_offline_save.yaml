@@ -4,7 +4,7 @@ appId: me.okoro.dialed
 - runFlow: _editor.yaml
 - tapOn: 'Remove Gym from every Monday'
 - runFlow: _sheet_to_bottom.yaml
-- extendedWaitUntil: { visible: 'You’re offline. Saving keeps it on this phone until you reconnect.', timeout: 30000 }
+- extendedWaitUntil: { visible: 'Saving keeps it on this phone until you reconnect.', timeout: 30000 }
 - takeScreenshot: offline-editor-${THEME}
 - tapOn: { id: 'save-routine' }
 - extendedWaitUntil: { visible: 'Save on this phone', timeout: 5000 }

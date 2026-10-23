@@ -1,0 +1,54 @@
+# Design v11 after-screenshots (owner review 2026-10-23): plain time fields + wheel, the fit strip in Add (blank,
+# clash) and Edit/Move (Saturday already has Gym), Week cards with wrapped titles, Terms with inline messages.
+# Nothing is saved. iPhone 17e geometry (wheel taps).
+appId: me.okoro.dialed
+---
+- runFlow: _today.yaml
+- runFlow: _open_add.yaml
+- takeScreenshot: after-add-blank-${THEME}
+- tapOn: { id: 'add-start' }
+- extendedWaitUntil: { visible: { id: 'add-start-wheel' }, timeout: 3000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: after-add-wheel-${THEME}
+- tapOn: { id: 'add-start' }
+- runFlow: _wheel_start_9pm.yaml
+- extendedWaitUntil: { visible: 'Overlaps .* by .*', timeout: 5000 }
+- takeScreenshot: after-add-overlap-${THEME}
+- tapOn: { id: 'ov-keep' }
+- extendedWaitUntil: { visible: 'Sharing time with .*', timeout: 3000 }
+- takeScreenshot: after-add-keep-${THEME}
+- tapOn: 'Close'
+- runFlow:
+    when: { visible: 'Discard this block?' }
+    commands:
+      - tapOn: 'Discard'
+- extendedWaitUntil: { visible: 'Rest of today', timeout: 5000 }
+- runFlow: _rest_nudge.yaml
+- tapOn: 'Edit Gym, .*'
+- extendedWaitUntil: { visible: 'Edit block', timeout: 5000 }
+- takeScreenshot: after-edit-${THEME}
+- tapOn: { id: 'edit-day-5' }
+- extendedWaitUntil: { visible: { id: 'ov-shift' }, timeout: 3000 }
+- takeScreenshot: after-move-clash-${THEME}
+- tapOn: 'Close'
+- runFlow:
+    when: { visible: 'Discard .*' }
+    commands:
+      - tapOn: 'Discard'
+- extendedWaitUntil: { visible: 'Rest of today', timeout: 5000 }
+- runFlow:
+    when: { visible: 'Show Day, Week and Month' }
+    commands:
+      - tapOn: 'Show Day, Week and Month'
+- tapOn: Week
+- extendedWaitUntil: { visible: 'Tuesday 20.*', timeout: 15000 }
+- tapOn: 'Tuesday 20.*'
+- extendedWaitUntil: { visible: 'Swipe through your days', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: after-cards-${THEME}
+- tapOn: Lanes
+- runFlow: _routines.yaml
+- tapOn: 'Exam weeks.*'
+- extendedWaitUntil: { visible: 'Terms and dates', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: after-terms-${THEME}
