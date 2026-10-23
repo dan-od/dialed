@@ -1,4 +1,4 @@
-# Flow 04: overlap (9–10 pm runs into Prayers → Add anyway), category create card, end-before-start error,
+# Flow 04 + v11 fit strip: overlap (9–10 pm overlaps Prayers: hatched strip, dashed next free slot → Add anyway), category create card, end-before-start error,
 # Discard dialog, then the blank-form errors (name + category). Nothing is saved except the created category.
 # The wheel subflows use iPhone 17e positions, so the steps keep the sheet's layout as probed.
 appId: me.okoro.dialed
@@ -6,7 +6,9 @@ appId: me.okoro.dialed
 - runFlow: _today.yaml
 - runFlow: _open_add.yaml
 - runFlow: _wheel_start_9pm.yaml
-- extendedWaitUntil: { visible: 'This runs into .*', timeout: 5000 }
+- extendedWaitUntil: { visible: 'Overlaps .* by .*', timeout: 5000 }
+- assertVisible: { id: 'ov-keep' }
+- assertVisible: { id: 'ov-shift' }
 - tapOn: { id: 'add-name' }
 - inputText: 'Prayers, login flow'
 - pressKey: Enter
