@@ -1,0 +1,6 @@
+# Taps the Add sheet's primary button. Full-height sheet (D-47): with an inline line or the strip the button can
+# sit below the fold, so scroll to it first.
+appId: me.okoro.dialed
+---
+- scrollUntilVisible: { element: { id: 'add-save' }, direction: DOWN, timeout: 8000 }
+- tapOn: { id: 'add-save' }

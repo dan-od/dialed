@@ -14,11 +14,12 @@ header for what each needs), then `scripts/dev_evidence_cleanup`.
 | Wrapped titles never clip (D-54) | `before-cards-*` | `after-cards-*` (Tuesday: "Speedwatch Ontario", "Networking assignments" on two lines) |
 | Terms: plain date fields, full-width wheel, inline messages (D-45, D-49) | `before-terms-*` (capsule dates, "No term" stamp), `before-terms-overlap-dark` (Overlap stamp) | `after-terms-*` (**Dec 23 – Jan 4** has no term…), `after-terms-overlap-*` (**Overlaps Exam weeks.** Days in both use Fall term.) |
 | Offline pill + one muted line (D-46) | `before-day-offline-*`, `before-day-offline-queued-dark`, `before-add-offline-dark`, `before-routine-offline-dark` | `after-day-offline-*` (pill under the date: "Offline", then "Showing what's saved on this phone."), `after-day-offline-queued-light`, `after-add-offline-light`, `after-routine-offline-light` ("Offline · N to sync" + one line). The queued edit in `offline_1` is the theme button, so these three are light. |
-| Settings problem inline under the setting (D-45) | `before-reminders-off-dark` | see "Not captured" below |
+| Settings problem inline under the setting (D-45) | `before-reminders-off-dark` (Reminders off stamp + button) | `after-reminders-off-dark` ("**Off in iPhone Settings,** so it won't fire. **Turn them on**") |
 
 Also covered in Flow 04/05 runs after the change: `e2e/add_invalid_overlap.yaml` (strip + Add anyway + end before
 start), `e2e/move_block.yaml` (Move through the strip's dashed slot → Saturday), `e2e/term_dates.yaml` (wheel →
 Dec 18 saved once on close).
 
-## Not captured as after-shots (and why)
-- Reminders off (inline under Push alert): needs a fresh install with notifications denied (`ONLY=perm`).
+Reminders off needs a fresh install with notifications denied (`ONLY=perm` after reinstalling the dev client).
+Every Add-sheet flow now taps the button through `e2e/_add_save.yaml` (scrolls to it first: at full height an inline
+line can push it below the fold).

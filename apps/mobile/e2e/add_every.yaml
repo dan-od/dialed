@@ -16,7 +16,7 @@ appId: me.okoro.dialed
 - extendedWaitUntil: { visible: 'Category, Study.*', timeout: 5000 }
 - tapOn: { id: 'add-repeat' }
 - takeScreenshot: add-filled-${THEME}
-- tapOn: { id: 'add-save' }
+- runFlow: _add_save.yaml
 - extendedWaitUntil: { visible: 'Edit Capstone reading.*, new', timeout: 5000 }
 - assertVisible: 'Added to every .*'
 - takeScreenshot: add-saved-new-${THEME}

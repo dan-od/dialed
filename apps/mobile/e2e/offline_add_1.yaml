@@ -15,9 +15,7 @@ appId: me.okoro.dialed
 - tapOn: 'Sermon Sync'
 - extendedWaitUntil: { visible: 'Category, Sermon Sync.*', timeout: 5000 }
 - takeScreenshot: offline-add-sheet-${THEME}
-# Full-height sheet (D-47): the button sits below the offline line; scroll to it.
-- scrollUntilVisible: { element: { id: 'add-save' }, direction: DOWN, timeout: 8000 }
-- tapOn: { id: 'add-save' }
+- runFlow: _add_save.yaml
 - extendedWaitUntil:
     { visible: 'Saved on this phone. It syncs when you’re back online.', timeout: 8000 }
 - assertVisible: '.*1 to sync.*'
