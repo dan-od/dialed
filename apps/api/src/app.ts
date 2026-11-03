@@ -13,6 +13,7 @@ import { syncRoutes } from './sync/routes';
 import { accountRoutes } from './account/routes';
 import { AccountService } from './account/service';
 import { SyncService } from './sync/service';
+import { plansRoutes } from './plans/routes';
 import { publicRoutes } from './public';
 
 export interface Deps {
@@ -28,6 +29,7 @@ export interface Deps {
 export const REDACT = [
   'req.headers.authorization',
   'req.headers["x-provider-key"]',
+  'req.headers["x-provider-base-url"]',
   'req.headers.cookie',
   '*.password',
   '*.code',
@@ -121,6 +123,7 @@ export async function buildApp(config: Config, deps: Deps) {
   authRoutes(app, auth, jwt, config.RATE_LIMIT_MULTIPLIER);
   syncRoutes(app, sync, jwt, auth);
   accountRoutes(app, account, jwt, auth);
+  plansRoutes(app, deps.db, config, jwt, auth, deps.now ?? (() => new Date()));
   publicRoutes(app, config);
   return app;
 }

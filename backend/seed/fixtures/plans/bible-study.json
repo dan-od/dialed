@@ -31,7 +31,7 @@
       {
         "kind": "moved",
         "title": "WellServices",
-        "block_ref": "seed:owner:blk:2:7",
+        "block_ref": "50c05f16-23bd-5fe1-b748-148243e8611a",
         "repeat": {
           "weekday": "sun",
           "from": "2026-10-25",
@@ -46,7 +46,7 @@
       {
         "kind": "moved",
         "title": "Speedwatch Ontario",
-        "block_ref": "seed:owner:blk:4:8",
+        "block_ref": "4785aeda-e8f8-5873-8ff4-6b01e0fad168",
         "repeat": {
           "weekday": "sat",
           "from": "2026-10-24",

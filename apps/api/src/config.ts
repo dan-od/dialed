@@ -23,6 +23,13 @@ const Env = z.object({
   MCP_ENABLED: bool.default(false),
   TRUST_PROXY_IP: z.string().optional(),
   RATE_LIMIT_MULTIPLIER: z.coerce.number().min(1).default(1),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  PLAN_MODEL_ANTHROPIC: z.string().default('claude-sonnet-4-20250514'),
+  PLAN_MODEL_OPENAI: z.string().default('gpt-4o'),
+  PLAN_MODEL_GEMINI: z.string().default('gemini-2.5-flash'),
+  PLAN_MAX_TOKENS: z.coerce.number().int().min(256).default(8192),
+  PLAN_DAILY_LIMIT: z.coerce.number().int().min(1).default(30),
+  ALLOW_PRIVATE_PROVIDER_URLS: bool.default(false),
 });
 
 export type Config = z.infer<typeof Env> & { jwtPrivateKeyPem: string };
@@ -43,8 +50,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       'EMAIL_TRANSPORT=smtp is not activated yet (BUILD_AGENT "Backend activation"); use console',
     );
   }
-  if (c.APNS_MODE === 'apns' || c.AI_MODE === 'live') {
-    throw new Error('APNS_MODE=apns and AI_MODE=live are not activated yet; use log/fixture');
+  if (c.APNS_MODE === 'apns') {
+    throw new Error('APNS_MODE=apns is not activated yet; use log');
   }
   return { ...c, jwtPrivateKeyPem: readFileSync(c.JWT_PRIVATE_KEY_FILE, 'utf8') };
 }

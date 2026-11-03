@@ -17,6 +17,8 @@ const planIds: string[] = [];
 
 beforeAll(async () => {
   t = await makeApp({}, undefined, TEST_NOW);
+  await t.db.execute(sql`delete from change_log where user_id = ${OWNER.id}`);
+  await t.db.execute(sql`update revisions set revision = 0 where user_id = ${OWNER.id}`);
 });
 afterEach(async () => {
   for (const id of planIds) {
