@@ -16,6 +16,13 @@ const STATUS: Partial<Record<ErrorCode, number>> = {
   code_expired: 400,
   rate_limited: 429,
   daily_limit: 429,
+  plan_stale: 409,
+  plan_changed: 409,
+  plan_invalid: 409,
+  plan_not_ready: 409,
+  validation_failed: 422,
+  provider_error: 502,
+  provider_key_invalid: 400,
   server_error: 500,
 };
 
@@ -36,10 +43,23 @@ const MESSAGES: Partial<Record<ErrorCode, string>> = {
   code_invalid: 'That code doesn’t match. Check the newest email from Dialed.',
   code_expired: 'That code expired. Send a new one.',
   resync_required: 'Your phone needs a fresh copy of your schedule.',
+  daily_limit: 'You’ve used today’s limit. Try again tomorrow.',
+  plan_stale: 'Your schedule changed since this plan was drafted. Redo it so nothing clashes.',
+  plan_changed: 'This plan was just updated. Check it again.',
+  plan_invalid: 'That plan doesn’t fit your schedule anymore. Check the changes.',
+  plan_not_ready: 'That plan isn’t ready to review yet.',
+  validation_failed: 'Couldn’t make a plan that fits your limits. Try rewording it.',
+  provider_error: 'Couldn’t reach the AI provider. Try again.',
+  provider_key_invalid: 'That AI key was refused. Check it in Settings.',
   server_error: 'Dialed couldn’t reach the server. Try again.',
 };
 
-const RETRYABLE = new Set<ErrorCode>(['rate_limited', 'server_error', 'conflict']);
+const RETRYABLE = new Set<ErrorCode>([
+  'rate_limited',
+  'server_error',
+  'conflict',
+  'provider_error',
+]);
 
 export class AppError extends Error {
   readonly status: number;
