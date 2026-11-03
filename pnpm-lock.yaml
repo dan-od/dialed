@@ -32,6 +32,9 @@ importers:
       '@dialed/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@dialed/planning':
+        specifier: workspace:*
+        version: link:../../packages/planning
       '@dialed/schedule':
         specifier: workspace:*
         version: link:../../packages/schedule
@@ -8197,7 +8200,9 @@ snapshots:
       metro-runtime: 0.87.1
     transitivePeerDependencies:
       - '@babel/core'
+      - bufferutil
       - supports-color
+      - utf-8-validate
 
   '@react-native/normalize-colors@0.74.89': {}
 

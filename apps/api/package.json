@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@dialed/contracts": "workspace:*",
+    "@dialed/planning": "workspace:*",
     "@dialed/schedule": "workspace:*",
     "@dialed/tokens": "workspace:*",
     "@fastify/rate-limit": "11.2.1",

@@ -196,10 +196,71 @@ export const plans = pgTable('plans', {
   status: text('status').notNull(),
   base_revision: bigint('base_revision', { mode: 'number' }).notNull(),
   version: integer('version').notNull().default(1),
+  proposal_id: uuid('proposal_id'),
+  idempotency_key: text('idempotency_key'),
+  range_from: day('range_from'),
+  range_to: day('range_to'),
+  attempts: integer('attempts').notNull().default(0),
+  error_code: text('error_code'),
+  provider_mode: text('provider_mode'),
+  checks_json: jsonb('checks_json').notNull().default([]),
+  step: smallint('step').notNull().default(0),
+  bg_retry_at: ts('bg_retry_at'),
   created_at: ts('created_at').notNull().defaultNow(),
   ready_at: ts('ready_at'),
   decided_at: ts('decided_at'),
 });
+
+export const planChanges = pgTable('plan_changes', {
+  id: uuid('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  plan_id: uuid('plan_id').notNull(),
+  ord: integer('ord').notNull(),
+  kind: text('kind').notNull(),
+  title: text('title').notNull(),
+  payload_json: jsonb('payload_json').notNull(),
+  note: text('note').notNull().default(''),
+  enabled: boolean('enabled').notNull().default(true),
+  validation_json: jsonb('validation_json').notNull().default({}),
+});
+
+export const planMessages = pgTable('plan_messages', {
+  id: uuid('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  plan_id: uuid('plan_id').notNull(),
+  role: text('role').notNull(),
+  body: text('body').notNull(),
+  options_json: jsonb('options_json'),
+  created_at: ts('created_at').notNull().defaultNow(),
+});
+
+export const jobs = pgTable('jobs', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  kind: text('kind').notNull(),
+  dedupe_key: text('dedupe_key'),
+  run_at: ts('run_at').notNull().defaultNow(),
+  payload_json: jsonb('payload_json').notNull().default({}),
+  status: text('status').notNull().default('queued'),
+  attempts: integer('attempts').notNull().default(0),
+  lease_until: ts('lease_until'),
+  last_error: text('last_error'),
+  created_at: ts('created_at').notNull().defaultNow(),
+});
+
+export const usageCounters = pgTable(
+  'usage_counters',
+  {
+    user_id: uuid('user_id').notNull(),
+    day: day('day').notNull(),
+    plan_runs: integer('plan_runs').notNull().default(0),
+    imports: integer('imports').notNull().default(0),
+    tokens_in: bigint('tokens_in', { mode: 'number' }).notNull().default(0),
+    tokens_out: bigint('tokens_out', { mode: 'number' }).notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.user_id, t.day] })],
+);
 
 export const changeLog = pgTable('change_log', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
