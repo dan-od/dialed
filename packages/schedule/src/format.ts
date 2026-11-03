@@ -13,6 +13,16 @@ export function formatClockShort(min: Minutes): string {
   return min % 60 === 0 ? formatClock(min).replace(':00', '') : formatClock(min);
 }
 
+/** Inverse of formatClock's input shape: "19:00" → 1140, "24:00" → 1440 (midnight). */
+export function parseClock(hhmm: string): Minutes {
+  const m = /^([0-1]\d|2[0-4]):([0-5]\d)$/.exec(hhmm);
+  if (!m) throw new Error(`Not a 24-hour HH:MM: ${hhmm}`);
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h === 24 && min !== 0) throw new Error(`Not a 24-hour HH:MM: ${hhmm}`);
+  return h * 60 + min;
+}
+
 /** Compact range used in lists: 760–870 → "12:40–2:30". */
 export function formatRange(start: Minutes, end: Minutes): string {
   const bare = (x: Minutes) => formatClock(x).replace(/ (am|pm)$/, '');
