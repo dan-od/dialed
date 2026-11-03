@@ -1,10 +1,10 @@
 // Worker process (BACKEND_SETUP §8): Postgres job table with FOR UPDATE SKIP LOCKED leases.
-// Job kinds (la.*, push.*, account.purge, uploads.sweep) land with their flows; this loop only leases and logs today.
 import { loadConfig } from './config';
 import { createDb } from './db/pool';
+import { createHandlers } from './jobs/handlers';
 
 const config = loadConfig();
-const { pool } = createDb(config.DATABASE_URL);
+const { pool, db } = createDb(config.DATABASE_URL);
 let stopping = false;
 process.on('SIGTERM', () => {
   stopping = true;
@@ -13,7 +13,9 @@ process.on('SIGINT', () => {
   stopping = true;
 });
 
-const HANDLERS: Record<string, (payload: unknown) => Promise<void>> = {};
+const logger = (obj: Record<string, unknown>) => console.log(JSON.stringify(obj));
+const handlers = createHandlers({ db, config, now: () => new Date(), log: logger });
+const HANDLERS: Record<string, (payload: unknown) => Promise<void>> = { ...handlers };
 
 while (!stopping) {
   const { rows } = await pool.query<{
