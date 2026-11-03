@@ -47,6 +47,8 @@ App Store / TestFlight submission; production deploy to the home lab; DNS or Clo
 Current state and next step: @STATUS.md
 - **Images are expensive.** Saving screenshots/recordings to disk is free; opening them is not. Never Read a screenshot after an individual edit. Verify logic, sync, API and data with tests and logs, not visuals.
 - **One look per flow.** When a flow's states are all built, capture everything to disk, build one downscaled contact sheet, and open only that, once. Compare against the prototype in that same single pass. Open more images only if the owner asks.
+- **Quiet builds.** Redirect `xcodebuild`, `expo run:ios`, `pod install`, Maestro and test-runner output to a file under `/tmp` and print only the exit code plus the last ~30 lines or grepped errors. Never stream full build logs into the conversation. Reuse a running Simulator/Metro instead of rebuilding; rebuild native only when native code or config changed. Don't boot the Simulator at all for work that tests and logs can prove.
+- **Plans live in files.** Write flow plans to `plans/flow-XX.md`; build from the file in a fresh session.
 - **No open-ended exploration** of the Simulator or browser; drive specific Maestro flows. Never leave recording running.
 - **Read narrowly.** Read the current flow file, its sub-interactions file and the files you'll touch, not the whole document map. Use `grep`/line ranges for big files and the prototype HTML.
 - **Plan before medium work.** For a new flow or anything touching more than ~3 files, write a short plan and wait for approval before coding.
