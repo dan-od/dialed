@@ -38,10 +38,19 @@ When the prototype and a flow file disagree, the flow file wins only where it na
 `00_Flow_Map.md` → Dependency order: 0-scaffold → shared-foundation → 01 → 03 (first vertical slice) → 04 → 05 → 09 → 06 → 02 → 07, with 08 as a parallel native track after 05. One main-line flow in flight unless contracts are stable and workspaces isolated.
 
 ## Proof requirements
-Per flow: failing test first; every state in the flow file implemented; security pass 2; accessibility pass; real Simulator run with recording/screenshots in `evidence/flows/Flow_XX/`; physical-iPhone proof for Flow 08 push/Live Activity/haptics. Report separately: automated, static, runtime, unverified.
+Per flow: failing test first; every state in the flow file implemented; security pass 2; accessibility pass; real Simulator run with recording/screenshots in `evidence/flows/Flow_XX/` (captured to disk by Maestro/simctl; see Working budget for what the agent may look at); physical-iPhone proof for Flow 08 push/Live Activity/haptics. Report separately: automated, static, runtime, unverified.
 
 ## Stop conditions (ask the owner)
 App Store / TestFlight submission; production deploy to the home lab; DNS or Cloudflare changes; purchasing anything (Apple Developer Program, domains, email, AI credits); entering real secrets; legal text acceptance; deleting real data; any claim about physical-device behaviour without a device run; any production UI that departs from the prototype (the six surfaces in D-35) without a flow-prototype approval.
+
+## Working budget (owner's usage limit; overrides proof steps on *how* to verify, never on *what*)
+Current state and next step: @STATUS.md
+- **Images are expensive.** Saving screenshots/recordings to disk is free; opening them is not. Never Read a screenshot after an individual edit. Verify logic, sync, API and data with tests and logs, not visuals.
+- **One look per flow.** When a flow's states are all built, capture everything to disk, build one downscaled contact sheet, and open only that, once. Compare against the prototype in that same single pass. Open more images only if the owner asks.
+- **No open-ended exploration** of the Simulator or browser; drive specific Maestro flows. Never leave recording running.
+- **Read narrowly.** Read the current flow file, its sub-interactions file and the files you'll touch, not the whole document map. Use `grep`/line ranges for big files and the prototype HTML.
+- **Plan before medium work.** For a new flow or anything touching more than ~3 files, write a short plan and wait for approval before coding.
+- **End of session:** update `STATUS.md` (done, in progress, next, blockers) in ≤15 lines and commit it.
 
 ## Repository rules
 - pnpm workspaces; TypeScript strict; ESLint + Prettier; Swift for the widget/LA target only.
