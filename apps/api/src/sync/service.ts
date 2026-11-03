@@ -12,6 +12,11 @@ import type { Db, Tx } from '../db/pool';
 import { AppError, appError } from '../lib/errors';
 import { ChangeRecorder } from './record';
 import { PLAN_SUMMARY_COLUMNS, PROFILE_COLUMNS, SYNC_COLUMNS, syncRow, TABLE } from './rows';
+import {
+  closeRoutineBlock as writeClose,
+  insertOverride as writeOverride,
+  insertRoutineBlock as writeBlock,
+} from './writers';
 
 type Row = Record<string, unknown>;
 const SNAPSHOT_ORDER: SyncEntity[] = [
@@ -509,11 +514,23 @@ export class SyncService {
       await this.owned(tx, 'categories', String(f.category_id), userId);
       const taken = await tx.execute(sql`select 1 from routine_blocks where id = ${id}`);
       if (taken.rows[0]) throw new Rejected('bad_request', 'That block id is already used.');
-      const { rows } = await tx.execute<Row>(sql`insert into routine_blocks
-        (id, routine_id, user_id, weekday, start_min, end_min, title, category_id, effective_from, effective_to, source)
-        values (${id}, ${m.routine_id}, ${userId}, ${f.weekday}, ${f.start_min}, ${f.end_min}, ${f.title},
-                ${f.category_id}, ${E}, ${to}, 'user') returning *`);
-      await rec.record('routine_block', id, 'upsert', rows[0]!);
+      await writeBlock(
+        tx,
+        rec,
+        userId,
+        {
+          id,
+          routine_id: m.routine_id,
+          weekday: Number(f.weekday),
+          start_min: Number(f.start_min),
+          end_min: Number(f.end_min),
+          title: String(f.title),
+          category_id: String(f.category_id),
+          effective_from: E,
+          effective_to: to,
+        },
+        'user',
+      );
     };
     const update = async (id: string, set: SQL) => {
       const { rows } = await tx.execute<Row>(
@@ -539,7 +556,7 @@ export class SyncService {
       if (to !== null && E >= to)
         throw new Rejected('bad_request', 'That block already ends before then.');
       if (op.op === 'close') {
-        await update(op.block_id, from >= E ? sql`deleted_at = now()` : sql`effective_to = ${E}`);
+        await writeClose(tx, rec, op.block_id, from >= E ? { delete: true } : { effective_to: E });
         continue;
       }
       const f = op.fields;
@@ -560,7 +577,7 @@ export class SyncService {
             title = ${merged.title}, category_id = ${merged.category_id}`,
         );
       } else {
-        await update(op.block_id, sql`effective_to = ${E}`);
+        await writeClose(tx, rec, op.block_id, { effective_to: E });
         await insert(op.new_block_id ?? randomUUID(), merged, to);
       }
     }
@@ -761,10 +778,10 @@ export class SyncService {
     // Undo of a delete (within the toast's 6 s): clears either kind of close.
     if (m.reopen) return update(sql`effective_to = null, deleted_at = null`);
     if (m.close) {
-      if (E <= from) return update(sql`deleted_at = now()`); // never resolved on a past date
+      if (E <= from) return writeClose(tx, rec, m.block_id, { delete: true });
       if (to !== null && E >= to)
         throw new Rejected('bad_request', 'That block already ends before then.');
-      return update(sql`effective_to = ${E}`);
+      return writeClose(tx, rec, m.block_id, { effective_to: E });
     }
     const f = m.fields ?? {};
     const merged = {
@@ -789,14 +806,25 @@ export class SyncService {
       );
       if (taken.rows[0]) throw new Rejected('bad_request', 'That block id is already used.');
     }
-    await update(sql`effective_to = ${E}`);
-    const newId = m.new_block_id ?? null;
-    const { rows } = await tx.execute<Row>(sql`insert into routine_blocks
-      (id, routine_id, user_id, weekday, start_min, end_min, title, category_id, effective_from, effective_to, source)
-      values (coalesce(${newId}::uuid, gen_random_uuid()), ${cur.routine_id}, ${userId}, ${merged.weekday}, ${merged.start_min},
-              ${merged.end_min}, ${merged.title}, ${merged.category_id}, ${E}, ${to}, 'user') returning *`);
-    await rec.record('routine_block', String(rows[0]!.id), 'upsert', rows[0]!);
-    return rows[0]!;
+    await writeClose(tx, rec, m.block_id, { effective_to: E });
+    const newId = m.new_block_id ?? randomUUID();
+    return writeBlock(
+      tx,
+      rec,
+      userId,
+      {
+        id: newId,
+        routine_id: String(cur.routine_id),
+        weekday: merged.weekday,
+        start_min: merged.start_min,
+        end_min: merged.end_min,
+        title: merged.title,
+        category_id: merged.category_id,
+        effective_from: E,
+        effective_to: to,
+      },
+      'user',
+    );
   }
 }
 
