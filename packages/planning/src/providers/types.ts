@@ -1,11 +1,13 @@
 import type { PlanChange, PlanCheck } from '@dialed/contracts';
 
 export interface ToolCall {
+  id?: string;
   name: string;
   input: Record<string, unknown>;
 }
 
 export interface ToolResult {
+  id?: string;
   name: string;
   output: unknown;
   is_error?: boolean;
@@ -18,22 +20,26 @@ export interface ProviderMessage {
   tool_results?: ToolResult[];
 }
 
-export type ProviderStepResult =
-  | { kind: 'tool_calls'; calls: ToolCall[] }
-  | { kind: 'text'; text: string }
-  | { kind: 'done' };
+export interface ProviderRunOpts {
+  system: string;
+  messages: ProviderMessage[];
+  tools: { name: string; description: string; input_schema: object }[];
+  maxTokens: number;
+  signal?: AbortSignal;
+}
+
+export interface ProviderStepResult {
+  content: string;
+  tool_calls: ToolCall[];
+  tokens_in: number;
+  tokens_out: number;
+}
 
 export interface PlanProvider {
   id: string;
   displayName: string;
   supportsVision: boolean;
-  run(opts: {
-    system: string;
-    messages: ProviderMessage[];
-    tools: { name: string; description: string; input_schema: object }[];
-    maxTokens: number;
-    signal?: AbortSignal;
-  }): Promise<{ content: string; tool_calls: ToolCall[]; tokens_in: number; tokens_out: number }>;
+  run(opts: ProviderRunOpts): Promise<ProviderStepResult>;
 }
 
 export interface FixtureResult {

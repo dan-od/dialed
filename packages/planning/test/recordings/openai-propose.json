@@ -1,0 +1,27 @@
+{
+  "status": 200,
+  "body": {
+    "id": "chatcmpl-test",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "call_01",
+              "type": "function",
+              "function": {
+                "name": "propose_changes",
+                "arguments": "{\"request_text\":\"Add gym on Monday\",\"changes\":[{\"kind\":\"new\",\"title\":\"Gym\",\"category_id\":\"82972f34-0c7e-5bbf-986d-3373a76f187f\",\"on_date\":\"2026-10-26\",\"start\":\"07:00\",\"end\":\"08:00\",\"note\":\"Monday morning gym.\"}],\"checks\":[]}"
+              }
+            }
+          ]
+        },
+        "finish_reason": "tool_calls"
+      }
+    ],
+    "usage": { "prompt_tokens": 150, "completion_tokens": 80 }
+  }
+}

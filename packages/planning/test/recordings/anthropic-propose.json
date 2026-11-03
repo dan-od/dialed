@@ -1,0 +1,31 @@
+{
+  "status": 200,
+  "body": {
+    "id": "msg_test",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+      {
+        "type": "tool_use",
+        "id": "toolu_01",
+        "name": "propose_changes",
+        "input": {
+          "request_text": "Add gym on Monday",
+          "changes": [
+            {
+              "kind": "new",
+              "title": "Gym",
+              "category_id": "82972f34-0c7e-5bbf-986d-3373a76f187f",
+              "on_date": "2026-10-26",
+              "start": "07:00",
+              "end": "08:00",
+              "note": "Monday morning gym."
+            }
+          ],
+          "checks": []
+        }
+      }
+    ],
+    "usage": { "input_tokens": 120, "output_tokens": 60 }
+  }
+}
