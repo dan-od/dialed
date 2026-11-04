@@ -267,7 +267,7 @@ export default function RoutinesScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Describe a change to ${aiName()}`}
-            onPress={() => toast(`Planning with ${aiName()} arrives with Flow 06.`)}
+            onPress={() => router.push('/plan')}
             style={{
               flex: 1,
               height: 50,

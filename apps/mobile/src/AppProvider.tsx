@@ -20,8 +20,9 @@ import {
 } from 'react';
 import { AppState } from 'react-native';
 import { ApiClient, type TokenSource } from './api/client';
-import { API_BASE_URL } from './config';
+import { API_BASE_URL, setAiConfig } from './config';
 import { Blocks } from './blocks/service';
+import { PlanApi } from './plan/api';
 import { SQLiteStore } from './data/sqliteStore';
 import type { LocalData, LocalStore } from './data/types';
 import { haptic } from './lib/haptics';
@@ -45,6 +46,7 @@ type SessionState =
 interface AppValue {
   session: SessionState;
   api: ApiClient;
+  planApi: PlanApi;
   data: LocalData | null;
   sync: SyncStatus;
   online: boolean;
@@ -95,6 +97,7 @@ class SessionTokens implements TokenSource {
 // One app, one session: a module-level holder the api client reads on every request.
 const tokens = new SessionTokens();
 const api = new ApiClient(API_BASE_URL, tokens);
+const planApi = new PlanApi(api);
 
 /** The running engine, outside React state (the Blocks service enqueues through it). */
 class EngineHub {
@@ -158,6 +161,12 @@ export function AppProvider({
       /* offline: keep this phone's copy */
     }
   }, [prefStore]);
+
+  // Sync the AI display name with the profile (Flow 06: dynamic aiName).
+  useEffect(() => {
+    const p = data?.profile;
+    if (p) setAiConfig(p.ai_mode ?? 'server', p.ai_provider ?? 'anthropic');
+  }, [data?.profile?.ai_mode, data?.profile?.ai_provider]);
 
   // Local reminders follow the data: next 48 h of explicit block alerts (D-32), quiet hours respected.
   useEffect(() => {
@@ -314,6 +323,7 @@ export function AppProvider({
   const value: AppValue = {
     session,
     api,
+    planApi,
     data,
     sync,
     online: online && sync.problem !== 'offline',

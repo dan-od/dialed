@@ -40,14 +40,15 @@ export class ApiClient {
     method: string,
     path: string,
     body?: unknown,
-    opts: { auth?: boolean; bytes?: boolean } = {},
+    opts: { auth?: boolean; bytes?: boolean; headers?: Record<string, string> } = {},
   ): Promise<T> {
     const auth = opts.auth ?? true;
     const bytes = opts.bytes ?? false;
-    const first = await this.send(method, path, body, auth, bytes);
+    const extra = opts.headers;
+    const first = await this.send(method, path, body, auth, bytes, extra);
     if (auth && first.status === 401 && first.code === 'token_expired') {
       if (await this.refresh())
-        return this.unwrap<T>(await this.send(method, path, body, auth, bytes));
+        return this.unwrap<T>(await this.send(method, path, body, auth, bytes, extra));
       throw new ApiError('unauthorized', COPY.unauthorized!, 401);
     }
     if (auth && first.status === 401) {
@@ -78,12 +79,13 @@ export class ApiClient {
     return this.request<ArrayBuffer>('GET', path, undefined, { bytes: true });
   }
 
-  private async send(method: string, path: string, body: unknown, auth: boolean, bytes = false) {
+  private async send(method: string, path: string, body: unknown, auth: boolean, bytes = false, extra?: Record<string, string>) {
     const headers: Record<string, string> = {
       'x-request-id': randomUUID(),
       accept: 'application/json',
     };
     if (body !== undefined) headers['content-type'] = 'application/json';
+    if (extra) Object.assign(headers, extra);
     const t = this.tokens.current();
     if (auth && t) headers.authorization = `Bearer ${t.access_token}`;
     const ctl = new AbortController();

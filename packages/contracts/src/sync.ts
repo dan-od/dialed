@@ -86,6 +86,8 @@ export const ProfileFields = z.strictObject({
   block_alerts: z
     .record(z.uuid(), z.union([z.literal(0), z.literal(10), z.literal(30), z.null()]))
     .optional(),
+  ai_mode: z.enum(['server', 'own']).optional(),
+  ai_provider: z.enum(['anthropic', 'openai', 'gemini', 'compatible']).optional(),
 });
 
 /** A new routine block ("add every <weekday>", Flow 04). Edits to existing blocks go through routine_block_edit. */

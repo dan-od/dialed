@@ -14,6 +14,8 @@ Notifications.setNotificationHandler({
   }),
 });
 
+const REMINDER_PREFIX = 'reminder:';
+
 const asPerm = (p: Notifications.NotificationPermissionsStatus): Perm =>
   p.granted ? 'granted' : p.status === 'undetermined' && p.canAskAgain ? 'undetermined' : 'denied';
 
@@ -30,6 +32,17 @@ export async function requestNotificationPermission(): Promise<Perm> {
   );
 }
 
+async function cancelReminderNotifications() {
+  const all = await Notifications.getAllScheduledNotificationsAsync();
+  const ids = all
+    .filter((n) => n.identifier.startsWith(REMINDER_PREFIX))
+    .map((n) => n.identifier);
+  if (ids.length) await Notifications.cancelScheduledNotificationAsync(ids[0]!);
+  for (const id of ids.slice(1)) {
+    await Notifications.cancelScheduledNotificationAsync(id);
+  }
+}
+
 /** Replace this phone's scheduled reminders with the next 48 h: block alerts, heads-ups and meal notes. */
 export async function rescheduleReminders(
   data: ScheduleData,
@@ -40,9 +53,10 @@ export async function rescheduleReminders(
 ) {
   if ((await notificationPermission()) !== 'granted') return;
   const planned = planReminders(data, alerts, new Date(), timeZone, quiet, prefs);
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  await cancelReminderNotifications();
   for (const r of planned) {
     await Notifications.scheduleNotificationAsync({
+      identifier: `${REMINDER_PREFIX}${r.blockKey}`,
       content: { title: r.title, body: r.body, data: { block_key: r.blockKey } },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: r.at },
     });
@@ -50,5 +64,5 @@ export async function rescheduleReminders(
 }
 
 export async function cancelReminders() {
-  await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
+  await cancelReminderNotifications().catch(() => {});
 }

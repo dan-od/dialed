@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Share, View } from 'react-native';
 import { ApiError } from '../../api/errors';
-import { APP_NAME } from '../../config';
+import { aiName, APP_NAME } from '../../config';
 import { haptic } from '../../lib/haptics';
 import { notifValue } from '../../settings/model';
 import { SetCap, SetGroup, SetRow } from '../../settings/ui';
@@ -90,8 +90,15 @@ export default function SettingsScreen() {
             label="Terms and dates"
             value={term?.name ?? 'None'}
             chevron
-            last
             onPress={() => router.push({ pathname: '/terms', params: { from: 'settings' } })}
+          />
+          <SetRow
+            testID="set-ai"
+            label="AI assistant"
+            value={aiName()}
+            chevron
+            last
+            onPress={() => router.push('/ai-assistant')}
           />
         </SetGroup>
         <SetCap>Account</SetCap>

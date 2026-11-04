@@ -70,7 +70,7 @@ export default function DayScreen() {
           offline={!online}
           onSync={syncNow}
           onAccount={() => router.push('/account')}
-          onPlan={soon}
+          onPlan={() => router.push('/plan')}
           onTheme={() => void toggleTheme(isLight)}
         />
         {!online ? (
@@ -96,7 +96,10 @@ export default function DayScreen() {
             </T>
           </View>
         ) : model?.setup ? (
-          <SetupChooser onPick={soon} />
+          <SetupChooser onPick={(o) => {
+            if (o === 'describe') router.push('/plan');
+            else soon();
+          }} />
         ) : model ? (
           <>
             <DayHero m={model.m} />
