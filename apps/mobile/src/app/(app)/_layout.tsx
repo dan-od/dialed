@@ -1,10 +1,17 @@
 import { Stack } from 'expo-router';
+import { useApp } from '../../AppProvider';
 import { BlocksUiProvider } from '../../blocks/BlocksUi';
+import { usePlanNotifications, usePlanReadyPolling } from '../../plan/notifications';
 import { RoutinesUiProvider } from '../../routines/RoutinesUi';
 import { useTheme } from '../../theme/theme';
+import { useToast } from '../../ui/Toast';
 
 export default function AppLayout() {
   const { c } = useTheme();
+  const { planApi } = useApp();
+  const toast = useToast();
+  usePlanNotifications(planApi, toast);
+  usePlanReadyPolling(planApi);
   // Native sheets (Design_Identity platform deltas): grabber, drag to dismiss, stacked over each other.
   const sheet = {
     presentation: 'formSheet',
@@ -44,6 +51,16 @@ export default function AppLayout() {
           <Stack.Screen name="notifications" options={page} />
           <Stack.Screen name="category-edit" options={form} />
           <Stack.Screen name="category-merge" options={form} />
+          {/* Flow 06: Plan with AI (pushed pages, deep-linkable). */}
+          <Stack.Screen name="plan/index" options={page} />
+          <Stack.Screen name="plan/[id]/index" options={page} />
+          <Stack.Screen name="plan/[id]/drafting" options={page} />
+          <Stack.Screen name="plan/[id]/question" options={page} />
+          <Stack.Screen name="plan/[id]/review" options={page} />
+          <Stack.Screen name="plan/[id]/error" options={page} />
+          <Stack.Screen name="plan/[id]/done" options={page} />
+          {/* Flow 06: AI assistant settings. */}
+          <Stack.Screen name="ai-assistant" options={page} />
         </Stack>
       </RoutinesUiProvider>
     </BlocksUiProvider>
