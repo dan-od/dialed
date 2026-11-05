@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import * as SecureStore from 'expo-secure-store';
 import type { Mutation, ProviderId } from '@dialed/contracts';
 import { randomUUID } from 'expo-crypto';
-import { aiMode, aiName, aiProvider, setAiConfig } from '../../config';
+import { aiMode, aiName, aiProvider, setAiConfig, API_BASE_URL, FEATURES } from '../../config';
 import { notifyAiNameChanged } from '../../plan/useAiName';
 import { useApp } from '../../AppProvider';
 import { useTheme } from '../../theme/theme';
@@ -13,6 +14,7 @@ import { Button } from '../../ui/Button';
 import { haptic } from '../../lib/haptics';
 import { SetCap, SetGroup, SetRow } from '../../settings/ui';
 import { T } from '../../ui/Text';
+import { useToast } from '../../ui/Toast';
 import { ToastAwareScroll } from '../../ui/ToastAwareScroll';
 
 type Mode = 'server' | 'own';
@@ -45,10 +47,82 @@ async function writeKey(provider: Provider, key: string): Promise<void> {
   }
 }
 
+interface Connector {
+  client_id: string;
+  client_name: string;
+  redirect_host: string;
+  connected_at: string;
+}
+
 export default function AiAssistant() {
   const { api, data, planApi } = useApp();
   const { c, isLight } = useTheme();
   const router = useRouter();
+  const toast = useToast();
+
+  // Connector state
+  const [connectors, setConnectors] = useState<Connector[]>([]);
+  const [loadingConnectors, setLoadingConnectors] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
+  const mcpUrl = API_BASE_URL.replace(/^http:\/\/localhost:\d+/, 'https://api.okoro.me') + '/mcp';
+
+  const refreshConnectors = useCallback(async () => {
+    setLoadingConnectors(true);
+    try {
+      const r = await api.request<{ connectors: Connector[] }>('GET', '/v1/connector');
+      setConnectors(r.connectors);
+    } catch {
+      // offline or not available
+    } finally {
+      setLoadingConnectors(false);
+    }
+  }, [api]);
+
+  useEffect(() => {
+    if (FEATURES.d35Screens) void refreshConnectors();
+  }, [refreshConnectors]);
+
+  const copyUrl = async () => {
+    await Clipboard.setStringAsync(mcpUrl);
+    toast('Copied the connector URL.');
+    haptic.success();
+  };
+
+  const disconnect = async (clientId: string) => {
+    try {
+      await api.request('DELETE', `/v1/connector/${encodeURIComponent(clientId)}`);
+      haptic.success();
+      toast('Disconnected. No AI app can see your schedule now.');
+      void refreshConnectors();
+    } catch {
+      toast("Couldn't disconnect. Check your connection.");
+    }
+  };
+
+  const disconnectAll = async () => {
+    try {
+      await api.request('DELETE', '/v1/connector');
+      haptic.success();
+      toast('Disconnected. No AI app can see your schedule now.');
+      setConnectors([]);
+    } catch {
+      toast("Couldn't disconnect. Check your connection.");
+    }
+  };
+
+  const sendTestDraft = async () => {
+    if (sendingTest) return;
+    setSendingTest(true);
+    try {
+      await api.request('POST', '/v1/connector/test-draft');
+      haptic.success();
+      toast('Test draft sent. Check your notifications.');
+    } catch {
+      toast("Couldn't send a test. Check your connection.");
+    } finally {
+      setSendingTest(false);
+    }
+  };
 
   const profile = data?.profile;
   const [mode, setMode] = useState<Mode>(aiMode());
@@ -286,6 +360,88 @@ export default function AiAssistant() {
             </View>
           </>
         )}
+
+        {FEATURES.d35Screens ? (
+          <>
+            <SetCap>Plan from your AI app</SetCap>
+            {connectors.length === 0 ? (
+              <View style={{ marginHorizontal: 20, marginTop: 8, gap: 10 }}>
+                <T size={14} weight="500" color={c.muted} style={{ lineHeight: 20 }}>
+                  Plan in the AI app you already use, then approve here. Works with any assistant
+                  that supports MCP connectors: Claude, ChatGPT, Gemini, Cursor and more.
+                </T>
+                <View style={{ gap: 6, marginTop: 4 }}>
+                  <T size={13} weight="600" color={c.text}>
+                    1. In your AI app, add a custom connector
+                  </T>
+                  <T size={13} weight="600" color={c.text}>
+                    2. Paste this URL
+                  </T>
+                </View>
+                <SetGroup>
+                  <SetRow
+                    testID="connector-url"
+                    label={mcpUrl}
+                    a11yLabel="Copy connector URL"
+                    onPress={() => void copyUrl()}
+                    value="Copy"
+                    last
+                  />
+                </SetGroup>
+                <T size={13} weight="600" color={c.text}>
+                  3. Sign in with your Dialed account
+                </T>
+                <Button
+                  kind="secondary"
+                  label="I've added it"
+                  onPress={() => void refreshConnectors()}
+                  style={{ marginTop: 6 }}
+                />
+                {loadingConnectors ? null : connectors.length === 0 ? null : null}
+              </View>
+            ) : (
+              <View style={{ marginHorizontal: 20, marginTop: 8, gap: 8 }}>
+                <SetGroup inset={false}>
+                  {connectors.map((conn, i) => (
+                    <SetRow
+                      key={conn.client_id}
+                      testID={`connector-${i}`}
+                      label={conn.client_name}
+                      small={`${conn.redirect_host} connected`}
+                      a11yLabel={`${conn.client_name} connected via ${conn.redirect_host}. Reads your schedule, sends drafts. Nothing changes until you approve here.`}
+                      last={i === connectors.length - 1}
+                      onPress={() => void disconnect(conn.client_id)}
+                      value="Disconnect"
+                    />
+                  ))}
+                </SetGroup>
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                  <Button
+                    kind="secondary"
+                    label="Send a test draft from chat"
+                    busy={sendingTest}
+                    onPress={() => void sendTestDraft()}
+                    style={{ flex: 1 }}
+                  />
+                </View>
+                <Button
+                  kind="secondary"
+                  label="Connect another app"
+                  onPress={() => void copyUrl()}
+                  style={{ marginTop: 2 }}
+                />
+                {connectors.length > 1 ? (
+                  <Button
+                    kind="destructive"
+                    label="Disconnect all"
+                    onPress={() => void disconnectAll()}
+                    style={{ marginTop: 2 }}
+                  />
+                ) : null}
+              </View>
+            )}
+          </>
+        ) : null}
 
         <SetCap>How it works</SetCap>
         <View style={{ marginHorizontal: 20, marginTop: 8, gap: 8 }}>

@@ -17,6 +17,9 @@ import { plansRoutes } from './plans/routes';
 import { importsRoutes } from './imports/routes';
 import { testKeyRoute } from './plans/testkey';
 import { publicRoutes } from './public';
+import { oauthRoutes } from './oauth/routes';
+import { connectorRoutes } from './oauth/connector';
+import { mountMcp } from './mcp/server';
 
 export interface Deps {
   pool: pg.Pool;
@@ -107,6 +110,20 @@ export async function buildApp(config: Config, deps: Deps) {
   });
   app.setNotFoundHandler((_req, reply) => reply.code(404).send(appError('not_found').toBody()));
 
+  // OAuth token endpoint accepts application/x-www-form-urlencoded
+  app.addContentTypeParser(
+    'application/x-www-form-urlencoded',
+    { parseAs: 'string' },
+    (_req, body, done) => {
+      try {
+        const params = new URLSearchParams(body as string);
+        done(null, Object.fromEntries(params));
+      } catch (e) {
+        done(e as Error, undefined);
+      }
+    },
+  );
+
   const jwt = new JwtService(config.jwtPrivateKeyPem, config.JWT_KEY_ID, config.PUBLIC_BASE_URL);
   const auth = new AuthService(deps.db, jwt, deps.email, config);
   const sync = new SyncService(deps.db, deps.now);
@@ -129,5 +146,10 @@ export async function buildApp(config: Config, deps: Deps) {
   importsRoutes(app, deps.db, config, jwt, auth, deps.now ?? (() => new Date()));
   testKeyRoute(app, config, jwt, auth);
   publicRoutes(app, config);
+
+  const oauth = oauthRoutes(app, deps.db, config, jwt, auth);
+  connectorRoutes(app, deps.db, config, jwt, auth, oauth, deps.now ?? (() => new Date()));
+  mountMcp(app, deps.db, config, oauth, deps.now ?? (() => new Date()));
+
   return app;
 }

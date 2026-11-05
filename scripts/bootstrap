@@ -6,9 +6,13 @@ ensure_node
 
 log "Checking tools"
 command -v pnpm >/dev/null || die "pnpm is required (corepack enable)."
-command -v docker >/dev/null || die "Docker is required (Docker Desktop or OrbStack)."
-docker info >/dev/null 2>&1 || die "Docker daemon is not running."
-log "node $(node --version) · pnpm $(pnpm --version) · $(docker --version | cut -d, -f1) ($(docker info --format '{{.OperatingSystem}}'))"
+if [[ -z "${CI:-}" ]]; then
+  command -v docker >/dev/null || die "Docker is required (Docker Desktop or OrbStack)."
+  docker info >/dev/null 2>&1 || die "Docker daemon is not running."
+  log "node $(node --version) · pnpm $(pnpm --version) · $(docker --version | cut -d, -f1) ($(docker info --format '{{.OperatingSystem}}'))"
+else
+  log "node $(node --version) · pnpm $(pnpm --version) · CI mode (Postgres from service container)"
+fi
 
 created=()
 if [[ ! -f .env ]]; then
@@ -54,9 +58,18 @@ load_env
 log "Installing dependencies (frozen lockfile)"
 pnpm install --frozen-lockfile --reporter=silent
 
-log "Starting Postgres 16 (compose, 127.0.0.1:55432)"
-compose up -d postgres >/dev/null 2>&1 || compose up -d postgres
-wait_for_postgres
+if [[ -z "${CI:-}" ]]; then
+  log "Starting Postgres 16 (compose, 127.0.0.1:55432)"
+  compose up -d postgres >/dev/null 2>&1 || compose up -d postgres
+  wait_for_postgres
+else
+  log "Waiting for CI Postgres service"
+  for _ in $(seq 1 60); do
+    pg_isready -h 127.0.0.1 -U dialed -d dialed >/dev/null 2>&1 && break
+    sleep 1
+  done
+  pg_isready -h 127.0.0.1 -U dialed -d dialed >/dev/null 2>&1 || die "CI Postgres service not ready."
+fi
 
 state() { tsx apps/api/src/cli/state.ts; }
 before=$(state)

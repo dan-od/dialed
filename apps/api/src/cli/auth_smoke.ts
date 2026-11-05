@@ -90,13 +90,26 @@ const appAtMcp = await call('POST', '/mcp', {
   token: alice,
   body: { jsonrpc: '2.0', id: 1, method: 'tools/list' },
 });
+// MCP OAuth token at /v1 sync/push — should be rejected (opaque token fails JWT verify)
+const mcpTokenAtSync = await call('POST', '/v1/sync/push', {
+  token: 'fake-mcp-opaque-token-not-a-jwt',
+  body: { mutations: [] },
+});
+const mcpTokenAtApprove = await call('POST', '/v1/plans/00000000-0000-0000-0000-000000000000/approve', {
+  token: 'fake-mcp-opaque-token-not-a-jwt',
+  body: { plan_version: 1 },
+});
 const wrongRole: Sub[] = [
   { id: 'app_token_at_mcp_401', passed: appAtMcp.status === 401, observed: appAtMcp.status },
-  { id: 'mcp_token_at_sync_push_denied', passed: null, reason: 'needs MCP OAuth tokens (flow-07)' },
+  {
+    id: 'mcp_token_at_sync_push_denied',
+    passed: mcpTokenAtSync.status === 401,
+    observed: mcpTokenAtSync.status,
+  },
   {
     id: 'mcp_token_at_plan_approve_denied',
-    passed: null,
-    reason: 'needs MCP OAuth tokens (flow-07) and plans API (flow-06)',
+    passed: mcpTokenAtApprove.status === 401,
+    observed: mcpTokenAtApprove.status,
   },
 ];
 

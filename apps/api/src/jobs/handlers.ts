@@ -160,6 +160,77 @@ export function createHandlers(deps: HandlerDeps) {
       }
     },
 
+    'push.chat_draft': async (payload: unknown) => {
+      const p = payload as {
+        plan_id: string;
+        user_id: string;
+        client_name: string;
+        change_count: number;
+        term_name: string;
+      };
+
+      if (config.APPLE_TEAM_TIER === 'personal') {
+        log({ kind: 'push.chat_draft', msg: 'personal tier — push skipped', planId: p.plan_id });
+        return;
+      }
+
+      const {
+        rows: [user],
+      } = await db.execute<Row>(
+        sql`select time_zone, quiet_start_min, quiet_end_min from users where id = ${p.user_id}`,
+      );
+      if (!user) return;
+
+      const tz = String(user.time_zone);
+      const quietStart = Number(user.quiet_start_min);
+      const quietEnd = Number(user.quiet_end_min);
+      const { minute } = localNow(now(), tz);
+
+      if (isInQuietHours(minute, quietStart, quietEnd)) {
+        const deferMinutes = minutesUntilQuietEnd(minute, quietEnd);
+        const deferAt = new Date(now().getTime() + deferMinutes * 60_000);
+        await enqueue(
+          db,
+          'push.chat_draft',
+          payload as Record<string, unknown>,
+          {
+            runAt: deferAt,
+            dedupeKey: `chat_draft:${p.plan_id}:deferred`,
+          },
+        );
+        log({
+          kind: 'push.chat_draft',
+          msg: 'deferred to quiet-hours end',
+          planId: p.plan_id,
+          deferMinutes,
+        });
+        return;
+      }
+
+      const { rows: devices } = await db.execute<Row>(
+        sql`select id, apns_token from devices where user_id = ${p.user_id} and apns_token is not null`,
+      );
+      if (devices.length === 0) return;
+
+      const changeWord = p.change_count === 1 ? '1 change' : `${p.change_count} changes`;
+      const body = `${p.client_name} sent a plan from chat · ${changeWord} to ${p.term_name}. Review and approve here.`;
+
+      if (config.APNS_MODE === 'log') {
+        for (const d of devices) {
+          log({
+            kind: 'push.chat_draft',
+            msg: 'CHAT_DRAFT',
+            planId: p.plan_id,
+            deviceId: String(d.id),
+            body,
+            url: `dialed://plan/${p.plan_id}`,
+          });
+        }
+        return;
+      }
+      // APNS_MODE=apns: real push not activated yet (see config guard)
+    },
+
     'plans.sweep': async (_payload: unknown) => {
       const twoMinAgo = new Date(now().getTime() - 2 * 60_000);
       const { rows } = await db.execute<Row>(sql`

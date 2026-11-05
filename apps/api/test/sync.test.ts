@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ALICE, BOB_PROBE_BLOCK, login, makeApp, OWNER, type TestApp } from './helpers';
+import { ALICE, BOB_PROBE_BLOCK, login, makeApp, OWNER, TEST_NOW, type TestApp } from './helpers';
 
 let t: TestApp;
 let owner: Awaited<ReturnType<typeof login>>;
 let alice: Awaited<ReturnType<typeof login>>;
 beforeAll(async () => {
-  t = await makeApp();
+  t = await makeApp({}, undefined, TEST_NOW);
   owner = await login(t, OWNER.email);
   alice = await login(t, ALICE.email);
 });
