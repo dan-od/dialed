@@ -30,6 +30,8 @@ const Env = z.object({
   PLAN_MAX_TOKENS: z.coerce.number().int().min(256).default(8192),
   PLAN_DAILY_LIMIT: z.coerce.number().int().min(1).default(30),
   ALLOW_PRIVATE_PROVIDER_URLS: bool.default(false),
+  UPLOAD_DIR: z.string().default('/tmp/dialed-uploads'),
+  IMPORT_DAILY_LIMIT: z.coerce.number().int().min(1).default(6),
 });
 
 export type Config = z.infer<typeof Env> & { jwtPrivateKeyPem: string };

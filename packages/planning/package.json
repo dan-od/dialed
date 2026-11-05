@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@dialed/contracts": "workspace:*",
-    "@dialed/schedule": "workspace:*"
+    "@dialed/schedule": "workspace:*",
+    "mammoth": "^1.13.0",
+    "pdfjs-dist": "^6.5.438"
   }
 }

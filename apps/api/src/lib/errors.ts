@@ -23,6 +23,9 @@ const STATUS: Partial<Record<ErrorCode, number>> = {
   validation_failed: 422,
   provider_error: 502,
   provider_key_invalid: 400,
+  vision_unavailable: 400,
+  file_unsupported: 400,
+  file_too_large: 413,
   server_error: 500,
 };
 
@@ -51,6 +54,10 @@ const MESSAGES: Partial<Record<ErrorCode, string>> = {
   validation_failed: 'Couldn’t make a plan that fits your limits. Try rewording it.',
   provider_error: 'Couldn’t reach the AI provider. Try again.',
   provider_key_invalid: 'That AI key was refused. Check it in Settings.',
+  vision_unavailable:
+    'Your AI provider can’t read images. Use a text PDF or Word file, or set up a vision-capable provider.',
+  file_unsupported: 'Use a photo, screenshot, PDF or Word file under 15 MB.',
+  file_too_large: 'That file is too large. Use a file under 15 MB.',
   server_error: 'Dialed couldn’t reach the server. Try again.',
 };
 

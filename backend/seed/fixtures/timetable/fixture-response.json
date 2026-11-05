@@ -1,0 +1,53 @@
+{
+  "classes": [
+    {
+      "title": "Advanced Networking I",
+      "kind": "lecture",
+      "weekday": "mon",
+      "start": "09:40",
+      "end": "11:00",
+      "room": "SCI1140"
+    },
+    {
+      "title": "Cryptography & Network Security",
+      "kind": "lecture",
+      "weekday": "tue",
+      "start": "08:10",
+      "end": "11:00",
+      "room": "SCI2120"
+    },
+    {
+      "title": "Capstone Study Project",
+      "kind": "lecture",
+      "weekday": "wed",
+      "start": "11:10",
+      "end": "14:00",
+      "room": "SCI1140"
+    },
+    {
+      "title": "Advanced Networking I",
+      "kind": "tutorial",
+      "weekday": "wed",
+      "start": "14:10",
+      "end": "15:30",
+      "room": "SIR1350"
+    },
+    {
+      "title": "Advanced Networking I",
+      "kind": "lecture",
+      "weekday": "thu",
+      "start": "09:40",
+      "end": "11:00",
+      "room": "SCI1140"
+    },
+    {
+      "title": "Advanced Networking I",
+      "kind": "lab",
+      "weekday": "thu",
+      "start": "14:10",
+      "end": "17:00",
+      "room": "SIR4150"
+    }
+  ],
+  "term_hint": "2026-09-14"
+}

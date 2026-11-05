@@ -32,10 +32,10 @@ export function plansRoutes(
   initRunner(config);
 
   const userTz = async (userId: string) => {
-    const { rows: [u] } = await db.execute(
-      sql`select time_zone from users where id = ${userId}`,
-    );
-    return (u as Record<string, unknown>)?.time_zone as string ?? 'America/Toronto';
+    const {
+      rows: [u],
+    } = await db.execute(sql`select time_zone from users where id = ${userId}`);
+    return ((u as Record<string, unknown>)?.time_zone as string) ?? 'America/Toronto';
   };
 
   app.post('/v1/plans', { preHandler }, async (req, reply) => {
@@ -45,7 +45,12 @@ export function plansRoutes(
 
     const idempotencyKey = req.headers['idempotency-key'] as string | undefined;
     const { planId, existing } = await service.create(
-      userId, body.request_text, body.provider_mode, body.provider, idempotencyKey, tz,
+      userId,
+      body.request_text,
+      body.provider_mode,
+      body.provider,
+      idempotencyKey,
+      tz,
     );
 
     if (!existing) {
@@ -77,9 +82,9 @@ export function plansRoutes(
     await service.answer(userId, id, answer);
 
     const tz = await userTz(userId);
-    const { rows: [plan] } = await db.execute(
-      sql`select request_text from plans where id = ${id}`,
-    );
+    const {
+      rows: [plan],
+    } = await db.execute(sql`select request_text from plans where id = ${id}`);
     const requestText = String((plan as Record<string, unknown>)?.request_text ?? '');
     startPlanRun(db, config, service, id, userId, requestText, tz, now).catch((err) => {
       req.log.error({ err: { message: (err as Error).message } }, 'plan run error');
@@ -95,9 +100,9 @@ export function plansRoutes(
     await service.reply(userId, id, body.text);
 
     const tz = await userTz(userId);
-    const { rows: [plan] } = await db.execute(
-      sql`select request_text from plans where id = ${id}`,
-    );
+    const {
+      rows: [plan],
+    } = await db.execute(sql`select request_text from plans where id = ${id}`);
     const requestText = String((plan as Record<string, unknown>)?.request_text ?? '');
     startPlanRun(db, config, service, id, userId, requestText, tz, now).catch((err) => {
       req.log.error({ err: { message: (err as Error).message } }, 'plan run error');
@@ -112,6 +117,9 @@ export function plansRoutes(
     if (body.enabled !== undefined) {
       await service.toggleChange(req.auth!.userId, id, cid, body.enabled);
     }
+    if (body.payload !== undefined) {
+      await service.updateChangePayload(req.auth!.userId, id, cid, body.payload);
+    }
     const tz = await userTz(req.auth!.userId);
     return service.get(req.auth!.userId, id, tz);
   });
@@ -121,8 +129,9 @@ export function plansRoutes(
     const body = parse(ApprovePlanBody, req.body);
     const tz = await userTz(req.auth!.userId);
     const today = localNow(now(), tz).date;
-    const result = await approvePlan(db, req.auth!.userId, id, body.plan_version, today,
-      { skipValidation: config.AI_MODE === 'fixture' && !!process.env.DEV_CLOCK });
+    const result = await approvePlan(db, req.auth!.userId, id, body.plan_version, today, {
+      skipValidation: config.AI_MODE === 'fixture' && !!process.env.DEV_CLOCK,
+    });
     return result;
   });
 

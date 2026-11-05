@@ -11,6 +11,7 @@ import { dayModel } from '../../../day/model';
 import { useNavState } from '../../../day/navState';
 import { RestOfToday } from '../../../day/RestOfToday';
 import { SetupChooser } from '../../../day/SetupChooser';
+import { showTimetableSourceSheet, openSettings } from '../../../import/pickTimetable';
 import { useTheme } from '../../../theme/theme';
 import { OfflineLine } from '../../../ui/Inline';
 import { TabPage } from '../../../ui/TabPage';
@@ -56,7 +57,18 @@ export default function DayScreen() {
     };
   }, [data, clock, profile, width, isLight, c, ui.highlight]);
 
-  const soon = () => toast('That arrives with the next build step.');
+  const pickTimetable = async () => {
+    const result = await showTimetableSourceSheet(isLight);
+    if (result.kind === 'camera_denied') {
+      toast('Camera access denied.', { label: 'Settings', onPress: openSettings });
+      return;
+    }
+    if (result.kind === 'cancelled') return;
+    router.push({
+      pathname: '/import/reading',
+      params: { uri: result.file.uri, name: result.file.name, mime: result.file.mimeType },
+    });
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -77,7 +89,7 @@ export default function DayScreen() {
           <OfflineLine
             pending={sync.pending}
             pill={false}
-            text="Showing what’s saved on this phone."
+            text="Showing what's saved on this phone."
           />
         ) : null}
         {!sync.hasData ? (
@@ -96,10 +108,24 @@ export default function DayScreen() {
             </T>
           </View>
         ) : model?.setup ? (
-          <SetupChooser onPick={(o) => {
-            if (o === 'describe') router.push('/plan');
-            else soon();
-          }} />
+          <SetupChooser
+            onPick={(o) => {
+              switch (o) {
+                case 'timetable':
+                  void pickTimetable();
+                  break;
+                case 'describe':
+                  router.push('/plan');
+                  break;
+                case 'calendar':
+                  router.push('/import/calendars');
+                  break;
+                case 'build':
+                  router.push('/routines');
+                  break;
+              }
+            }}
+          />
         ) : model ? (
           <>
             <DayHero m={model.m} />

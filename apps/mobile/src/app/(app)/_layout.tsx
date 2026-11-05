@@ -61,6 +61,10 @@ export default function AppLayout() {
           <Stack.Screen name="plan/[id]/done" options={page} />
           {/* Flow 06: AI assistant settings. */}
           <Stack.Screen name="ai-assistant" options={page} />
+          {/* Flow 02: Timetable and calendar import. */}
+          <Stack.Screen name="import/reading" options={page} />
+          <Stack.Screen name="import/found" options={page} />
+          <Stack.Screen name="import/calendars" options={page} />
         </Stack>
       </RoutinesUiProvider>
     </BlocksUiProvider>

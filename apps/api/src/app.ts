@@ -14,6 +14,7 @@ import { accountRoutes } from './account/routes';
 import { AccountService } from './account/service';
 import { SyncService } from './sync/service';
 import { plansRoutes } from './plans/routes';
+import { importsRoutes } from './imports/routes';
 import { testKeyRoute } from './plans/testkey';
 import { publicRoutes } from './public';
 
@@ -125,6 +126,7 @@ export async function buildApp(config: Config, deps: Deps) {
   syncRoutes(app, sync, jwt, auth);
   accountRoutes(app, account, jwt, auth);
   plansRoutes(app, deps.db, config, jwt, auth, deps.now ?? (() => new Date()));
+  importsRoutes(app, deps.db, config, jwt, auth, deps.now ?? (() => new Date()));
   testKeyRoute(app, config, jwt, auth);
   publicRoutes(app, config);
   return app;

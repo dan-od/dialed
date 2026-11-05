@@ -45,7 +45,9 @@ export class PlanService {
       update plans set status = 'cancelled'
       where user_id = ${userId} and status = 'drafting'`);
 
-    const { rows: [revRow] } = await this.db.execute<Row>(sql`
+    const {
+      rows: [revRow],
+    } = await this.db.execute<Row>(sql`
       select revision from revisions where user_id = ${userId}`);
     const baseRevision = revRow ? Number(revRow.revision) : 0;
 
@@ -123,7 +125,9 @@ export class PlanService {
   }
 
   async get(userId: string, planId: string, timeZone: string): Promise<PlanDTO> {
-    const { rows: [plan] } = await this.db.execute<Row>(sql`
+    const {
+      rows: [plan],
+    } = await this.db.execute<Row>(sql`
       select * from plans where id = ${planId}`);
     if (!plan || plan.user_id !== userId) throw new AppError('not_found');
 
@@ -190,10 +194,13 @@ export class PlanService {
   }
 
   async answer(userId: string, planId: string, answer: string): Promise<void> {
-    const { rows: [plan] } = await this.db.execute<Row>(sql`
+    const {
+      rows: [plan],
+    } = await this.db.execute<Row>(sql`
       select id, user_id, status from plans where id = ${planId}`);
     if (!plan || plan.user_id !== userId) throw new AppError('not_found');
-    if (plan.status !== 'question') throw new AppError('bad_request', 'This plan is not waiting for an answer.');
+    if (plan.status !== 'question')
+      throw new AppError('bad_request', 'This plan is not waiting for an answer.');
 
     await this.db.execute(sql`insert into plan_messages (id, plan_id, role, body)
       values (${randomUUID()}, ${planId}, 'answer', ${answer})`);
@@ -201,8 +208,15 @@ export class PlanService {
       where id = ${planId}`);
   }
 
-  async toggleChange(userId: string, planId: string, changeId: string, enabled: boolean): Promise<void> {
-    const { rows: [plan] } = await this.db.execute<Row>(sql`
+  async toggleChange(
+    userId: string,
+    planId: string,
+    changeId: string,
+    enabled: boolean,
+  ): Promise<void> {
+    const {
+      rows: [plan],
+    } = await this.db.execute<Row>(sql`
       select id, user_id, status from plans where id = ${planId}`);
     if (!plan || plan.user_id !== userId) throw new AppError('not_found');
     if (plan.status !== 'ready') throw new AppError('plan_not_ready');
@@ -213,8 +227,55 @@ export class PlanService {
     await this.db.execute(sql`update plans set version = version + 1 where id = ${planId}`);
   }
 
+  async updateChangePayload(
+    userId: string,
+    planId: string,
+    changeId: string,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    const {
+      rows: [plan],
+    } = await this.db.execute<Row>(sql`
+      select id, user_id, status from plans where id = ${planId}`);
+    if (!plan || plan.user_id !== userId) throw new AppError('not_found');
+    if (plan.status !== 'ready') throw new AppError('plan_not_ready');
+
+    const {
+      rows: [change],
+    } = await this.db.execute<Row>(sql`
+      select id, kind, payload_json from plan_changes where id = ${changeId} and plan_id = ${planId}`);
+    if (!change) throw new AppError('not_found');
+
+    const kind = String(change.kind);
+    if (kind !== 'create_term' && kind !== 'update_term') {
+      throw new AppError('bad_request', 'Only term changes can have their payload edited.');
+    }
+
+    const existing = (change.payload_json as Record<string, unknown>) ?? {};
+    const merged = { ...existing, ...payload };
+
+    if (kind === 'create_term' && merged.new_term) {
+      const nt = merged.new_term as Record<string, unknown>;
+      if (nt.ends_on && nt.starts_on && String(nt.ends_on) < String(nt.starts_on)) {
+        throw new AppError('bad_request', 'The term ends before it starts.');
+      }
+    }
+    if (kind === 'update_term') {
+      if (merged.ends_on && merged.starts_on && String(merged.ends_on) < String(merged.starts_on)) {
+        throw new AppError('bad_request', 'The term ends before it starts.');
+      }
+    }
+
+    await this.db
+      .execute(sql`update plan_changes set payload_json = ${JSON.stringify(merged)}::jsonb
+      where id = ${changeId} and plan_id = ${planId}`);
+    await this.db.execute(sql`update plans set version = version + 1 where id = ${planId}`);
+  }
+
   async reply(userId: string, planId: string, text: string): Promise<void> {
-    const { rows: [plan] } = await this.db.execute<Row>(sql`
+    const {
+      rows: [plan],
+    } = await this.db.execute<Row>(sql`
       select id, user_id, status from plans where id = ${planId}`);
     if (!plan || plan.user_id !== userId) throw new AppError('not_found');
     if (plan.status !== 'ready') throw new AppError('plan_not_ready');
@@ -226,7 +287,9 @@ export class PlanService {
   }
 
   async cancel(userId: string, planId: string): Promise<void> {
-    const { rows: [plan] } = await this.db.execute<Row>(sql`
+    const {
+      rows: [plan],
+    } = await this.db.execute<Row>(sql`
       select id, user_id, status from plans where id = ${planId}`);
     if (!plan || plan.user_id !== userId) throw new AppError('not_found');
     if (plan.status !== 'drafting' && plan.status !== 'question') {

@@ -21,34 +21,59 @@ export function createHandlers(deps: HandlerDeps) {
 
   return {
     'plan.retry': async (payload: unknown) => {
-      const p = payload as { plan_id: string; user_id: string; request_text: string; time_zone: string };
+      const p = payload as {
+        plan_id: string;
+        user_id: string;
+        request_text: string;
+        time_zone: string;
+      };
       if (!config.ANTHROPIC_API_KEY) {
-        log({ kind: 'plan.retry', msg: 'no server key configured, skipping retry', planId: p.plan_id });
+        log({
+          kind: 'plan.retry',
+          msg: 'no server key configured, skipping retry',
+          planId: p.plan_id,
+        });
         return;
       }
 
-      const { rows: [plan] } = await db.execute<Row>(
-        sql`select status, attempts from plans where id = ${p.plan_id}`,
-      );
+      const {
+        rows: [plan],
+      } = await db.execute<Row>(sql`select status, attempts from plans where id = ${p.plan_id}`);
       if (!plan || String(plan.status) !== 'failed') return;
       if (Number(plan.attempts) > 1) return;
 
-      await db.execute(sql`update plans set status = 'drafting', bg_retry_at = now() where id = ${p.plan_id}`);
+      await db.execute(
+        sql`update plans set status = 'drafting', bg_retry_at = now() where id = ${p.plan_id}`,
+      );
       initRunner(config);
 
       try {
-        await startPlanRun(db, config, planService, p.plan_id, p.user_id, p.request_text, p.time_zone, now);
+        await startPlanRun(
+          db,
+          config,
+          planService,
+          p.plan_id,
+          p.user_id,
+          p.request_text,
+          p.time_zone,
+          now,
+        );
       } catch {
         // startPlanRun stores the failure itself
       }
 
-      const { rows: [after] } = await db.execute<Row>(
-        sql`select status from plans where id = ${p.plan_id}`,
-      );
+      const {
+        rows: [after],
+      } = await db.execute<Row>(sql`select status from plans where id = ${p.plan_id}`);
       if (String(after?.status) === 'ready') {
-        await enqueue(db, 'push.plan_ready', { plan_id: p.plan_id, user_id: p.user_id }, {
-          dedupeKey: `push:${p.plan_id}`,
-        });
+        await enqueue(
+          db,
+          'push.plan_ready',
+          { plan_id: p.plan_id, user_id: p.user_id },
+          {
+            dedupeKey: `push:${p.plan_id}`,
+          },
+        );
       }
     },
 
@@ -60,7 +85,9 @@ export function createHandlers(deps: HandlerDeps) {
         return;
       }
 
-      const { rows: [user] } = await db.execute<Row>(
+      const {
+        rows: [user],
+      } = await db.execute<Row>(
         sql`select time_zone, quiet_start_min, quiet_end_min from users where id = ${p.user_id}`,
       );
       if (!user) return;
@@ -73,11 +100,21 @@ export function createHandlers(deps: HandlerDeps) {
       if (isInQuietHours(minute, quietStart, quietEnd)) {
         const deferMinutes = minutesUntilQuietEnd(minute, quietEnd);
         const deferAt = new Date(now().getTime() + deferMinutes * 60_000);
-        await enqueue(db, 'push.plan_ready', { plan_id: p.plan_id, user_id: p.user_id }, {
-          runAt: deferAt,
-          dedupeKey: `push:${p.plan_id}:deferred`,
+        await enqueue(
+          db,
+          'push.plan_ready',
+          { plan_id: p.plan_id, user_id: p.user_id },
+          {
+            runAt: deferAt,
+            dedupeKey: `push:${p.plan_id}:deferred`,
+          },
+        );
+        log({
+          kind: 'push.plan_ready',
+          msg: 'deferred to quiet-hours end',
+          planId: p.plan_id,
+          deferMinutes,
         });
-        log({ kind: 'push.plan_ready', msg: 'deferred to quiet-hours end', planId: p.plan_id, deferMinutes });
         return;
       }
 
@@ -101,6 +138,28 @@ export function createHandlers(deps: HandlerDeps) {
       // APNS_MODE=apns: real push not activated yet (see config guard)
     },
 
+    'uploads.sweep': async (_payload: unknown) => {
+      const { readdir, stat: fsStat, unlink } = await import('node:fs/promises');
+      const { join } = await import('node:path');
+      const uploadDir = config.UPLOAD_DIR ?? '/tmp/dialed-uploads';
+      try {
+        const files = await readdir(uploadDir);
+        const oneHourAgo = Date.now() - 60 * 60 * 1000;
+        let deleted = 0;
+        for (const f of files) {
+          const fp = join(uploadDir, f);
+          const s = await fsStat(fp);
+          if (s.mtimeMs < oneHourAgo) {
+            await unlink(fp);
+            deleted++;
+          }
+        }
+        if (deleted > 0) log({ kind: 'uploads.sweep', msg: `deleted ${deleted} orphaned files` });
+      } catch {
+        // upload dir may not exist
+      }
+    },
+
     'plans.sweep': async (_payload: unknown) => {
       const twoMinAgo = new Date(now().getTime() - 2 * 60_000);
       const { rows } = await db.execute<Row>(sql`
@@ -108,7 +167,11 @@ export function createHandlers(deps: HandlerDeps) {
         where status = 'drafting' and created_at < ${twoMinAgo.toISOString()}::timestamptz
         returning id`);
       if (rows.length > 0) {
-        log({ kind: 'plans.sweep', msg: `swept ${rows.length} stale plans`, ids: rows.map((r) => r.id) });
+        log({
+          kind: 'plans.sweep',
+          msg: `swept ${rows.length} stale plans`,
+          ids: rows.map((r) => r.id),
+        });
       }
     },
   };
@@ -122,5 +185,5 @@ export function isInQuietHours(minute: number, quietStart: number, quietEnd: num
 
 export function minutesUntilQuietEnd(minute: number, quietEnd: number): number {
   if (minute < quietEnd) return quietEnd - minute;
-  return (1440 - minute) + quietEnd;
+  return 1440 - minute + quietEnd;
 }

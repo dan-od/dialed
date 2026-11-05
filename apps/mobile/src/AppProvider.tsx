@@ -62,6 +62,7 @@ interface AppValue {
   /** After verify / login / reset: persist tokens, start syncing (pull since=0). */
   signIn(t: TokensOut): Promise<void>;
   signOut(): Promise<void>;
+  accessToken(): string | null;
   syncNow(): void;
   toggleTheme(isLight: boolean): Promise<void>;
 }
@@ -334,6 +335,7 @@ export function AppProvider({
     store,
     signIn,
     signOut,
+    accessToken: () => tokens.current()?.access_token ?? null,
     syncNow: () => void engineRef.current?.sync(),
     toggleTheme,
   };

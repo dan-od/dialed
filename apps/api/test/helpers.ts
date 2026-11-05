@@ -38,6 +38,8 @@ export function testConfig(over: Partial<Config> = {}): Config {
     PLAN_MAX_TOKENS: 8192,
     PLAN_DAILY_LIMIT: 30,
     ALLOW_PRIVATE_PROVIDER_URLS: false,
+    UPLOAD_DIR: '/tmp/dialed-test-uploads',
+    IMPORT_DAILY_LIMIT: 6,
     TRUST_PROXY_IP: undefined,
     RATE_LIMIT_MULTIPLIER: 100,
     jwtPrivateKeyPem: privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
