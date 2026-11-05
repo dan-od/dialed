@@ -11,11 +11,9 @@ interface Fixture {
   behaviour?: string;
 }
 
-let fixtureDir = '';
 const fixtures = new Map<string, Fixture>();
 
 export function loadFixtures(dir: string) {
-  fixtureDir = dir;
   fixtures.clear();
   for (const f of readdirSync(dir).filter((n) => n.endsWith('.json'))) {
     const data = JSON.parse(readFileSync(join(dir, f), 'utf8')) as Fixture;
@@ -51,7 +49,6 @@ export function createFixtureProvider(requestText: string): PlanProvider & { _st
       }
 
       if (fixture.behaviour?.includes('overlapping')) {
-        const protectedBlockId = 'd88c4434-6cc3-503b-a898-ea648ce5a45c';
         return {
           content: '',
           tool_calls: [

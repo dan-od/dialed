@@ -5,7 +5,7 @@ import type { PlanChange, PlanCheck, PlanDTO, PlanSummary } from '@dialed/contra
 import type { Db } from '../db/pool';
 import type { Config } from '../config';
 import { AppError } from '../lib/errors';
-import { isStale } from './stale';
+
 import { findByIdempotencyKey } from './idempotency';
 import { dailyPlanCount, incrementUsage } from './usage';
 
@@ -124,7 +124,7 @@ export class PlanService {
     }
   }
 
-  async get(userId: string, planId: string, timeZone: string): Promise<PlanDTO> {
+  async get(userId: string, planId: string, _timeZone: string): Promise<PlanDTO> {
     const {
       rows: [plan],
     } = await this.db.execute<Row>(sql`

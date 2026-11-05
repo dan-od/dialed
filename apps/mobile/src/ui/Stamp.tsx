@@ -1,4 +1,3 @@
-import { View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { useTheme } from '../theme/theme';
 import { T } from './Text';

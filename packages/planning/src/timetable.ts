@@ -1,6 +1,5 @@
-import { readFile } from 'node:fs/promises';
-import type { PlanChange, PlanCheck } from '@dialed/contracts';
-import type { PlanProvider, ProviderMessage, ToolCall } from './providers/types';
+import type { PlanChange } from '@dialed/contracts';
+import type { PlanProvider, ProviderMessage } from './providers/types';
 
 export interface ExtractedClass {
   title: string;
@@ -286,8 +285,6 @@ function detectImageMediaType(buf: Buffer): string {
   if (buf.length >= 12 && buf.subarray(4, 8).toString() === 'ftyp') return 'image/heic';
   return 'image/jpeg';
 }
-
-const WEEKDAY_NAMES = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
 export function classesToPlanChanges(
   classes: ExtractedClass[],

@@ -12,11 +12,7 @@ import type { Db, Tx } from '../db/pool';
 import { AppError, appError } from '../lib/errors';
 import { ChangeRecorder } from './record';
 import { PLAN_SUMMARY_COLUMNS, PROFILE_COLUMNS, SYNC_COLUMNS, syncRow, TABLE } from './rows';
-import {
-  closeRoutineBlock as writeClose,
-  insertOverride as writeOverride,
-  insertRoutineBlock as writeBlock,
-} from './writers';
+import { closeRoutineBlock as writeClose, insertRoutineBlock as writeBlock } from './writers';
 
 type Row = Record<string, unknown>;
 const SNAPSHOT_ORDER: SyncEntity[] = [

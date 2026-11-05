@@ -13,8 +13,8 @@ export function StepList({ steps, active }: { steps: string[]; active: number })
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
-    setVisible(0);
     let i = 0;
+    setVisible(0); // eslint-disable-line react-hooks/set-state-in-effect -- reset on steps change
     const tick = () => {
       i++;
       if (i >= steps.length) return;

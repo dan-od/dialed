@@ -5,12 +5,11 @@ import { enqueue } from '../src/jobs/enqueue';
 import { createHandlers, isInQuietHours, minutesUntilQuietEnd } from '../src/jobs/handlers';
 
 let t: TestApp;
-let owner: Awaited<ReturnType<typeof login>>;
 const logs: Record<string, unknown>[] = [];
 
 beforeAll(async () => {
   t = await makeApp({}, undefined, TEST_NOW);
-  owner = await login(t, OWNER.email);
+  await login(t, OWNER.email);
 });
 afterAll(async () => {
   await t.db.execute(
@@ -29,15 +28,6 @@ afterAll(async () => {
 beforeEach(() => {
   logs.length = 0;
 });
-
-async function waitFor(fn: () => Promise<boolean>, ms = 3000) {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    if (await fn()) return;
-    await new Promise((r) => setTimeout(r, 30));
-  }
-  throw new Error('waitFor timed out');
-}
 
 describe('enqueue', () => {
   it('inserts a job and returns its id', async () => {

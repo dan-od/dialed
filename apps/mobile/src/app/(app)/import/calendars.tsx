@@ -7,7 +7,6 @@ import {
   requestCalendarAccess,
   loadCalendars,
   readEvents,
-  importSummary,
   type DeviceCalendar,
 } from '../../../import/calendarImport';
 import { importCalendar } from '../../../import/api';
@@ -66,7 +65,7 @@ export default function Calendars() {
   const selected = cals?.filter((c) => c.checked) ?? [];
   const selectedIds = selected.map((c) => c.id);
 
-  const doImport = useCallback(async () => {
+  const doImport = async () => {
     if (selectedIds.length === 0 || busy) return;
     setBusy(true);
     try {
@@ -84,7 +83,7 @@ export default function Calendars() {
     } finally {
       setBusy(false);
     }
-  }, [selectedIds, termStart, termEnd, api, busy, router, syncNow, toast]);
+  };
 
   const totalEvents = selected.reduce((n, c) => n + c.eventCount, 0);
 

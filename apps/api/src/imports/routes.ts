@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, unlink, writeFile, readFile, readdir, stat } from 'node:fs/promises';
+import { mkdir, unlink, writeFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import multipart from '@fastify/multipart';
@@ -12,10 +12,8 @@ import {
   detectFileKind,
   validateDocxSafety,
   termNameFromDate,
-  loadFixtures as loadTimetableFixtures,
   createFixtureProvider,
 } from '@dialed/planning';
-import type { PlanSource } from '@dialed/contracts';
 import { requireApp } from '../auth/guard';
 import type { JwtService } from '../auth/jwt';
 import type { AuthService } from '../auth/service';
@@ -294,7 +292,9 @@ export function importsRoutes(
       activeTimetableImports.delete(userId);
       try {
         await unlink(filePath);
-      } catch {}
+      } catch {
+        /* cleanup best-effort */
+      }
     }
   });
 
@@ -361,7 +361,6 @@ export function importsRoutes(
       });
     }
 
-    const WEEKDAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
     const WEEKDAY_MAP: Record<string, 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun'> = {
       '0': 'sun',
       '1': 'mon',

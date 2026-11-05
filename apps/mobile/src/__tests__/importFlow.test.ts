@@ -1,12 +1,12 @@
+import { importSummary } from '../import/calendarImport';
+import type { CalendarEvent } from '../import/api';
+
 jest.mock('expo-calendar', () => ({
   requestCalendarPermissionsAsync: jest.fn(),
   getCalendarsAsync: jest.fn(),
   getEventsAsync: jest.fn(),
   Frequency: { WEEKLY: 2 },
 }));
-
-import { importSummary } from '../import/calendarImport';
-import type { CalendarEvent } from '../import/api';
 
 describe('importSummary', () => {
   it('counts recurring vs one-off events', () => {

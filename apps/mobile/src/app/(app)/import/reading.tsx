@@ -117,7 +117,7 @@ export default function Reading() {
         </T>
         <StepList steps={STEPS} active={step} />
         <T size={14} weight="500" color={c.muted} style={{ textAlign: 'center', maxWidth: 280 }}>
-          You can leave this screen. You'll get a notification when it's ready.
+          {"You can leave this screen. You'll get a notification when it's ready."}
         </T>
       </View>
       <View style={{ paddingHorizontal: 20, paddingBottom: 40 }}>

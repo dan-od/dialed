@@ -1,7 +1,7 @@
 import type { PlanChange, PlanCheck } from '@dialed/contracts';
 import type { ScheduleData, IsoDate } from '@dialed/schedule';
 import { validate, type ValidateProfile } from './validate';
-import type { PlanProvider, ProviderMessage, ToolCall } from './providers/types';
+import type { PlanProvider, ProviderMessage } from './providers/types';
 
 export interface PlanLimits {
   maxToolTurns: number;

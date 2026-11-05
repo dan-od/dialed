@@ -37,6 +37,7 @@ export function usePlan(api: PlanApi, id: string | null) {
 
   useEffect(() => {
     if (!id) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clear plan when id becomes null
       setPlan(null);
       return;
     }

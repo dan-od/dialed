@@ -2,8 +2,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { login, makeApp, OWNER, BOB, type TestApp, TEST_NOW } from './helpers';
 
-type Row = Record<string, unknown>;
-
 let t: TestApp;
 let owner: Awaited<ReturnType<typeof login>>;
 let bob: Awaited<ReturnType<typeof login>>;
@@ -46,9 +44,6 @@ const reply = (s: { access_token: string }, id: string, text: string) =>
 
 const cancel = (s: { access_token: string }, id: string) =>
   t.app.inject({ method: 'POST', url: `/v1/plans/${id}/cancel`, headers: auth(s) });
-
-const discard = (s: { access_token: string }, id: string) =>
-  t.app.inject({ method: 'POST', url: `/v1/plans/${id}/discard`, headers: auth(s) });
 
 async function waitFor(
   s: { access_token: string },
