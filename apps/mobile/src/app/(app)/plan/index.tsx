@@ -136,6 +136,10 @@ export default function PlanComposer() {
             onChangeText={(v) => { update(v); setError(''); }}
             multiline
             textAlignVertical="top"
+            autoCorrect={false}
+            spellCheck={false}
+            autoComplete="off"
+            textContentType="none"
             style={{
               minHeight: 120,
               borderRadius: 16,

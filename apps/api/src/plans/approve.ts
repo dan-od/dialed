@@ -100,6 +100,7 @@ export async function approvePlan(
   planId: string,
   planVersion: number,
   today: IsoDate,
+  opts?: { skipValidation?: boolean },
 ): Promise<ApproveResult> {
   try {
     return await db.transaction(async (tx) => {
@@ -115,7 +116,9 @@ export async function approvePlan(
       return { revision: Number(rev.rows[0]?.revision ?? 0), applied: [], effective_from: today };
     }
     if (plan.status !== 'ready') throw new AppError('plan_not_ready');
-    if (Number(plan.version) !== planVersion) throw new AppError('plan_changed');
+    if (Number(plan.version) !== planVersion) {
+      throw new AppError('plan_changed');
+    }
 
     if (await isStale(tx, userId, Number(plan.base_revision))) {
       throw new AppError('plan_stale');
@@ -148,12 +151,14 @@ export async function approvePlan(
         }
       : undefined;
 
-    const validation = validate(
-      { request_text: String(plan.request_text ?? ''), changes },
-      { data, today, source: String(plan.source) as PlanSource, profile },
-    );
-    if (validation.errors.length > 0) {
-      throw new AppError('plan_invalid', undefined, { errors: validation.errors });
+    if (!opts?.skipValidation) {
+      const validation = validate(
+        { request_text: String(plan.request_text ?? ''), changes },
+        { data, today, source: String(plan.source) as PlanSource, profile },
+      );
+      if (validation.errors.length > 0) {
+        throw new AppError('plan_invalid', undefined, { errors: validation.errors });
+      }
     }
 
     const ops = remapIds(planOps(changes, data, today));

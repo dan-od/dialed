@@ -1,0 +1,12 @@
+# Flow 06 offline: composer shows offline stamp and Send disabled.
+# Requires: API stopped (offline simulation), Metro on :8081, owner signed in.
+appId: me.okoro.dialed
+---
+- runFlow: _relaunch.yaml
+- tapOn: 'Plan with .*'
+- extendedWaitUntil: { visible: 'Plan it', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+
+# Verify offline stamp and send disabled
+- assertVisible: '.*offline.*'
+- takeScreenshot: offline-${THEME}

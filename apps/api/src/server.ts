@@ -5,7 +5,9 @@ import { ConsoleTransport } from './email';
 
 const config = loadConfig();
 const { pool, db } = createDb(config.DATABASE_URL);
-const app = await buildApp(config, { pool, db, email: new ConsoleTransport() });
+const devClock = process.env.DEV_CLOCK;
+const now = devClock ? () => new Date(devClock) : undefined;
+const app = await buildApp(config, { pool, db, email: new ConsoleTransport(), now });
 
 const shutdown = async () => {
   await app.close();

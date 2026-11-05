@@ -147,12 +147,12 @@ export default function Review() {
           ))}
         </View>
 
-        {plan.impact.length > 0 ? (
+        {(plan.impact ?? []).length > 0 ? (
           <View style={{ marginTop: 20 }}>
             <T size={13} weight="700" color={c.muted} style={{ textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>
               What this does to your week
             </T>
-            {plan.impact.map((row) => (
+            {(plan.impact ?? []).map((row) => (
               <View key={row.label} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
                 <T size={14} weight="600">{row.label}</T>
                 <T size={14} weight="500" color={c.muted}>
@@ -163,10 +163,10 @@ export default function Review() {
           </View>
         ) : null}
 
-        {plan.checks.length > 0 ? (
+        {(plan.checks ?? []).length > 0 ? (
           <View style={{ marginTop: 16, gap: 4 }}>
-            {plan.checks.map((ck) => (
-              <T key={ck.id} size={13} weight="500" color={ck.passed ? c.muted : c.err}>
+            {(plan.checks ?? []).map((ck, i) => (
+              <T key={`${ck.id}-${i}`} size={13} weight="500" color={ck.passed ? c.muted : c.err}>
                 {ck.passed ? '✓' : '✗'} {ck.detail}
               </T>
             ))}

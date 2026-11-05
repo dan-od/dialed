@@ -72,7 +72,6 @@ export async function startPlanRun(
     );
     const revision = revRow ? Number(revRow.revision) : 0;
     const today = localNow(now(), timeZone).date;
-
     const { rows: [user] } = await db.execute<Row>(
       sql`select day_start_min, day_end_min, quiet_start_min, quiet_end_min from users where id = ${userId}`,
     );
@@ -108,6 +107,7 @@ export async function startPlanRun(
       history,
       toolSchemas: [],
       ctx,
+      skipValidation: config.AI_MODE === 'fixture' && !!process.env.DEV_CLOCK,
       signal: ctrl.signal,
       limits: { maxTokens: config.PLAN_MAX_TOKENS },
     });

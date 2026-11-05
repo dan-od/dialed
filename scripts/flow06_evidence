@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# Flow 06 runtime evidence on the iOS Simulator (Maestro + simctl video). Needs the dev client installed
+# (scripts/ios_dev), Metro on :8081, the API running with AI_MODE=fixture and the owner signed in.
+# Every flow removes what it adds via dev_evidence_cleanup.
+# Writes evidence/flows/Flow_06/{screens,recordings}. Usage: ONLY=happy|question|reply|errors|stale|settings|light|se|ax1 ./scripts/flow06_evidence [udid]
+# Not automated: plan_offline.yaml (needs the API stopped by hand), plan_stale.yaml (needs a
+# server-side edit mid-plan; stale is proven by API tests).
+source "$(dirname "$0")/lib/common.sh"
+ensure_xcode_env
+DEVICE="${1:-$(xcrun simctl list devices booted | grep -oE '[0-9A-F-]{36}' | head -1)}"
+export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}" MAESTRO_DRIVER_STARTUP_TIMEOUT=180000 MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
+EV="$ROOT/evidence/flows/Flow_06"
+RAW="$EV/e2e-evidence"
+mkdir -p "$EV/screens" "$EV/recordings" "$RAW"
+run() { pkill -f "xcodebuild test-without-building -xctestrun" 2>/dev/null || true; (cd "$ROOT/apps/mobile" && maestro --device "$DEVICE" test --test-output-dir "$RAW/$1" "${@:2}"); }
+retry() { local n; for n in 1 2 3; do "$@" && return 0; log "attempt $n failed; retrying"; done; return 1; }
+record() {
+  local name="$1"; shift
+  xcrun simctl io "$DEVICE" recordVideo --codec h264 --force "$EV/recordings/$name.mp4" >/dev/null 2>&1 &
+  local rec=$!
+  sleep 2
+  run "$name" "$@"; local rc=$?
+  kill -INT "$rec"; wait "$rec" 2>/dev/null || true
+  if command -v ffmpeg >/dev/null; then
+    ffmpeg -loglevel error -y -i "$EV/recordings/$name.mp4" -vf "scale=586:-2,fps=30" -c:v libx264 -crf 27 \
+      -preset slow -pix_fmt yuv420p -an "$EV/recordings/$name.small.mp4" && mv "$EV/recordings/$name.small.mp4" "$EV/recordings/$name.mp4"
+  fi
+  return $rc
+}
+ONLY="${ONLY:-all}"
+want() { [[ "$ONLY" == all || "$ONLY" == "$1" ]]; }
+collect() { find "$RAW" -path "*takeScreenshot*" -name "*.png" -print0 | xargs -0 ls -tr | while read -r f; do cp "$f" "$EV/screens/"; done; }
+trap collect EXIT
+# Set clipboard for plan request text (bypasses iOS predictive keyboard duplication).
+pbset() { printf '%s' "$1" | xcrun simctl pbcopy "$DEVICE"; }
+"$ROOT/scripts/dev_evidence_cleanup"
+xcrun simctl ui "$DEVICE" appearance dark
+
+if want happy; then
+  log "Happy path: send → review → approve → done → week"
+  pbset "Add Bible study with Chichi on Wednesday evenings"
+  retry record happy -e THEME=dark e2e/plan_happy.yaml
+  "$ROOT/scripts/dev_evidence_cleanup"
+fi
+
+if want question; then
+  log "Question path"
+  pbset "question fixture"
+  retry run question -e THEME=dark e2e/plan_question.yaml
+  "$ROOT/scripts/dev_evidence_cleanup"
+fi
+
+if want reply; then
+  log "Reply and discard"
+  pbset "Add Bible study with Chichi on Wednesday evenings"
+  retry record reply -e THEME=dark e2e/plan_reply.yaml
+  "$ROOT/scripts/dev_evidence_cleanup"
+fi
+
+if want errors; then
+  log "Errors ×3 → exhausted"
+  pbset "failure fixture"
+  retry run errors -e THEME=dark e2e/plan_errors.yaml
+  "$ROOT/scripts/dev_evidence_cleanup"
+fi
+
+if want stale; then
+  log "Stale (screenshot only; stale detection proven by API tests)"
+  pbset "Add Bible study with Chichi on Wednesday evenings"
+  retry run stale -e THEME=dark e2e/plan_stale.yaml
+  "$ROOT/scripts/dev_evidence_cleanup"
+fi
+
+if want settings; then
+  log "AI assistant settings"
+  retry run settings -e THEME=dark e2e/ai_settings.yaml
+fi
+
+if want light; then
+  "$ROOT/scripts/dev_evidence_cleanup"
+  xcrun simctl ui "$DEVICE" appearance light
+  log "Light theme"
+  pbset "Add Bible study with Chichi on Wednesday evenings"
+  retry run happy-light -e THEME=light e2e/plan_happy.yaml
+  "$ROOT/scripts/dev_evidence_cleanup"
+  retry run settings-light -e THEME=light e2e/ai_settings.yaml
+  xcrun simctl ui "$DEVICE" appearance dark
+fi
+
+if want se; then
+  "$ROOT/scripts/dev_evidence_cleanup"
+  log "iPhone SE screens (run on an SE Simulator)"
+  pbset "Add Bible study with Chichi on Wednesday evenings"
+  retry run happy-se -e THEME=se e2e/plan_happy.yaml
+  "$ROOT/scripts/dev_evidence_cleanup"
+fi
+
+if want ax1; then
+  "$ROOT/scripts/dev_evidence_cleanup"
+  log "Dynamic Type AX1"
+  pbset "Add Bible study with Chichi on Wednesday evenings"
+  retry run happy-ax1 -e THEME=ax1 e2e/plan_happy.yaml
+  "$ROOT/scripts/dev_evidence_cleanup"
+fi
+
+if want ai-name; then
+  "$ROOT/scripts/dev_evidence_cleanup"
+  log "AI name swap (ChatGPT)"
+  retry run ai-name -e THEME=dark e2e/ai_settings.yaml
+fi
+
+"$ROOT/scripts/dev_evidence_cleanup"
+log "Flow 06 evidence written to $EV"

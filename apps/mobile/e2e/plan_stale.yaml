@@ -1,0 +1,18 @@
+# Flow 06 stale: send → review. Stale detection is proven by API tests; this captures review.
+# Requires: AI_MODE=fixture, Metro on :8081, API running, owner signed in.
+appId: me.okoro.dialed
+---
+- runFlow: _today.yaml
+- tapOn: 'Plan with .*'
+- extendedWaitUntil: { visible: 'Plan it', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+
+# Type text matching the bible-study fixture
+- tapOn: 'What should change.*'
+- eraseText: 500
+- inputText: 'Bible study with Chichi every Wed'
+- hideKeyboard
+- tapOn: 'Send'
+- extendedWaitUntil: { visible: '.*changes to .*', timeout: 30000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: review-for-stale-${THEME}

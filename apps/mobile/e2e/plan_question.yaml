@@ -1,0 +1,24 @@
+# Flow 06 question path: composer → send (question fixture) → question page → "Something else" → composer.
+# Requires: AI_MODE=fixture, Metro on :8081, API running, owner signed in.
+appId: me.okoro.dialed
+---
+- runFlow: _today.yaml
+- tapOn: 'Plan with .*'
+- extendedWaitUntil: { visible: 'Plan it', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+
+# Type text matching the question fixture ("Add bible study with Chichi on")
+- tapOn: 'What should change.*'
+- eraseText: 500
+- inputText: 'Add bible study with Chichi on Weds'
+- hideKeyboard
+- tapOn: 'Send'
+- extendedWaitUntil: { visible: 'One quick question', timeout: 30000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: question-${THEME}
+
+# Tap "Something else" → back to composer
+- tapOn: "Something else.*"
+- extendedWaitUntil: { visible: 'Plan it', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: question-back-${THEME}

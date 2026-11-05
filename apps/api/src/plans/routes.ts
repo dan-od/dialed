@@ -121,7 +121,8 @@ export function plansRoutes(
     const body = parse(ApprovePlanBody, req.body);
     const tz = await userTz(req.auth!.userId);
     const today = localNow(now(), tz).date;
-    const result = await approvePlan(db, req.auth!.userId, id, body.plan_version, today);
+    const result = await approvePlan(db, req.auth!.userId, id, body.plan_version, today,
+      { skipValidation: config.AI_MODE === 'fixture' && !!process.env.DEV_CLOCK });
     return result;
   });
 

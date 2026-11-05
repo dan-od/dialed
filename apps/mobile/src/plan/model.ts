@@ -107,10 +107,10 @@ function timeToMin(hhmm: string): number {
 }
 
 export function toChangeCards(plan: PlanDTO): ChangeCard[] {
-  return plan.changes
+  return (plan.changes ?? [])
     .slice()
     .sort((a, b) => a.ord - b.ord)
-    .map((ch) => toCard(ch, plan.checks));
+    .map((ch) => toCard(ch, plan.checks ?? []));
 }
 
 function toCard(row: PlanChangeRow, allChecks: PlanCheck[]): ChangeCard {

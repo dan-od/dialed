@@ -1,0 +1,37 @@
+# Flow 06 errors: send (failure fixture) → error page → screenshot.
+# The fixture resolves instantly so retries race. We prove: error page renders, has
+# request saved, and either retry or exhausted state is reachable.
+# Requires: AI_MODE=fixture, Metro on :8081, API running, owner signed in.
+appId: me.okoro.dialed
+---
+- runFlow: _today.yaml
+- tapOn: 'Plan with .*'
+- extendedWaitUntil: { visible: 'Plan it', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+
+# Type text matching the failure fixture (contains "anything")
+- tapOn: 'What should change.*'
+- eraseText: 500
+- inputText: 'Do anything with my schedule'
+- hideKeyboard
+- tapOn: 'Send'
+- extendedWaitUntil: { visible: ".*didn.t answer|.*can.t reach .*", timeout: 30000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: error-first-${THEME}
+
+# If Try again is visible, tap it and capture the result
+- runFlow:
+    when: { visible: 'Try again.*' }
+    commands:
+      - tapOn: 'Try again.*'
+      - extendedWaitUntil: { visible: ".*didn.t answer|.*can.t reach .*", timeout: 30000 }
+      - waitForAnimationToEnd: { timeout: 3000 }
+      - takeScreenshot: error-retry-${THEME}
+
+# If Got it (exhausted) is visible, capture and go back
+- runFlow:
+    when: { visible: 'Got it' }
+    commands:
+      - takeScreenshot: error-exhausted-${THEME}
+      - tapOn: 'Got it'
+      - extendedWaitUntil: { visible: 'Plan it', timeout: 10000 }

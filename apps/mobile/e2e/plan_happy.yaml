@@ -1,0 +1,49 @@
+# Flow 06 happy path: composer → send (bible-study fixture) → drafting → review → toggle → approve → Done → Week.
+# Requires: AI_MODE=fixture, Metro on :8081, API running, owner signed in.
+appId: me.okoro.dialed
+---
+- runFlow: _today.yaml
+
+# Day header AI mark → Plan it
+- tapOn: 'Plan with .*'
+- extendedWaitUntil: { visible: 'Plan it', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+
+# Clear any existing draft and type text
+- tapOn: 'What should change.*'
+- eraseText: 500
+- inputText: 'Bible study with Chichi every Wed'
+- hideKeyboard
+- waitForAnimationToEnd: { timeout: 1000 }
+- takeScreenshot: composer-filled-${THEME}
+
+# Send — fixture resolves instantly so drafting screen may flash
+- tapOn: 'Send'
+- extendedWaitUntil: { visible: '.*changes to .*', timeout: 30000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: review-${THEME}
+
+# Toggle one change off
+- tapOn:
+    text: 'Include: .*'
+    index: 0
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: review-toggled-${THEME}
+
+# Toggle it back on
+- tapOn:
+    text: 'Include: .*'
+    index: 0
+- waitForAnimationToEnd: { timeout: 2000 }
+
+# Approve
+- tapOn: 'Approve .*'
+- extendedWaitUntil: { visible: '.*updated.*', timeout: 15000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: done-${THEME}
+
+# See this week → Week
+- tapOn: 'See this week'
+- extendedWaitUntil: { visible: 'Week', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: week-after-${THEME}

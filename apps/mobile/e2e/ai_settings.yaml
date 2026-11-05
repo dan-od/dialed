@@ -1,0 +1,32 @@
+# Flow 06 AI assistant settings: Settings → AI assistant → server/BYO radio → provider chips.
+# Requires: Metro on :8081, API running, owner signed in.
+appId: me.okoro.dialed
+---
+- runFlow: _settings.yaml
+
+# Tap AI assistant
+- tapOn: { id: 'set-ai' }
+- extendedWaitUntil: { visible: { id: 'ai-server' }, timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: ai-settings-${THEME}
+
+# Tap "Bring your own"
+- tapOn: { id: 'ai-byo' }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: ai-byo-${THEME}
+
+# Tap ChatGPT chip to switch the provider name
+- runFlow:
+    when: { visible: 'ChatGPT' }
+    commands:
+      - tapOn: 'ChatGPT'
+      - waitForAnimationToEnd: { timeout: 2000 }
+      - takeScreenshot: ai-chatgpt-${THEME}
+
+# Back to server mode
+- tapOn: { id: 'ai-server' }
+- waitForAnimationToEnd: { timeout: 2000 }
+
+# Go back
+- tapOn: 'Back to Settings'
+- extendedWaitUntil: { visible: { id: 'set-ai' }, timeout: 10000 }

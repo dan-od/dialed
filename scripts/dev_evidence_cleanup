@@ -135,6 +135,10 @@ SELECT '$OWNER', rev.revision, x.entity, x.id, 'upsert', x.row FROM rev, (
   UNION ALL SELECT 'override', id, to_jsonb(ovs) - 'user_id' FROM ovs) x;
 -- Merges made by evidence runs can no longer be undone (their rows are back).
 UPDATE category_merges SET undone_at = now() WHERE user_id = '$OWNER' AND undone_at IS NULL;
+-- Plans made by evidence runs (Flow 06): remove all plans and related rows so the next run starts clean.
+DELETE FROM plan_messages WHERE plan_id IN (SELECT id FROM plans WHERE user_id = '$OWNER');
+DELETE FROM plan_changes WHERE plan_id IN (SELECT id FROM plans WHERE user_id = '$OWNER');
+DELETE FROM plans WHERE user_id = '$OWNER';
 COMMIT;
 SQL
 log "Evidence test data removed (if any was there)."

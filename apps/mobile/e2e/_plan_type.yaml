@@ -1,0 +1,12 @@
+# Helper: clears the plan composer text field and pastes new text from the clipboard.
+# Set the clipboard BEFORE calling this flow (via simctl pbcopy).
+# Caller must set env TEXT to the text to type if clipboard is not pre-set.
+appId: me.okoro.dialed
+---
+- tapOn: 'What should change.*'
+- eraseText: 500
+- pressKey: command + a
+- pressKey: Backspace
+- waitForAnimationToEnd: { timeout: 500 }
+- pressKey: command + v
+- waitForAnimationToEnd: { timeout: 500 }

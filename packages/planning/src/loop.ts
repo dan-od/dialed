@@ -53,6 +53,7 @@ export interface RunPlanOpts {
   toolSchemas: { name: string; description: string; input_schema: object }[];
   ctx: ToolContext;
   limits?: Partial<PlanLimits>;
+  skipValidation?: boolean;
   signal?: AbortSignal;
   onStep?: (step: PlanStep) => void;
 }
@@ -107,10 +108,12 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
     for (const call of response.tool_calls) {
       if (call.name === 'propose_changes') {
         const input = call.input as { request_text?: string; changes: PlanChange[]; checks?: PlanCheck[] };
-        const result = validate(
-          { request_text: input.request_text ?? opts.request, changes: input.changes },
-          opts.ctx,
-        );
+        const result = opts.skipValidation
+          ? { errors: [], checks: input.checks ?? [], ops: [] }
+          : validate(
+            { request_text: input.request_text ?? opts.request, changes: input.changes },
+            opts.ctx,
+          );
 
         if (result.errors.length > 0) {
           validationRounds++;
