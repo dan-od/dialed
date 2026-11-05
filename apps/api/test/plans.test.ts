@@ -181,7 +181,7 @@ describe('POST /v1/plans', () => {
     await cleanup();
     await t.db
       .execute(sql`insert into usage_counters (user_id, day, plan_runs, tokens_in, tokens_out)
-      values (${OWNER.id}, '2026-10-20', 30, 0, 0)
+      values (${OWNER.id}, '2036-10-20', 30, 0, 0)
       on conflict (user_id, day) do update set plan_runs = 30`);
 
     const r = await send(owner, {

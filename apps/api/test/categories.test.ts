@@ -3,7 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ALICE, BOB, login, makeApp, TEST_NOW, type TestApp } from './helpers';
 
 // Flow 09 server rules: category merge (+ Undo within 10 min) and delete with reassignment, atomically.
-// Clock: Tue 2026-10-20 12:00 Toronto. Fixture: Alice's Speedwatch Ontario gets 3 routine blocks (as the owner's
+// Clock: Tue 2036-10-20 12:00 Toronto. Fixture: Alice's Speedwatch Ontario gets 3 routine blocks (as the owner's
 // Fall term: Tue 15:00, Thu 19:00, Fri 19:15), one past and one future one-off.
 const FALL_ROUTINE = '60eec3ef-59af-52e0-b13f-6826bd08e994';
 const SPEED = 'e05ddd63-6d03-5c7c-8085-8627261d1c3d';
@@ -45,14 +45,14 @@ beforeEach(async () => {
   for (const [i, [wd, s, e]] of at.entries())
     await q(
       `insert into routine_blocks (id, routine_id, user_id, weekday, start_min, end_min, title, category_id, effective_from, source)
-       values ($1, $2, $3, $4, $5, $6, 'Speedwatch Ontario', $7, '2026-09-14', 'seed')`,
+       values ($1, $2, $3, $4, $5, $6, 'Speedwatch Ontario', $7, '2036-09-14', 'seed')`,
       [blocks[i], FALL_ROUTINE, ALICE.id, wd, s, e, SPEED],
     );
   pastOv = randomUUID();
   futureOv = randomUUID();
   for (const [id, d] of [
-    [pastOv, '2026-10-12'],
-    [futureOv, '2026-10-24'],
+    [pastOv, '2036-10-12'],
+    [futureOv, '2036-10-24'],
   ])
     await q(
       `insert into overrides (id, user_id, on_date, kind, title, start_min, end_min, category_id, note)
@@ -188,7 +188,7 @@ describe('category_delete', () => {
         [blocks],
       )
     ).rows;
-    for (const b of rows) expect(b.effective_to).toBe('2026-10-20');
+    for (const b of rows) expect(b.effective_to).toBe('2036-10-20');
     const ov = async (id: string) =>
       (await t.pool.query('select deleted_at from overrides where id = $1', [id])).rows[0]
         .deleted_at;

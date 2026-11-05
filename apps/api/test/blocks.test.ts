@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ALICE, BOB, BOB_PROBE_BLOCK, login, makeApp, TEST_NOW, type TestApp } from './helpers';
 
-// Flow 04 server rules (sync push). Clock: Tue 2026-10-20 12:00 Toronto. Writes use Alice's seeded account so the
+// Flow 04 server rules (sync push). Clock: Tue 2036-10-20 12:00 Toronto. Writes use Alice's seeded account so the
 // owner's seed (golden for other suites) stays untouched.
 const FALL_ROUTINE = '60eec3ef-59af-52e0-b13f-6826bd08e994';
 const STUDY = '64251711-ded6-5b6f-ad18-bc84900fc568';
@@ -48,7 +48,7 @@ const newBlock = (fields: object, id = randomUUID()) => ({
     end_min: 1380,
     title: 'Capstone reading',
     category_id: STUDY,
-    effective_from: '2026-10-20',
+    effective_from: '2036-10-20',
     ...fields,
   },
 });
@@ -64,18 +64,18 @@ describe('add every week (routine_block create)', () => {
       start_min: 1320,
       end_min: 1380,
       title: 'Capstone reading',
-      effective_from: '2026-10-20',
+      effective_from: '2036-10-20',
       effective_to: null,
       source: 'user',
       version: 1,
     });
   });
   it('refuses past effective dates, dates after the term, foreign routines and categories', async () => {
-    expect(await one(owner, newBlock({ effective_from: '2026-10-19' }))).toMatchObject({
+    expect(await one(owner, newBlock({ effective_from: '2036-10-19' }))).toMatchObject({
       status: 'rejected',
       error_code: 'bad_request',
     });
-    expect(await one(owner, newBlock({ effective_from: '2026-12-14' }))).toMatchObject({
+    expect(await one(owner, newBlock({ effective_from: '2036-12-14' }))).toMatchObject({
       status: 'rejected',
       error_code: 'bad_request',
       message: 'That day isn’t in Fall term.',
@@ -110,18 +110,18 @@ describe('edit every week with a client-chosen id for the new version', () => {
       entity: 'routine_block_edit',
       block_id: MON_SERMON,
       base_version: 1,
-      effective_from: '2026-10-26',
+      effective_from: '2036-10-26',
       new_block_id: newId,
       fields: { start_min: 630 },
     });
     expect(r).toMatchObject({
       status: 'applied',
-      row: { id: newId, start_min: 630, effective_from: '2026-10-26' },
+      row: { id: newId, start_min: 630, effective_from: '2036-10-26' },
     });
     const old = await t.pool.query('select effective_to from routine_blocks where id = $1', [
       MON_SERMON,
     ]);
-    expect(old.rows[0].effective_to).toBe('2026-10-26');
+    expect(old.rows[0].effective_to).toBe('2036-10-26');
   });
   it('a taken new_block_id is refused', async () => {
     const blk = (await one(owner, newBlock({ weekday: 3 }))).row;
@@ -130,7 +130,7 @@ describe('edit every week with a client-chosen id for the new version', () => {
       entity: 'routine_block_edit',
       block_id: blk.id,
       base_version: 1,
-      effective_from: '2026-10-29',
+      effective_from: '2036-10-29',
       new_block_id: MON_SERMON,
       fields: { start_min: 1325 },
     });
@@ -144,19 +144,19 @@ describe('delete every week and Undo (routine_block_edit close / reopen)', () =>
     entity: 'routine_block_edit',
     block_id,
     base_version,
-    effective_from: '2026-10-20',
+    effective_from: '2036-10-20',
     ...extra,
   });
   it('closing an older block ends it today; reopen puts it back', async () => {
-    const blk = (await one(owner, newBlock({ weekday: 4, effective_from: '2026-10-20' }))).row;
+    const blk = (await one(owner, newBlock({ weekday: 4, effective_from: '2036-10-20' }))).row;
     // pretend it started earlier in the term so the close keeps past days
-    await t.pool.query(`update routine_blocks set effective_from = '2026-09-14' where id = $1`, [
+    await t.pool.query(`update routine_blocks set effective_from = '2036-09-14' where id = $1`, [
       blk.id,
     ]);
     const closed = await one(owner, edit(blk.id, 1, { close: true }));
     expect(closed).toMatchObject({
       status: 'applied',
-      row: { effective_to: '2026-10-20', deleted_at: null },
+      row: { effective_to: '2036-10-20', deleted_at: null },
     });
     const back = await one(owner, edit(blk.id, 2, { reopen: true }));
     expect(back).toMatchObject({ status: 'applied', row: { effective_to: null, version: 3 } });
@@ -183,11 +183,11 @@ describe('one-off moves, deletes and undo', () => {
     ...(fields ? { fields } : {}),
   });
   it('move stays within the same week and inside a term', async () => {
-    const base = { kind: 'move', routine_block_id: MON_SERMON, on_date: '2026-10-26' };
-    expect(await one(owner, ov({ ...base, moved_to_date: '2026-10-28' }))).toMatchObject({
+    const base = { kind: 'move', routine_block_id: MON_SERMON, on_date: '2036-10-26' };
+    expect(await one(owner, ov({ ...base, moved_to_date: '2036-10-28' }))).toMatchObject({
       status: 'applied',
     });
-    expect(await one(owner, ov({ ...base, moved_to_date: '2026-11-03' }))).toMatchObject({
+    expect(await one(owner, ov({ ...base, moved_to_date: '2036-11-03' }))).toMatchObject({
       status: 'rejected',
       message: 'Move it within the same week.',
     });
@@ -197,8 +197,8 @@ describe('one-off moves, deletes and undo', () => {
         ov({
           kind: 'move',
           routine_block_id: MON_SERMON,
-          on_date: '2026-12-21',
-          moved_to_date: '2026-12-24',
+          on_date: '2036-12-21',
+          moved_to_date: '2036-12-24',
         }),
       ),
     ).toMatchObject({ status: 'rejected', message: 'That day isn’t in Exam weeks.' });
@@ -210,7 +210,7 @@ describe('one-off moves, deletes and undo', () => {
       ov(
         {
           kind: 'add',
-          on_date: '2026-10-24',
+          on_date: '2036-10-24',
           title: 'Pitch prep',
           start_min: 600,
           end_min: 660,
@@ -228,7 +228,7 @@ describe('one-off moves, deletes and undo', () => {
     expect(
       await one(
         alice,
-        ov({ kind: 'skip', routine_block_id: BOB_PROBE_BLOCK, on_date: '2026-10-26' }),
+        ov({ kind: 'skip', routine_block_id: BOB_PROBE_BLOCK, on_date: '2036-10-26' }),
       ),
     ).toMatchObject({ status: 'rejected', error_code: 'not_found' });
   });

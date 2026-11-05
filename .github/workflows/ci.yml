@@ -22,6 +22,7 @@ jobs:
           --health-retries 30
     env:
       FLOW_BY_FLOW_REPORT_DIR: evidence/verification
+      DATABASE_URL: postgres://dialed:ci-test-password@127.0.0.1:5432/dialed
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
