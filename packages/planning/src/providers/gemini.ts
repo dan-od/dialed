@@ -13,15 +13,18 @@ export function createGeminiProvider(opts: GeminiProviderOpts): PlanProvider {
     supportsVision: true,
 
     async run(runOpts: ProviderRunOpts): Promise<ProviderStepResult> {
-      const tools = runOpts.tools.length > 0
-        ? [{
-            functionDeclarations: runOpts.tools.map((t) => ({
-              name: t.name,
-              description: t.description,
-              parameters: t.input_schema,
-            })),
-          }]
-        : undefined;
+      const tools =
+        runOpts.tools.length > 0
+          ? [
+              {
+                functionDeclarations: runOpts.tools.map((t) => ({
+                  name: t.name,
+                  description: t.description,
+                  parameters: t.input_schema,
+                })),
+              },
+            ]
+          : undefined;
 
       const contents: object[] = [];
       if (runOpts.system) {
@@ -84,7 +87,12 @@ export function createGeminiProvider(opts: GeminiProviderOpts): PlanProvider {
 
       const data = JSON.parse(res.body) as {
         candidates: Array<{
-          content: { parts: Array<{ text?: string; functionCall?: { name: string; args: Record<string, unknown> } }> };
+          content: {
+            parts: Array<{
+              text?: string;
+              functionCall?: { name: string; args: Record<string, unknown> };
+            }>;
+          };
         }>;
         usageMetadata?: { promptTokenCount: number; candidatesTokenCount: number };
       };

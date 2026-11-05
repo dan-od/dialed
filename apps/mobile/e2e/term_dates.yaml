@@ -13,5 +13,6 @@ appId: me.okoro.dialed
 - tapOn: { point: '55%,66%', repeat: 7, delay: 450 }
 - waitForAnimationToEnd: { timeout: 2000 }
 - tapOn: { id: 'Fall term-ends_on' }
-- extendedWaitUntil: { visible: 'Saved. Days in the new range fill in from the routine.', timeout: 8000 }
+- extendedWaitUntil:
+    { visible: 'Saved. Days in the new range fill in from the routine.', timeout: 8000 }
 - takeScreenshot: term-date-saved-${THEME}

@@ -9,12 +9,24 @@ let t: TestApp;
 let owner: Awaited<ReturnType<typeof login>>;
 
 beforeAll(async () => {
-  t = await makeApp({}, { write: (line: string) => { logLines.push(line); } }, TEST_NOW);
+  t = await makeApp(
+    {},
+    {
+      write: (line: string) => {
+        logLines.push(line);
+      },
+    },
+    TEST_NOW,
+  );
   owner = await login(t, OWNER.email);
 });
 afterAll(async () => {
-  await t.db.execute(sql`delete from plan_changes where plan_id in (select id from plans where user_id = ${OWNER.id})`);
-  await t.db.execute(sql`delete from plan_messages where plan_id in (select id from plans where user_id = ${OWNER.id})`);
+  await t.db.execute(
+    sql`delete from plan_changes where plan_id in (select id from plans where user_id = ${OWNER.id})`,
+  );
+  await t.db.execute(
+    sql`delete from plan_messages where plan_id in (select id from plans where user_id = ${OWNER.id})`,
+  );
   await t.db.execute(sql`delete from plans where user_id = ${OWNER.id}`);
   await t.db.execute(sql`delete from usage_counters where user_id = ${OWNER.id}`);
   await t.close();
@@ -33,7 +45,8 @@ describe('redaction', () => {
       },
       payload: {
         source: 'in_app',
-        request_text: 'Bible study with Chichi every Wednesday at 7, for the rest of the year. And move Friday Speedwatch to Saturday evening.',
+        request_text:
+          'Bible study with Chichi every Wednesday at 7, for the rest of the year. And move Friday Speedwatch to Saturday evening.',
         provider_mode: 'server',
       },
     });

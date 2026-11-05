@@ -79,7 +79,14 @@ export class ApiClient {
     return this.request<ArrayBuffer>('GET', path, undefined, { bytes: true });
   }
 
-  private async send(method: string, path: string, body: unknown, auth: boolean, bytes = false, extra?: Record<string, string>) {
+  private async send(
+    method: string,
+    path: string,
+    body: unknown,
+    auth: boolean,
+    bytes = false,
+    extra?: Record<string, string>,
+  ) {
     const headers: Record<string, string> = {
       'x-request-id': randomUUID(),
       accept: 'application/json',

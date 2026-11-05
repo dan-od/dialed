@@ -11,7 +11,9 @@ export function usePlanNotifications(planApi: PlanApi, toast: ToastFn) {
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
-    return () => { mounted.current = false; };
+    return () => {
+      mounted.current = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -76,10 +78,7 @@ async function checkForReadyPlans(
   try {
     const { plans } = await planApi.list(5);
     for (const p of plans) {
-      if (
-        (p.status === 'ready' || p.status === 'question') &&
-        p.created_at !== lastCheck.current
-      ) {
+      if ((p.status === 'ready' || p.status === 'question') && p.created_at !== lastCheck.current) {
         lastCheck.current = p.created_at;
         await Notifications.scheduleNotificationAsync({
           identifier: `plan-ready:${p.id}`,

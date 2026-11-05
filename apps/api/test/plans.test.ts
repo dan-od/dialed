@@ -29,10 +29,20 @@ const list = (s: { access_token: string }) =>
   t.app.inject({ method: 'GET', url: '/v1/plans', headers: auth(s) });
 
 const answer = (s: { access_token: string }, id: string, option: string) =>
-  t.app.inject({ method: 'POST', url: `/v1/plans/${id}/answer`, headers: auth(s), payload: { option } });
+  t.app.inject({
+    method: 'POST',
+    url: `/v1/plans/${id}/answer`,
+    headers: auth(s),
+    payload: { option },
+  });
 
 const reply = (s: { access_token: string }, id: string, text: string) =>
-  t.app.inject({ method: 'POST', url: `/v1/plans/${id}/reply`, headers: auth(s), payload: { text } });
+  t.app.inject({
+    method: 'POST',
+    url: `/v1/plans/${id}/reply`,
+    headers: auth(s),
+    payload: { text },
+  });
 
 const cancel = (s: { access_token: string }, id: string) =>
   t.app.inject({ method: 'POST', url: `/v1/plans/${id}/cancel`, headers: auth(s) });
@@ -54,17 +64,24 @@ async function waitFor(
     await new Promise((r) => setTimeout(r, 30));
   }
   const last = (await get(s, planId)).json();
-  throw new Error(`Plan ${planId} status=${last.status} error_code=${last.error_code}, expected ${statuses.join('|')}`);
+  throw new Error(
+    `Plan ${planId} status=${last.status} error_code=${last.error_code}, expected ${statuses.join('|')}`,
+  );
 }
 
 async function cleanup() {
-  await t.db.execute(sql`delete from plan_changes where plan_id in (select id from plans where user_id = ${OWNER.id})`);
-  await t.db.execute(sql`delete from plan_messages where plan_id in (select id from plans where user_id = ${OWNER.id})`);
+  await t.db.execute(
+    sql`delete from plan_changes where plan_id in (select id from plans where user_id = ${OWNER.id})`,
+  );
+  await t.db.execute(
+    sql`delete from plan_messages where plan_id in (select id from plans where user_id = ${OWNER.id})`,
+  );
   await t.db.execute(sql`delete from plans where user_id = ${OWNER.id}`);
   await t.db.execute(sql`delete from usage_counters where user_id = ${OWNER.id}`);
 }
 
-const BIBLE_STUDY_TEXT = 'Bible study with Chichi every Wednesday at 7, for the rest of the year. And move Friday Speedwatch to Saturday evening.';
+const BIBLE_STUDY_TEXT =
+  'Bible study with Chichi every Wednesday at 7, for the rest of the year. And move Friday Speedwatch to Saturday evening.';
 const QUESTION_TEXT = 'Add bible study with Chichi on Wednesdays';
 const FAILURE_TEXT = 'Plan anything for me';
 const OVERLAPPING_TEXT = 'Add a morning run that overlaps with class';
@@ -167,7 +184,8 @@ describe('POST /v1/plans', () => {
 
   it('31st plan → daily_limit', async () => {
     await cleanup();
-    await t.db.execute(sql`insert into usage_counters (user_id, day, plan_runs, tokens_in, tokens_out)
+    await t.db
+      .execute(sql`insert into usage_counters (user_id, day, plan_runs, tokens_in, tokens_out)
       values (${OWNER.id}, '2026-10-20', 30, 0, 0)
       on conflict (user_id, day) do update set plan_runs = 30`);
 
@@ -222,7 +240,8 @@ describe('POST /v1/plans', () => {
   it('idempotency key returns the same plan', async () => {
     await cleanup();
     const r1 = await t.app.inject({
-      method: 'POST', url: '/v1/plans',
+      method: 'POST',
+      url: '/v1/plans',
       headers: { ...auth(owner), 'idempotency-key': 'test-key-1' },
       payload: { source: 'in_app', request_text: BIBLE_STUDY_TEXT, provider_mode: 'server' },
     });
@@ -230,7 +249,8 @@ describe('POST /v1/plans', () => {
     const id1 = r1.json().id;
 
     const r2 = await t.app.inject({
-      method: 'POST', url: '/v1/plans',
+      method: 'POST',
+      url: '/v1/plans',
       headers: { ...auth(owner), 'idempotency-key': 'test-key-1' },
       payload: { source: 'in_app', request_text: BIBLE_STUDY_TEXT, provider_mode: 'server' },
     });

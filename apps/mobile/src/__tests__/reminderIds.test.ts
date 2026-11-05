@@ -8,16 +8,43 @@ const mockNotifications = Notifications as jest.Mocked<typeof Notifications>;
 
 const data: ScheduleData = {
   categories: [
-    { id: 'c1', name: 'Gym', group_name: 'Life', color_dark: '#000', color_light: '#000', weight: 1, quiet: false, protected: false, sort: 0, deleted_at: null },
+    {
+      id: 'c1',
+      name: 'Gym',
+      group_name: 'Life',
+      color_dark: '#000',
+      color_light: '#000',
+      weight: 1,
+      quiet: false,
+      protected: false,
+      sort: 0,
+      deleted_at: null,
+    },
   ],
   terms: [
-    { id: 't1', name: 'Fall', starts_on: '2026-09-14', ends_on: '2026-12-11', is_draft: false, deleted_at: null },
+    {
+      id: 't1',
+      name: 'Fall',
+      starts_on: '2026-09-14',
+      ends_on: '2026-12-11',
+      is_draft: false,
+      deleted_at: null,
+    },
   ],
-  routines: [
-    { id: 'r1', term_id: 't1', name: 'Fall routine' },
-  ],
+  routines: [{ id: 'r1', term_id: 't1', name: 'Fall routine' }],
   routineBlocks: [
-    { id: 'rb1', routine_id: 'r1', weekday: 3, start_min: 480, end_min: 540, title: 'Gym', category_id: 'c1', effective_from: '2026-09-14', effective_to: null, deleted_at: null },
+    {
+      id: 'rb1',
+      routine_id: 'r1',
+      weekday: 3,
+      start_min: 480,
+      end_min: 540,
+      title: 'Gym',
+      category_id: 'c1',
+      effective_from: '2026-09-14',
+      effective_to: null,
+      deleted_at: null,
+    },
   ],
   overrides: [],
 };
@@ -51,7 +78,11 @@ describe('rescheduleReminders', () => {
       { identifier: 'plan-ready:abc', content: {}, trigger: {} } as never,
     ]);
     await cancelReminders();
-    expect(mockNotifications.cancelScheduledNotificationAsync).toHaveBeenCalledWith('reminder:rb1:2026-11-04');
-    expect(mockNotifications.cancelScheduledNotificationAsync).not.toHaveBeenCalledWith('plan-ready:abc');
+    expect(mockNotifications.cancelScheduledNotificationAsync).toHaveBeenCalledWith(
+      'reminder:rb1:2026-11-04',
+    );
+    expect(mockNotifications.cancelScheduledNotificationAsync).not.toHaveBeenCalledWith(
+      'plan-ready:abc',
+    );
   });
 });

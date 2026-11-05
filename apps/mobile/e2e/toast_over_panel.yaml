@@ -3,8 +3,8 @@ appId: me.okoro.dialed
 ---
 - runFlow: _relaunch.yaml
 - runFlow: _dev_clock.yaml
-- tapOn: "Theme: follows system"
+- tapOn: 'Theme: follows system'
 - takeScreenshot: toast-over-panel-1
 - waitForAnimationToEnd: { timeout: 5000 }
-- tapOn: "Theme: follows system"
+- tapOn: 'Theme: follows system'
 - takeScreenshot: toast-over-panel-2

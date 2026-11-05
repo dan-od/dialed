@@ -26,13 +26,19 @@ afterEach(async () => {
     await t.db.execute(sql`delete from plans where id = ${id}`);
   }
   planIds.length = 0;
-  await t.db.execute(sql`delete from routine_blocks where source = 'plan' and user_id = ${OWNER.id}`);
+  await t.db.execute(
+    sql`delete from routine_blocks where source = 'plan' and user_id = ${OWNER.id}`,
+  );
   await t.db.execute(sql`delete from overrides where source = 'plan' and user_id = ${OWNER.id}`);
-  await t.db.execute(sql`delete from categories where user_id = ${OWNER.id} and name = 'Bible study'`);
+  await t.db.execute(
+    sql`delete from categories where user_id = ${OWNER.id} and name = 'Bible study'`,
+  );
   await t.db.execute(sql`delete from change_log where user_id = ${OWNER.id} and revision > 0`);
   await t.db.execute(sql`delete from audit_log where action in ('approve', 'discard')`);
   await t.db.execute(sql`update revisions set revision = 0 where user_id = ${OWNER.id}`);
-  await t.db.execute(sql`update routine_blocks set effective_to = null where id in (${WELLSERVICES_WED}, ${SPEEDWATCH_FRI})`);
+  await t.db.execute(
+    sql`update routine_blocks set effective_to = null where id in (${WELLSERVICES_WED}, ${SPEEDWATCH_FRI})`,
+  );
 });
 afterAll(async () => {
   await t.close();
@@ -119,9 +125,9 @@ describe('approvePlan', () => {
     expect(result.revision).toBeGreaterThan(0);
     expect(result.applied.length).toBeGreaterThan(0);
 
-    const { rows: [plan] } = await t.db.execute(
-      sql`select status from plans where id = ${planId}`,
-    );
+    const {
+      rows: [plan],
+    } = await t.db.execute(sql`select status from plans where id = ${planId}`);
     expect(plan!.status).toBe('approved');
 
     const { rows: cats } = await t.db.execute(
@@ -134,15 +140,21 @@ describe('approvePlan', () => {
       sql`select * from routine_blocks where user_id = ${OWNER.id} and source = 'plan'`,
     );
     expect(newBlocks.length).toBeGreaterThan(0);
-    const bibleBlocks = newBlocks.filter((b: Record<string, unknown>) => b.title === 'Bible study with Chichi');
+    const bibleBlocks = newBlocks.filter(
+      (b: Record<string, unknown>) => b.title === 'Bible study with Chichi',
+    );
     expect(bibleBlocks.length).toBeGreaterThan(0);
 
-    const { rows: [wellClosed] } = await t.db.execute(
+    const {
+      rows: [wellClosed],
+    } = await t.db.execute(
       sql`select effective_to from routine_blocks where id = ${WELLSERVICES_WED}`,
     );
     expect(wellClosed!.effective_to).toBeTruthy();
 
-    const { rows: [speedClosed] } = await t.db.execute(
+    const {
+      rows: [speedClosed],
+    } = await t.db.execute(
       sql`select effective_to from routine_blocks where id = ${SPEEDWATCH_FRI}`,
     );
     expect(speedClosed!.effective_to).toBeTruthy();
@@ -198,9 +210,9 @@ describe('approvePlan', () => {
       expectAppError(err, 'plan_stale');
     }
 
-    const { rows: [plan] } = await t.db.execute(
-      sql`select status from plans where id = ${planId}`,
-    );
+    const {
+      rows: [plan],
+    } = await t.db.execute(sql`select status from plans where id = ${planId}`);
     expect(plan!.status).toBe('stale');
   });
 
@@ -227,9 +239,9 @@ describe('discardPlan', () => {
   it('discards a ready plan', async () => {
     const planId = await seedPlan(OWNER.id);
     await discardPlan(t.db, OWNER.id, planId);
-    const { rows: [plan] } = await t.db.execute(
-      sql`select status from plans where id = ${planId}`,
-    );
+    const {
+      rows: [plan],
+    } = await t.db.execute(sql`select status from plans where id = ${planId}`);
     expect(plan!.status).toBe('discarded');
   });
 

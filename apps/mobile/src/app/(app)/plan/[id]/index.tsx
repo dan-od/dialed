@@ -13,7 +13,9 @@ export default function PlanRouter() {
 
   if (loading || !plan) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center' }}>
+      <View
+        style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center' }}
+      >
         <Spinner color={c.muted} size={24} />
       </View>
     );

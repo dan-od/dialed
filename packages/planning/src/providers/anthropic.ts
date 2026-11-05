@@ -87,7 +87,13 @@ export function createAnthropicProvider(opts: AnthropicProviderOpts): PlanProvid
       }
 
       const data = JSON.parse(res.body) as {
-        content: Array<{ type: string; text?: string; id?: string; name?: string; input?: unknown }>;
+        content: Array<{
+          type: string;
+          text?: string;
+          id?: string;
+          name?: string;
+          input?: unknown;
+        }>;
         usage: { input_tokens: number; output_tokens: number };
       };
 

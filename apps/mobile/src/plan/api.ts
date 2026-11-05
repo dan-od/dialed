@@ -31,13 +31,18 @@ export class PlanApi {
   constructor(private readonly client: ApiClient) {}
 
   async create(params: PlanCreateParams, byo?: ByoKeyHeaders): Promise<PlanDTO> {
-    return this.client.request<PlanDTO>('POST', '/v1/plans', {
-      source: 'in_app' as const,
-      request_text: params.request_text,
-      provider_mode: params.provider_mode,
-      provider: params.provider,
-      answer_to: params.answer_to,
-    }, { headers: { 'idempotency-key': params.idempotency_key, ...byoHeaders(byo) } });
+    return this.client.request<PlanDTO>(
+      'POST',
+      '/v1/plans',
+      {
+        source: 'in_app' as const,
+        request_text: params.request_text,
+        provider_mode: params.provider_mode,
+        provider: params.provider,
+        answer_to: params.answer_to,
+      },
+      { headers: { 'idempotency-key': params.idempotency_key, ...byoHeaders(byo) } },
+    );
   }
 
   async get(id: string): Promise<PlanDTO> {
@@ -78,9 +83,13 @@ export class PlanApi {
     await this.client.request<void>('POST', `/v1/plans/${id}/cancel`);
   }
 
-  async testKey(provider: ProviderId, byo: ByoKeyHeaders): Promise<{ ok: boolean; message?: string }> {
+  async testKey(
+    provider: ProviderId,
+    byo: ByoKeyHeaders,
+  ): Promise<{ ok: boolean; message?: string }> {
     return this.client.request<{ ok: boolean; message?: string }>(
-      'POST', '/v1/ai/test-key',
+      'POST',
+      '/v1/ai/test-key',
       { provider },
       { headers: byoHeaders(byo) },
     );

@@ -37,9 +37,7 @@ export async function closeRoutineBlock(
   mode: { effective_to: string } | { delete: true },
 ): Promise<Row> {
   const set =
-    'effective_to' in mode
-      ? sql`effective_to = ${mode.effective_to}`
-      : sql`deleted_at = now()`;
+    'effective_to' in mode ? sql`effective_to = ${mode.effective_to}` : sql`deleted_at = now()`;
   const { rows } = await tx.execute<Row>(
     sql`update routine_blocks set ${set}, version = version + 1 where id = ${blockId} returning *`,
   );

@@ -52,9 +52,19 @@ export default function Drafting() {
 
   return (
     <Page>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, gap: 24 }}>
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 20,
+          gap: 24,
+        }}
+      >
         <DialLoader color={c.acc} />
-        <T size={20} weight="700" style={{ textAlign: 'center' }}>Drafting your plan</T>
+        <T size={20} weight="700" style={{ textAlign: 'center' }}>
+          Drafting your plan
+        </T>
         <StepList steps={STEPS} active={plan ? Math.min(STEPS.length - 1, plan.version) : 0} />
         <T size={14} weight="500" color={c.muted} style={{ textAlign: 'center', maxWidth: 280 }}>
           {draftingSub()}

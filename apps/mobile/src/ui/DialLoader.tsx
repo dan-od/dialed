@@ -22,11 +22,7 @@ export function DialLoader({ color }: { color: string }) {
 
   useEffect(() => {
     if (reduce) return;
-    rot.value = withRepeat(
-      withTiming(360, { duration: 1200, easing: Easing.linear }),
-      -1,
-      false,
-    );
+    rot.value = withRepeat(withTiming(360, { duration: 1200, easing: Easing.linear }), -1, false);
     return () => cancelAnimation(rot);
   }, [reduce, rot]);
 

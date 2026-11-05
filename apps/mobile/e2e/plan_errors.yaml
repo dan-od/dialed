@@ -15,7 +15,7 @@ appId: me.okoro.dialed
 - inputText: 'Do anything with my schedule'
 - hideKeyboard
 - tapOn: 'Send'
-- extendedWaitUntil: { visible: ".*didn.t answer|.*can.t reach .*", timeout: 30000 }
+- extendedWaitUntil: { visible: '.*didn.t answer|.*can.t reach .*', timeout: 30000 }
 - waitForAnimationToEnd: { timeout: 3000 }
 - takeScreenshot: error-first-${THEME}
 
@@ -24,7 +24,7 @@ appId: me.okoro.dialed
     when: { visible: 'Try again.*' }
     commands:
       - tapOn: 'Try again.*'
-      - extendedWaitUntil: { visible: ".*didn.t answer|.*can.t reach .*", timeout: 30000 }
+      - extendedWaitUntil: { visible: '.*didn.t answer|.*can.t reach .*', timeout: 30000 }
       - waitForAnimationToEnd: { timeout: 3000 }
       - takeScreenshot: error-retry-${THEME}
 

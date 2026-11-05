@@ -34,9 +34,7 @@ export async function requestNotificationPermission(): Promise<Perm> {
 
 async function cancelReminderNotifications() {
   const all = await Notifications.getAllScheduledNotificationsAsync();
-  const ids = all
-    .filter((n) => n.identifier.startsWith(REMINDER_PREFIX))
-    .map((n) => n.identifier);
+  const ids = all.filter((n) => n.identifier.startsWith(REMINDER_PREFIX)).map((n) => n.identifier);
   if (ids.length) await Notifications.cancelScheduledNotificationAsync(ids[0]!);
   for (const id of ids.slice(1)) {
     await Notifications.cancelScheduledNotificationAsync(id);

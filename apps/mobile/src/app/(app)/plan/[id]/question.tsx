@@ -52,9 +52,13 @@ export default function Question() {
     <Page>
       <Header left={<BackLink label="Plan it" onPress={() => router.replace('/plan')} />} />
       <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 8, gap: 16 }}>
-        <T size={28} weight="700">One quick question</T>
+        <T size={28} weight="700">
+          One quick question
+        </T>
         <View style={{ padding: 16, borderRadius: 16, backgroundColor: c.surf, gap: 8 }}>
-          <T size={15} weight="600">{question.body}</T>
+          <T size={15} weight="600">
+            {question.body}
+          </T>
         </View>
         <View style={{ gap: 10 }}>
           {(question.options ?? []).map((opt) => (
@@ -75,7 +79,9 @@ export default function Question() {
                 opacity: pressed ? 0.85 : 1,
               })}
             >
-              <T size={15} weight="600">{opt}</T>
+              <T size={15} weight="600">
+                {opt}
+              </T>
             </Pressable>
           ))}
           <Pressable
@@ -90,7 +96,9 @@ export default function Question() {
               opacity: pressed ? 0.85 : 1,
             })}
           >
-            <T size={15} weight="600" color={c.acc2}>Something else, I’ll explain</T>
+            <T size={15} weight="600" color={c.acc2}>
+              Something else, I’ll explain
+            </T>
           </Pressable>
         </View>
       </View>

@@ -18,7 +18,7 @@ appId: me.okoro.dialed
 - takeScreenshot: question-${THEME}
 
 # Tap "Something else" → back to composer
-- tapOn: "Something else.*"
+- tapOn: 'Something else.*'
 - extendedWaitUntil: { visible: 'Plan it', timeout: 10000 }
 - waitForAnimationToEnd: { timeout: 2000 }
 - takeScreenshot: question-back-${THEME}

@@ -30,8 +30,10 @@ export default function PlanError() {
 
   useEffect(() => {
     if (plan && plan.status !== 'failed') {
-      if (plan.status === 'ready' || plan.status === 'stale') router.replace({ pathname: '/plan/[id]/review', params: { id } });
-      else if (plan.status === 'drafting') router.replace({ pathname: '/plan/[id]/drafting', params: { id } });
+      if (plan.status === 'ready' || plan.status === 'stale')
+        router.replace({ pathname: '/plan/[id]/review', params: { id } });
+      else if (plan.status === 'drafting')
+        router.replace({ pathname: '/plan/[id]/drafting', params: { id } });
     }
   }, [plan?.status, id, router]);
 
@@ -62,7 +64,15 @@ export default function PlanError() {
 
   return (
     <Page>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, gap: 16 }}>
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 20,
+          gap: 16,
+        }}
+      >
         <T size={28} weight="700" style={{ textAlign: 'center' }}>
           {exhausted ? `Still can’t reach ${ai}` : `${ai} didn’t answer`}
         </T>
@@ -71,8 +81,12 @@ export default function PlanError() {
         </T>
         {plan?.request_text ? (
           <View style={{ padding: 12, borderRadius: 12, backgroundColor: c.surf2, maxWidth: 300 }}>
-            <T size={13} weight="500" color={c.muted} numberOfLines={3}>Your request, saved</T>
-            <T size={14} weight="500" numberOfLines={3} style={{ marginTop: 4 }}>{plan.request_text}</T>
+            <T size={13} weight="500" color={c.muted} numberOfLines={3}>
+              Your request, saved
+            </T>
+            <T size={14} weight="500" numberOfLines={3} style={{ marginTop: 4 }}>
+              {plan.request_text}
+            </T>
           </View>
         ) : null}
       </View>

@@ -27,7 +27,7 @@ export default function Review() {
   const { plan, refresh, setPlan } = usePlan(planApi, id);
   const [busy, setBusy] = useState(false);
 
-  const cards = useMemo(() => plan ? toChangeCards(plan) : [], [plan]);
+  const cards = useMemo(() => (plan ? toChangeCards(plan) : []), [plan]);
   const enabled = enabledCount(cards);
   const stale = plan?.status === 'stale';
 
@@ -36,15 +36,18 @@ export default function Review() {
     : null;
   const termName = term?.name ?? 'your schedule';
 
-  const toggleChange = useCallback(async (changeId: string, value: boolean) => {
-    haptic.selection();
-    try {
-      const updated = await planApi.toggle(id, changeId, { enabled: value });
-      setPlan(updated);
-    } catch {
-      toast('Couldn’t update that change. Try again.');
-    }
-  }, [id, planApi, setPlan, toast]);
+  const toggleChange = useCallback(
+    async (changeId: string, value: boolean) => {
+      haptic.selection();
+      try {
+        const updated = await planApi.toggle(id, changeId, { enabled: value });
+        setPlan(updated);
+      } catch {
+        toast('Couldn’t update that change. Try again.');
+      }
+    },
+    [id, planApi, setPlan, toast],
+  );
 
   const approve = useCallback(async () => {
     if (!plan || busy) return;
@@ -100,14 +103,29 @@ export default function Review() {
       <Header
         left={<BackLink label="Plan it" onPress={() => router.replace('/plan')} />}
         right={
-          <Button kind="destructive" label="Discard" onPress={() => void discard()} style={{ width: 80, height: 36 }} />
+          <Button
+            kind="destructive"
+            label="Discard"
+            onPress={() => void discard()}
+            style={{ width: 80, height: 36 }}
+          />
         }
       />
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 120 }}>
-        <T size={28} weight="700">{reviewTitle(cards.length, termName)}</T>
-        {source ? <T size={14} weight="500" color={c.muted} style={{ marginTop: 4 }}>{source}</T> : null}
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 120 }}
+      >
+        <T size={28} weight="700">
+          {reviewTitle(cards.length, termName)}
+        </T>
+        {source ? (
+          <T size={14} weight="500" color={c.muted} style={{ marginTop: 4 }}>
+            {source}
+          </T>
+        ) : null}
         <View style={{ marginTop: 4, padding: 12, borderRadius: 12, backgroundColor: c.surf2 }}>
-          <T size={13} weight="500" color={c.muted} numberOfLines={2}>{plan.request_text}</T>
+          <T size={13} weight="500" color={c.muted} numberOfLines={2}>
+            {plan.request_text}
+          </T>
         </View>
 
         {stale ? (
@@ -123,15 +141,29 @@ export default function Review() {
               entering={reduce ? undefined : FadeInDown.delay(i * 80).duration(250)}
               style={{ padding: 14, borderRadius: 16, backgroundColor: c.surf, gap: 6 }}
             >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
                 <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flex: 1 }}>
-                  <View style={{
-                    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
-                    backgroundColor: c.surf2,
-                  }}>
-                    <T size={11} weight="700" color={c.muted}>{card.tag}</T>
+                  <View
+                    style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 2,
+                      borderRadius: 6,
+                      backgroundColor: c.surf2,
+                    }}
+                  >
+                    <T size={11} weight="700" color={c.muted}>
+                      {card.tag}
+                    </T>
                   </View>
-                  <T size={15} weight="700" numberOfLines={1} style={{ flex: 1 }}>{card.title}</T>
+                  <T size={15} weight="700" numberOfLines={1} style={{ flex: 1 }}>
+                    {card.title}
+                  </T>
                 </View>
                 <Switch
                   accessibilityLabel={`Include: ${card.title}`}
@@ -141,20 +173,40 @@ export default function Review() {
                   disabled={stale}
                 />
               </View>
-              {card.fromTo ? <T size={13} weight="500" color={c.muted}>{card.fromTo}</T> : null}
-              <T size={13} weight="500" color={c.soft}>{card.note}</T>
+              {card.fromTo ? (
+                <T size={13} weight="500" color={c.muted}>
+                  {card.fromTo}
+                </T>
+              ) : null}
+              <T size={13} weight="500" color={c.soft}>
+                {card.note}
+              </T>
             </Animated.View>
           ))}
         </View>
 
         {(plan.impact ?? []).length > 0 ? (
           <View style={{ marginTop: 20 }}>
-            <T size={13} weight="700" color={c.muted} style={{ textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>
+            <T
+              size={13}
+              weight="700"
+              color={c.muted}
+              style={{ textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}
+            >
               What this does to your week
             </T>
             {(plan.impact ?? []).map((row) => (
-              <View key={row.label} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
-                <T size={14} weight="600">{row.label}</T>
+              <View
+                key={row.label}
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  paddingVertical: 6,
+                }}
+              >
+                <T size={14} weight="600">
+                  {row.label}
+                </T>
                 <T size={14} weight="500" color={c.muted}>
                   {row.before} → {row.after}
                 </T>

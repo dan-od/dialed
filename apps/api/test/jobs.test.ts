@@ -13,14 +13,22 @@ beforeAll(async () => {
   owner = await login(t, OWNER.email);
 });
 afterAll(async () => {
-  await t.db.execute(sql`delete from jobs where kind in ('plan.retry','push.plan_ready','plans.sweep','test.job')`);
-  await t.db.execute(sql`delete from plan_changes where plan_id in (select id from plans where user_id = ${OWNER.id})`);
-  await t.db.execute(sql`delete from plan_messages where plan_id in (select id from plans where user_id = ${OWNER.id})`);
+  await t.db.execute(
+    sql`delete from jobs where kind in ('plan.retry','push.plan_ready','plans.sweep','test.job')`,
+  );
+  await t.db.execute(
+    sql`delete from plan_changes where plan_id in (select id from plans where user_id = ${OWNER.id})`,
+  );
+  await t.db.execute(
+    sql`delete from plan_messages where plan_id in (select id from plans where user_id = ${OWNER.id})`,
+  );
   await t.db.execute(sql`delete from plans where user_id = ${OWNER.id}`);
   await t.db.execute(sql`delete from usage_counters where user_id = ${OWNER.id}`);
   await t.close();
 });
-beforeEach(() => { logs.length = 0; });
+beforeEach(() => {
+  logs.length = 0;
+});
 
 async function waitFor(fn: () => Promise<boolean>, ms = 3000) {
   const end = Date.now() + ms;
@@ -134,7 +142,10 @@ describe('push.plan_ready handler', () => {
       log: (obj) => logs.push(obj),
     });
 
-    await handlers['push.plan_ready']({ plan_id: 'b0000000-0000-0000-0000-0000000000c1', user_id: OWNER.id });
+    await handlers['push.plan_ready']({
+      plan_id: 'b0000000-0000-0000-0000-0000000000c1',
+      user_id: OWNER.id,
+    });
     expect(logs[0]!.msg).toBe('deferred to quiet-hours end');
     expect(logs[0]!.deferMinutes).toBe(270); // 450 - 180
   });
@@ -159,7 +170,9 @@ describe('plans.sweep handler', () => {
 
     await handlers['plans.sweep']({});
 
-    const { rows: [plan] } = await t.db.execute<Record<string, unknown>>(
+    const {
+      rows: [plan],
+    } = await t.db.execute<Record<string, unknown>>(
       sql`select status, error_code from plans where id = ${planId}`,
     );
     expect(plan!.status).toBe('failed');
@@ -184,7 +197,9 @@ describe('plans.sweep handler', () => {
 
     await handlers['plans.sweep']({});
 
-    const { rows: [plan] } = await t.db.execute<Record<string, unknown>>(
+    const {
+      rows: [plan],
+    } = await t.db.execute<Record<string, unknown>>(
       sql`select status from plans where id = ${planId}`,
     );
     expect(plan!.status).toBe('drafting');

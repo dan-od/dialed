@@ -49,24 +49,42 @@ export default function Done() {
       <View
         accessible
         accessibilityRole="header"
-        style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, gap: 16 }}
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 20,
+          gap: 16,
+        }}
       >
         <Animated.View entering={BounceIn.duration(400)}>
           <T size={48}>{'✓'}</T>
         </Animated.View>
-        <T size={28} weight="700" style={{ textAlign: 'center' }}>{termName} updated</T>
+        <T size={28} weight="700" style={{ textAlign: 'center' }}>
+          {termName} updated
+        </T>
         <T size={15} weight="500" color={c.muted} style={{ textAlign: 'center', maxWidth: 280 }}>
           Changes start this week. Past days stay as they were.
         </T>
         <View style={{ gap: 4, marginTop: 8 }}>
           {applied.map((t) => (
-            <T key={t} size={14} weight="500" color={c.text}>{'•'} {t}</T>
+            <T key={t} size={14} weight="500" color={c.text}>
+              {'•'} {t}
+            </T>
           ))}
         </View>
       </View>
       <PinnedFooter>
-        <Button kind="primary" label="See this week" onPress={() => router.replace('/(app)/(tabs)/week')} />
-        <Button kind="secondary" label="Back to Routines" onPress={() => router.replace('/routines')} />
+        <Button
+          kind="primary"
+          label="See this week"
+          onPress={() => router.replace('/(app)/(tabs)/week')}
+        />
+        <Button
+          kind="secondary"
+          label="Back to Routines"
+          onPress={() => router.replace('/routines')}
+        />
       </PinnedFooter>
     </Page>
   );

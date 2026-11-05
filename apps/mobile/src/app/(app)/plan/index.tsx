@@ -9,7 +9,13 @@ import { termFor } from '@dialed/schedule';
 import { aiMode, aiName, aiProvider } from '../../../config';
 import { useApp } from '../../../AppProvider';
 import { useDraft } from '../../../plan/drafts';
-import { composerPlaceholder, composerSub, emptyError, planStatusLabel, planSourceLabel } from '../../../plan/copy';
+import {
+  composerPlaceholder,
+  composerSub,
+  emptyError,
+  planStatusLabel,
+  planSourceLabel,
+} from '../../../plan/copy';
 import { useTheme } from '../../../theme/theme';
 import { BackLink, Header, Page } from '../../../ui/Chrome';
 import { Button } from '../../../ui/Button';
@@ -46,7 +52,10 @@ export default function PlanComposer() {
   const ai = aiName();
 
   useEffect(() => {
-    void planApi.list(10).then((r) => setRecent(r.plans)).catch(() => {});
+    void planApi
+      .list(10)
+      .then((r) => setRecent(r.plans))
+      .catch(() => {});
   }, [planApi]);
 
   const send = useCallback(async () => {
@@ -70,7 +79,9 @@ export default function PlanComposer() {
         if (provider === 'compatible') {
           byoUrl = (await SecureStore.getItemAsync('ai.key.compatible.url')) ?? undefined;
         }
-      } catch { /* Keychain unavailable */ }
+      } catch {
+        /* Keychain unavailable */
+      }
     }
 
     try {
@@ -78,9 +89,10 @@ export default function PlanComposer() {
         {
           request_text: trimmed,
           provider_mode: mode === 'own' ? 'byo' : 'server',
-          provider: mode === 'own'
-            ? (provider === 'compatible' ? 'custom' : provider) as ProviderId
-            : undefined,
+          provider:
+            mode === 'own'
+              ? ((provider === 'compatible' ? 'custom' : provider) as ProviderId)
+              : undefined,
           idempotency_key: randomUUID(),
         },
         byoKey ? { provider_key: byoKey, provider_base_url: byoUrl } : undefined,
@@ -112,7 +124,9 @@ export default function PlanComposer() {
       <Header left={<BackLink label="Day" onPress={() => router.back()} />} />
       <ToastAwareScroll base={110} contentContainerStyle={{ paddingTop: 8, paddingBottom: 160 }}>
         <View style={{ paddingHorizontal: 20 }}>
-          <T accessibilityRole="header" size={28} weight="700">Plan it</T>
+          <T accessibilityRole="header" size={28} weight="700">
+            Plan it
+          </T>
           <T size={14} weight="500" color={c.muted} style={{ marginTop: 6, lineHeight: 20 }}>
             {composerSub()}
           </T>
@@ -133,7 +147,10 @@ export default function PlanComposer() {
             placeholder={composerPlaceholder()}
             placeholderTextColor={c.muted}
             value={text}
-            onChangeText={(v) => { update(v); setError(''); }}
+            onChangeText={(v) => {
+              update(v);
+              setError('');
+            }}
             multiline
             textAlignVertical="top"
             autoCorrect={false}
@@ -155,16 +172,31 @@ export default function PlanComposer() {
             }}
           />
           {text.length >= CHAR_WARN ? (
-            <T size={12} weight="600" color={text.length > 4000 ? c.err : c.muted} style={{ marginTop: 4, textAlign: 'right' }}>
+            <T
+              size={12}
+              weight="600"
+              color={text.length > 4000 ? c.err : c.muted}
+              style={{ marginTop: 4, textAlign: 'right' }}
+            >
               {text.length.toLocaleString()}
             </T>
           ) : null}
           {error ? (
-            <T size={13} weight="600" color={c.err} style={{ marginTop: 6 }}>{error}</T>
+            <T size={13} weight="600" color={c.err} style={{ marginTop: 6 }}>
+              {error}
+            </T>
           ) : null}
         </View>
 
-        <View style={{ flexDirection: 'row', gap: 8, marginHorizontal: 20, marginTop: 12, flexWrap: 'wrap' }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: 8,
+            marginHorizontal: 20,
+            marginTop: 12,
+            flexWrap: 'wrap',
+          }}
+        >
           {STARTERS.map((s) => (
             <Pressable
               key={s.label}
@@ -181,7 +213,9 @@ export default function PlanComposer() {
                 opacity: pressed ? 0.85 : 1,
               })}
             >
-              <T size={13} weight="600" color={c.text}>{s.label}</T>
+              <T size={13} weight="600" color={c.text}>
+                {s.label}
+              </T>
             </Pressable>
           ))}
         </View>
@@ -196,7 +230,12 @@ export default function PlanComposer() {
               size={11}
               weight="700"
               color={c.muted}
-              style={{ textTransform: 'uppercase', letterSpacing: 0.4, marginHorizontal: 20, marginBottom: 8 }}
+              style={{
+                textTransform: 'uppercase',
+                letterSpacing: 0.4,
+                marginHorizontal: 20,
+                marginBottom: 8,
+              }}
             >
               Recent
             </T>
@@ -212,15 +251,24 @@ export default function PlanComposer() {
                   backgroundColor: pressed ? c.surf : 'transparent',
                 })}
               >
-                <T size={14} weight="600" numberOfLines={1}>{p.request_text}</T>
+                <T size={14} weight="600" numberOfLines={1}>
+                  {p.request_text}
+                </T>
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
                   <T size={12} weight="500" color={c.muted}>
-                    {new Date(p.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    {new Date(p.created_at).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                    })}
                   </T>
                   {p.source === 'mcp' && p.client_name ? (
-                    <T size={12} weight="500" color={c.acc2}>From {p.client_name} chat</T>
+                    <T size={12} weight="500" color={c.acc2}>
+                      From {p.client_name} chat
+                    </T>
                   ) : (
-                    <T size={12} weight="500" color={c.muted}>{planStatusLabel(p as never)}</T>
+                    <T size={12} weight="500" color={c.muted}>
+                      {planStatusLabel(p as never)}
+                    </T>
                   )}
                 </View>
               </Pressable>

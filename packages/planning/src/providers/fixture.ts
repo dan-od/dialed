@@ -54,22 +54,26 @@ export function createFixtureProvider(requestText: string): PlanProvider & { _st
         const protectedBlockId = 'd88c4434-6cc3-503b-a898-ea648ce5a45c';
         return {
           content: '',
-          tool_calls: [{
-            name: 'propose_changes',
-            input: {
-              request_text: requestText,
-              changes: [{
-                kind: 'new',
-                title: 'Conflict block',
-                category_id: '82972f34-0c7e-5bbf-986d-3373a76f187f',
-                on_date: '2026-10-22',
-                start: '09:40',
-                end: '11:00',
-                note: 'Overlaps with protected class.',
-              }],
-              checks: [],
+          tool_calls: [
+            {
+              name: 'propose_changes',
+              input: {
+                request_text: requestText,
+                changes: [
+                  {
+                    kind: 'new',
+                    title: 'Conflict block',
+                    category_id: '82972f34-0c7e-5bbf-986d-3373a76f187f',
+                    on_date: '2026-10-22',
+                    start: '09:40',
+                    end: '11:00',
+                    note: 'Overlaps with protected class.',
+                  },
+                ],
+                checks: [],
+              },
             },
-          }] as ToolCall[],
+          ] as ToolCall[],
           tokens_in: 100,
           tokens_out: 50,
         };
@@ -79,10 +83,12 @@ export function createFixtureProvider(requestText: string): PlanProvider & { _st
       if (fixture.ask_user && step === 1 && !hasHistory) {
         return {
           content: '',
-          tool_calls: [{
-            name: 'ask_user',
-            input: { question: fixture.ask_user.question, options: fixture.ask_user.options },
-          }],
+          tool_calls: [
+            {
+              name: 'ask_user',
+              input: { question: fixture.ask_user.question, options: fixture.ask_user.options },
+            },
+          ],
           tokens_in: 100,
           tokens_out: 50,
         };
@@ -97,10 +103,12 @@ export function createFixtureProvider(requestText: string): PlanProvider & { _st
       if (source.propose_changes) {
         return {
           content: '',
-          tool_calls: [{
-            name: 'propose_changes',
-            input: source.propose_changes,
-          }],
+          tool_calls: [
+            {
+              name: 'propose_changes',
+              input: source.propose_changes,
+            },
+          ],
           tokens_in: 200,
           tokens_out: 100,
         };

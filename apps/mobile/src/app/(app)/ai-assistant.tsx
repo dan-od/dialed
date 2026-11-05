@@ -63,23 +63,26 @@ export default function AiAssistant() {
     void readKey(provider).then(setKey);
   }, [provider]);
 
-  const saveChoice = useCallback(async (m: Mode, p: Provider) => {
-    setAiConfig(m, p, p === 'compatible' ? model : undefined);
-    notifyAiNameChanged();
-    if (!profile) return;
-    const mut: Mutation = {
-      client_mutation_id: randomUUID(),
-      entity: 'profile',
-      op: 'upsert',
-      base_version: profile.version,
-      fields: { ai_mode: m === 'own' ? 'own' : 'server', ai_provider: p },
-    };
-    try {
-      await api.request('POST', '/v1/sync/push', { mutations: [mut] });
-    } catch {
-      // offline: saved locally via setAiConfig, syncs later
-    }
-  }, [profile, api, model]);
+  const saveChoice = useCallback(
+    async (m: Mode, p: Provider) => {
+      setAiConfig(m, p, p === 'compatible' ? model : undefined);
+      notifyAiNameChanged();
+      if (!profile) return;
+      const mut: Mutation = {
+        client_mutation_id: randomUUID(),
+        entity: 'profile',
+        op: 'upsert',
+        base_version: profile.version,
+        fields: { ai_mode: m === 'own' ? 'own' : 'server', ai_provider: p },
+      };
+      try {
+        await api.request('POST', '/v1/sync/push', { mutations: [mut] });
+      } catch {
+        // offline: saved locally via setAiConfig, syncs later
+      }
+    },
+    [profile, api, model],
+  );
 
   const switchMode = (m: Mode) => {
     setMode(m);
@@ -108,7 +111,7 @@ export default function AiAssistant() {
     }
     try {
       const result = await planApi.testKey(
-        provider === 'compatible' ? 'custom' : provider as ProviderId,
+        provider === 'compatible' ? 'custom' : (provider as ProviderId),
         { provider_key: key || undefined, provider_base_url: url || undefined },
       );
       setTestResult(result);
@@ -127,7 +130,9 @@ export default function AiAssistant() {
       <Header left={<BackLink label="Settings" onPress={() => router.back()} />} />
       <ToastAwareScroll base={110} contentContainerStyle={{ paddingTop: 8 }}>
         <View style={{ paddingHorizontal: 20 }}>
-          <T accessibilityRole="header" size={28} weight="700">AI assistant</T>
+          <T accessibilityRole="header" size={28} weight="700">
+            AI assistant
+          </T>
         </View>
 
         <SetGroup>
@@ -157,7 +162,15 @@ export default function AiAssistant() {
         ) : (
           <>
             <SetCap>Provider</SetCap>
-            <View style={{ flexDirection: 'row', gap: 8, marginHorizontal: 20, marginTop: 10, flexWrap: 'wrap' }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                gap: 8,
+                marginHorizontal: 20,
+                marginTop: 10,
+                flexWrap: 'wrap',
+              }}
+            >
               {(Object.keys(PROVIDER_LABELS) as Provider[]).map((p) => (
                 <Pressable
                   key={p}
@@ -197,8 +210,14 @@ export default function AiAssistant() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   style={{
-                    height: 48, borderRadius: 14, borderWidth: 1.5, borderColor: c.line,
-                    backgroundColor: c.surf, paddingHorizontal: 14, fontSize: 15, color: c.text,
+                    height: 48,
+                    borderRadius: 14,
+                    borderWidth: 1.5,
+                    borderColor: c.line,
+                    backgroundColor: c.surf,
+                    paddingHorizontal: 14,
+                    fontSize: 15,
+                    color: c.text,
                   }}
                 />
                 <TextInput
@@ -210,8 +229,14 @@ export default function AiAssistant() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   style={{
-                    height: 48, borderRadius: 14, borderWidth: 1.5, borderColor: c.line,
-                    backgroundColor: c.surf, paddingHorizontal: 14, fontSize: 15, color: c.text,
+                    height: 48,
+                    borderRadius: 14,
+                    borderWidth: 1.5,
+                    borderColor: c.line,
+                    backgroundColor: c.surf,
+                    paddingHorizontal: 14,
+                    fontSize: 15,
+                    color: c.text,
                   }}
                 />
               </View>
@@ -223,13 +248,22 @@ export default function AiAssistant() {
                 placeholder="Paste your API key"
                 placeholderTextColor={c.muted}
                 value={key}
-                onChangeText={(v) => { setKey(v); setTestResult(null); }}
+                onChangeText={(v) => {
+                  setKey(v);
+                  setTestResult(null);
+                }}
                 autoCapitalize="none"
                 autoCorrect={false}
                 secureTextEntry
                 style={{
-                  height: 48, borderRadius: 14, borderWidth: 1.5, borderColor: c.line,
-                  backgroundColor: c.surf, paddingHorizontal: 14, fontSize: 15, color: c.text,
+                  height: 48,
+                  borderRadius: 14,
+                  borderWidth: 1.5,
+                  borderColor: c.line,
+                  backgroundColor: c.surf,
+                  paddingHorizontal: 14,
+                  fontSize: 15,
+                  color: c.text,
                 }}
               />
               <Button
@@ -256,10 +290,12 @@ export default function AiAssistant() {
         <SetCap>How it works</SetCap>
         <View style={{ marginHorizontal: 20, marginTop: 8, gap: 8 }}>
           <T size={14} weight="500" color={c.muted} style={{ lineHeight: 20 }}>
-            {aiName()} reads your schedule and the planning guide, then drafts changes. Nothing moves until you approve.
+            {aiName()} reads your schedule and the planning guide, then drafts changes. Nothing
+            moves until you approve.
           </T>
           <T size={14} weight="500" color={c.muted} style={{ lineHeight: 20 }}>
-            Every AI follows the same rules: no overlap, no past-date edits, and your limits always apply.
+            Every AI follows the same rules: no overlap, no past-date edits, and your limits always
+            apply.
           </T>
         </View>
       </ToastAwareScroll>

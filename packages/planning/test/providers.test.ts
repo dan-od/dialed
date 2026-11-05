@@ -11,7 +11,9 @@ vi.mock('../src/providers/http', async (importOriginal) => {
 const loadRecording = (name: string) =>
   JSON.parse(readFileSync(join(__dirname, 'recordings', `${name}.json`), 'utf8'));
 
-beforeEach(() => { vi.restoreAllMocks(); });
+beforeEach(() => {
+  vi.restoreAllMocks();
+});
 
 async function mockSafeFetch(recording: { status: number; body: object }) {
   const { safeFetch } = await import('../src/providers/http');
@@ -24,35 +26,49 @@ async function mockSafeFetch(recording: { status: number; body: object }) {
 
 describe('isPrivateIp', () => {
   it.each([
-    '127.0.0.1', '10.0.0.1', '172.16.0.1', '172.31.255.255',
-    '192.168.1.1', '169.254.0.1', '0.0.0.0', '::1', 'fc00::1', 'fd12::1', 'fe80::1',
+    '127.0.0.1',
+    '10.0.0.1',
+    '172.16.0.1',
+    '172.31.255.255',
+    '192.168.1.1',
+    '169.254.0.1',
+    '0.0.0.0',
+    '::1',
+    'fc00::1',
+    'fd12::1',
+    'fe80::1',
   ])('blocks %s', (ip) => {
     expect(isPrivateIp(ip)).toBe(true);
   });
 
-  it.each([
-    '8.8.8.8', '1.1.1.1', '172.32.0.1', '192.169.0.1', '2607:f8b0:4004:800::200e',
-  ])('allows %s', (ip) => {
-    expect(isPrivateIp(ip)).toBe(false);
-  });
+  it.each(['8.8.8.8', '1.1.1.1', '172.32.0.1', '192.169.0.1', '2607:f8b0:4004:800::200e'])(
+    'allows %s',
+    (ip) => {
+      expect(isPrivateIp(ip)).toBe(false);
+    },
+  );
 });
 
 describe('safeFetch SSRF', () => {
   it('rejects http:// URLs', async () => {
-    const { safeFetch: realSafeFetch } = await vi.importActual<typeof import('../src/providers/http')>('../src/providers/http');
+    const { safeFetch: realSafeFetch } =
+      await vi.importActual<typeof import('../src/providers/http')>('../src/providers/http');
     await expect(realSafeFetch({ url: 'http://example.com' })).rejects.toThrow('only HTTPS');
   });
 
   it('rejects private IP in URL', async () => {
-    const { safeFetch: realSafeFetch } = await vi.importActual<typeof import('../src/providers/http')>('../src/providers/http');
+    const { safeFetch: realSafeFetch } =
+      await vi.importActual<typeof import('../src/providers/http')>('../src/providers/http');
     await expect(realSafeFetch({ url: 'https://127.0.0.1/test' })).rejects.toThrow('private IP');
   });
 
   it('allows private IP when allowPrivate is set', async () => {
-    const { safeFetch: realSafeFetch } = await vi.importActual<typeof import('../src/providers/http')>('../src/providers/http');
+    const { safeFetch: realSafeFetch } =
+      await vi.importActual<typeof import('../src/providers/http')>('../src/providers/http');
     // This will fail on connection (no server), NOT on SSRF check
-    await expect(realSafeFetch({ url: 'https://127.0.0.1/test', allowPrivate: true, timeoutMs: 500 }))
-      .rejects.not.toThrow(SsrfError);
+    await expect(
+      realSafeFetch({ url: 'https://127.0.0.1/test', allowPrivate: true, timeoutMs: 500 }),
+    ).rejects.not.toThrow(SsrfError);
   });
 });
 
@@ -82,25 +98,39 @@ describe('provider contract: Anthropic', () => {
   it('throws provider_key_invalid on 401', async () => {
     const { safeFetch } = await import('../src/providers/http');
     vi.mocked(safeFetch).mockResolvedValueOnce({
-      status: 401, headers: {}, body: '{"error":{"type":"authentication_error"}}',
+      status: 401,
+      headers: {},
+      body: '{"error":{"type":"authentication_error"}}',
     });
     const { createAnthropicProvider } = await import('../src/providers/anthropic');
     const provider = createAnthropicProvider({ apiKey: 'bad', model: 'test' });
-    await expect(provider.run({
-      system: '', messages: [{ role: 'user', content: 'test' }], tools: [], maxTokens: 16,
-    })).rejects.toThrow('provider_key_invalid');
+    await expect(
+      provider.run({
+        system: '',
+        messages: [{ role: 'user', content: 'test' }],
+        tools: [],
+        maxTokens: 16,
+      }),
+    ).rejects.toThrow('provider_key_invalid');
   });
 
   it('throws provider_error on 500', async () => {
     const { safeFetch } = await import('../src/providers/http');
     vi.mocked(safeFetch).mockResolvedValueOnce({
-      status: 500, headers: {}, body: '{"error":"internal"}',
+      status: 500,
+      headers: {},
+      body: '{"error":"internal"}',
     });
     const { createAnthropicProvider } = await import('../src/providers/anthropic');
     const provider = createAnthropicProvider({ apiKey: 'test', model: 'test' });
-    await expect(provider.run({
-      system: '', messages: [{ role: 'user', content: 'test' }], tools: [], maxTokens: 16,
-    })).rejects.toThrow('provider_error');
+    await expect(
+      provider.run({
+        system: '',
+        messages: [{ role: 'user', content: 'test' }],
+        tools: [],
+        maxTokens: 16,
+      }),
+    ).rejects.toThrow('provider_error');
   });
 });
 
@@ -128,13 +158,20 @@ describe('provider contract: OpenAI', () => {
   it('throws provider_key_invalid on 403', async () => {
     const { safeFetch } = await import('../src/providers/http');
     vi.mocked(safeFetch).mockResolvedValueOnce({
-      status: 403, headers: {}, body: '{"error":{"message":"forbidden"}}',
+      status: 403,
+      headers: {},
+      body: '{"error":{"message":"forbidden"}}',
     });
     const { createOpenAIProvider } = await import('../src/providers/openai');
     const provider = createOpenAIProvider({ apiKey: 'bad', model: 'test' });
-    await expect(provider.run({
-      system: '', messages: [{ role: 'user', content: 'test' }], tools: [], maxTokens: 16,
-    })).rejects.toThrow('provider_key_invalid');
+    await expect(
+      provider.run({
+        system: '',
+        messages: [{ role: 'user', content: 'test' }],
+        tools: [],
+        maxTokens: 16,
+      }),
+    ).rejects.toThrow('provider_key_invalid');
   });
 });
 

@@ -40,7 +40,13 @@ export interface PlanStep {
 }
 
 export type RunPlanResult =
-  | { status: 'ready'; changes: PlanChange[]; checks: PlanCheck[]; tokensIn: number; tokensOut: number }
+  | {
+      status: 'ready';
+      changes: PlanChange[];
+      checks: PlanCheck[];
+      tokensIn: number;
+      tokensOut: number;
+    }
   | { status: 'question'; question: string; options: string[]; tokensIn: number; tokensOut: number }
   | { status: 'failed'; error: string; code: string; tokensIn: number; tokensOut: number }
   | { status: 'nothing'; text: string; tokensIn: number; tokensOut: number };
@@ -60,10 +66,7 @@ export interface RunPlanOpts {
 
 export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
   const limits = { ...DEFAULT_LIMITS, ...opts.limits };
-  const messages: ProviderMessage[] = [
-    ...opts.history,
-    { role: 'user', content: opts.request },
-  ];
+  const messages: ProviderMessage[] = [...opts.history, { role: 'user', content: opts.request }];
   let totalIn = 0;
   let totalOut = 0;
   let turns = 0;
@@ -73,10 +76,22 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
 
   while (turns < limits.maxToolTurns) {
     if (opts.signal?.aborted) {
-      return { status: 'failed', error: 'Cancelled.', code: 'cancelled', tokensIn: totalIn, tokensOut: totalOut };
+      return {
+        status: 'failed',
+        error: 'Cancelled.',
+        code: 'cancelled',
+        tokensIn: totalIn,
+        tokensOut: totalOut,
+      };
     }
     if (Date.now() - start > limits.maxWallMs) {
-      return { status: 'failed', error: 'Timed out.', code: 'provider_error', tokensIn: totalIn, tokensOut: totalOut };
+      return {
+        status: 'failed',
+        error: 'Timed out.',
+        code: 'provider_error',
+        tokensIn: totalIn,
+        tokensOut: totalOut,
+      };
     }
 
     let response;
@@ -90,7 +105,13 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Provider error';
-      return { status: 'failed', error: msg, code: 'provider_error', tokensIn: totalIn, tokensOut: totalOut };
+      return {
+        status: 'failed',
+        error: msg,
+        code: 'provider_error',
+        tokensIn: totalIn,
+        tokensOut: totalOut,
+      };
     }
 
     totalIn += response.tokens_in;
@@ -100,20 +121,35 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
 
     if (response.tool_calls.length === 0) {
       if (response.content) {
-        return { status: 'nothing', text: response.content, tokensIn: totalIn, tokensOut: totalOut };
+        return {
+          status: 'nothing',
+          text: response.content,
+          tokensIn: totalIn,
+          tokensOut: totalOut,
+        };
       }
-      return { status: 'failed', error: 'No response from provider.', code: 'provider_error', tokensIn: totalIn, tokensOut: totalOut };
+      return {
+        status: 'failed',
+        error: 'No response from provider.',
+        code: 'provider_error',
+        tokensIn: totalIn,
+        tokensOut: totalOut,
+      };
     }
 
     for (const call of response.tool_calls) {
       if (call.name === 'propose_changes') {
-        const input = call.input as { request_text?: string; changes: PlanChange[]; checks?: PlanCheck[] };
+        const input = call.input as {
+          request_text?: string;
+          changes: PlanChange[];
+          checks?: PlanCheck[];
+        };
         const result = opts.skipValidation
           ? { errors: [], checks: input.checks ?? [], ops: [] }
           : validate(
-            { request_text: input.request_text ?? opts.request, changes: input.changes },
-            opts.ctx,
-          );
+              { request_text: input.request_text ?? opts.request, changes: input.changes },
+              opts.ctx,
+            );
 
         if (result.errors.length > 0) {
           validationRounds++;
@@ -135,7 +171,13 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
           messages.push({
             role: 'tool_result',
             content: JSON.stringify({ status: 'invalid', errors: result.errors }),
-            tool_results: [{ name: 'propose_changes', output: { status: 'invalid', errors: result.errors }, is_error: true }],
+            tool_results: [
+              {
+                name: 'propose_changes',
+                output: { status: 'invalid', errors: result.errors },
+                is_error: true,
+              },
+            ],
           });
           continue;
         }
@@ -171,10 +213,18 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
       messages.push({
         role: 'tool_result',
         content: JSON.stringify({ error: `Unknown tool: ${call.name}` }),
-        tool_results: [{ name: call.name, output: { error: `Unknown tool: ${call.name}` }, is_error: true }],
+        tool_results: [
+          { name: call.name, output: { error: `Unknown tool: ${call.name}` }, is_error: true },
+        ],
       });
     }
   }
 
-  return { status: 'failed', error: 'Too many tool turns.', code: 'provider_error', tokensIn: totalIn, tokensOut: totalOut };
+  return {
+    status: 'failed',
+    error: 'Too many tool turns.',
+    code: 'provider_error',
+    tokensIn: totalIn,
+    tokensOut: totalOut,
+  };
 }
