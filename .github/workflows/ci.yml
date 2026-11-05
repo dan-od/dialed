@@ -36,25 +36,25 @@ jobs:
       - name: Write CI .env
         run: |
           cat > .env <<'ENV'
-          NODE_ENV=test
-          APP_NAME=Dialed
-          PUBLIC_BASE_URL=http://localhost:8080
-          PORT=8080
-          HOST=127.0.0.1
-          LOG_LEVEL=silent
-          SIGNUP_MODE=open
-          APPLE_TEAM_TIER=personal
-          POSTGRES_PASSWORD=ci-test-password
-          DATABASE_URL=postgres://dialed:ci-test-password@127.0.0.1:5432/dialed
-          JWT_PRIVATE_KEY_FILE=.secrets/jwt-ed25519.pem
-          JWT_KEY_ID=ci-1
-          CODE_PEPPER=0000000000000000000000000000000000000000000000000000000000000001
-          EMAIL_TRANSPORT=console
-          EMAIL_FROM=Dialed <no-reply@okoro.me>
-          APNS_MODE=log
-          AI_MODE=fixture
-          MCP_ENABLED=false
-          FLOW_BY_FLOW_REPORT_DIR=evidence/verification
+          NODE_ENV="test"
+          APP_NAME="Dialed"
+          PUBLIC_BASE_URL="http://localhost:8080"
+          PORT="8080"
+          HOST="127.0.0.1"
+          LOG_LEVEL="silent"
+          SIGNUP_MODE="open"
+          APPLE_TEAM_TIER="personal"
+          POSTGRES_PASSWORD="ci-test-password"
+          DATABASE_URL="postgres://dialed:ci-test-password@127.0.0.1:5432/dialed"
+          JWT_PRIVATE_KEY_FILE=".secrets/jwt-ed25519.pem"
+          JWT_KEY_ID="ci-1"
+          CODE_PEPPER="0000000000000000000000000000000000000000000000000000000000000001"
+          EMAIL_TRANSPORT="console"
+          EMAIL_FROM="Dialed <no-reply@okoro.me>"
+          APNS_MODE="log"
+          AI_MODE="fixture"
+          MCP_ENABLED="false"
+          FLOW_BY_FLOW_REPORT_DIR="evidence/verification"
           ENV
           sed -i 's/^ *//' .env
           chmod 600 .env

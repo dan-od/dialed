@@ -79,7 +79,7 @@ export default function AiAssistant() {
   }, [api]);
 
   useEffect(() => {
-    if (FEATURES.d35Screens) void refreshConnectors();
+    if (FEATURES.d35Screens) void refreshConnectors(); // eslint-disable-line react-hooks/set-state-in-effect -- fetch on mount
   }, [refreshConnectors]);
 
   const copyUrl = async () => {
