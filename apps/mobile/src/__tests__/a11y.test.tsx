@@ -18,7 +18,7 @@ import { Seg } from '../week/Seg';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { seedData } = require('../../../../packages/schedule/test/seed');
 const data = seedData();
-const NOW = { date: '2026-10-19', minute: 795 };
+const NOW = { date: '2037-10-19', minute: 795 };
 const c = colors.dark;
 const wrap = (ui: React.ReactElement) => (
   <SafeAreaProvider
@@ -32,8 +32,8 @@ const wrap = (ui: React.ReactElement) => (
 );
 
 const day = dayModel({
-  blocks: resolveDay('2026-10-19', data).blocks,
-  tomorrow: resolveDay('2026-10-20', data).blocks,
+  blocks: resolveDay('2037-10-19', data).blocks,
+  tomorrow: resolveDay('2037-10-20', data).blocks,
   minute: 795,
   dayStart: 450,
   dayEnd: 1440,
@@ -138,7 +138,7 @@ describe('Week, cards, month', () => {
     expect(screen.getByLabelText('Gym, 6 days')).toBeTruthy();
   });
   it('month chart and axis are hidden from VoiceOver (the poster text and week rows are the accessible path)', async () => {
-    const m = monthModel(data, '2026-10', NOW, { isLight: false });
+    const m = monthModel(data, '2037-10', NOW, { isLight: false });
     await render(<MonthChart days={m.days} axis={m.axis} notes={m.axisNotes} />);
     expect(screen.queryByText('Thanksgiving')).toBeNull(); // not in the accessibility tree
     expect(screen.getByText('Thanksgiving', { includeHiddenElements: true })).toBeTruthy();

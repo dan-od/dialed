@@ -1,26 +1,38 @@
 {
-  "started_at": "2026-10-21T05:37:15.672Z",
-  "database": "dialed_replay_17456",
+  "started_at": "2026-11-05T18:01:19.289Z",
+  "database": "dialed_replay_87951",
   "migrations": [
     {
       "version": "0001_init",
       "sha256": "8e42714feb2925395d171b025bc56895a2f4ad3f023b2424ffac6ab4355c5a09"
+    },
+    {
+      "version": "0002_plans_engine",
+      "sha256": "a94c3db8836c8cab2fb54cddf62cc76bde0d43c072e83688208af80a0cb66b7c"
+    },
+    {
+      "version": "0003_mcp_oauth",
+      "sha256": "6bd0a00dbce37d7ac13299f5f07b4e03e4d3d4232f087c4419ce09ac36d0c7a7"
     }
   ],
   "first_run": {
     "applied": [
-      "0001_init"
+      "0001_init",
+      "0002_plans_engine",
+      "0003_mcp_oauth"
     ],
     "skipped": []
   },
   "second_run": {
     "applied": [],
     "skipped": [
-      "0001_init"
+      "0001_init",
+      "0002_plans_engine",
+      "0003_mcp_oauth"
     ]
   },
-  "fingerprint": "d96f06751cffd5dea494920ebb5fe11d",
-  "expected_fingerprint": "d96f06751cffd5dea494920ebb5fe11d",
+  "fingerprint": "71aefadcfe611e2d55b40cd32959a9b0",
+  "expected_fingerprint": "71aefadcfe611e2d55b40cd32959a9b0",
   "fingerprint_matches": true,
   "second_run_applied_nothing": true,
   "tampered_checksum_refused": true,
@@ -29,8 +41,16 @@
     {
       "version": "0001_init",
       "sha256": "8e42714feb2925395d171b025bc56895a2f4ad3f023b2424ffac6ab4355c5a09"
+    },
+    {
+      "version": "0002_plans_engine",
+      "sha256": "a94c3db8836c8cab2fb54cddf62cc76bde0d43c072e83688208af80a0cb66b7c"
+    },
+    {
+      "version": "0003_mcp_oauth",
+      "sha256": "6bd0a00dbce37d7ac13299f5f07b4e03e4d3d4232f087c4419ce09ac36d0c7a7"
     }
   ],
   "ok": true,
-  "finished_at": "2026-10-21T05:37:16.094Z"
+  "finished_at": "2026-11-05T18:01:19.839Z"
 }

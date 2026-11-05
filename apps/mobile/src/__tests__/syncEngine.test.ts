@@ -20,8 +20,8 @@ const CAT = {
 const TERM = {
   id: 't1',
   name: 'Fall term',
-  starts_on: '2026-09-14',
-  ends_on: '2026-12-11',
+  starts_on: '2037-09-14',
+  ends_on: '2037-12-11',
   is_draft: false,
   version: 1,
   deleted_at: null,
@@ -35,7 +35,7 @@ const BLOCK = {
   end_min: 870,
   title: 'Sermon Sync',
   category_id: 'c1',
-  effective_from: '2026-09-14',
+  effective_from: '2037-09-14',
   effective_to: null,
   version: 1,
   deleted_at: null,
@@ -162,7 +162,7 @@ describe('SyncEngine', () => {
     expect(engine.status.hasData).toBe(true);
     server.online = false; // offline from here on
     const data = await store.load();
-    expect(resolveDay('2026-10-19', data.schedule).blocks.map((b) => b.title)).toEqual([
+    expect(resolveDay('2037-10-19', data.schedule).blocks.map((b) => b.title)).toEqual([
       'Sermon Sync',
     ]);
     expect(data.profile?.day_start_min).toBe(450);

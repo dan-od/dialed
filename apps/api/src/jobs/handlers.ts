@@ -189,15 +189,10 @@ export function createHandlers(deps: HandlerDeps) {
       if (isInQuietHours(minute, quietStart, quietEnd)) {
         const deferMinutes = minutesUntilQuietEnd(minute, quietEnd);
         const deferAt = new Date(now().getTime() + deferMinutes * 60_000);
-        await enqueue(
-          db,
-          'push.chat_draft',
-          payload as Record<string, unknown>,
-          {
-            runAt: deferAt,
-            dedupeKey: `chat_draft:${p.plan_id}:deferred`,
-          },
-        );
+        await enqueue(db, 'push.chat_draft', payload as Record<string, unknown>, {
+          runAt: deferAt,
+          dedupeKey: `chat_draft:${p.plan_id}:deferred`,
+        });
         log({
           kind: 'push.chat_draft',
           msg: 'deferred to quiet-hours end',

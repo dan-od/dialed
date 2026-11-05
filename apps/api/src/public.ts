@@ -26,21 +26,4 @@ export function publicRoutes(app: FastifyInstance, config: Config) {
       )
       .send(RESET_PAGE(config.APP_NAME)),
   );
-
-  // MCP is built in Flow 07. Until then every caller is unauthenticated here: app tokens are never MCP tokens.
-  app.all('/mcp', async (_req, reply) =>
-    reply
-      .code(401)
-      .header(
-        'www-authenticate',
-        `Bearer resource_metadata="${config.PUBLIC_BASE_URL}/.well-known/oauth-protected-resource"`,
-      )
-      .send({
-        error: {
-          code: 'unauthorized',
-          message: 'Connect this app to Dialed first.',
-          retryable: false,
-        },
-      }),
-  );
 }

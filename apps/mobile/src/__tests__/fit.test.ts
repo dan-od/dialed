@@ -4,7 +4,7 @@ import { fitModel, nextFree } from '../blocks/fit';
 // v11 fit strip (Add/Edit/Move sheets): worked examples from the prototype's seed, which matches ours.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { seedData } = require('../../../../packages/schedule/test/seed');
-const mon = resolveDay('2026-10-19', seedData()).blocks.map((b) => ({ ...b, color: '#000000' }));
+const mon = resolveDay('2037-10-19', seedData()).blocks.map((b) => ({ ...b, color: '#000000' }));
 const round = (n: number) => Math.round(n * 100) / 100;
 
 describe('fit strip', () => {

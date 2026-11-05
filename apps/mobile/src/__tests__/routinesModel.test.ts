@@ -31,17 +31,17 @@ const T = (name: string, starts_on: string, ends_on: string, is_draft = false) =
   is_draft,
   deleted_at: null,
 });
-const FALL = T('Fall term', '2026-09-14', '2026-12-11');
-const EXAM = T('Exam weeks', '2026-12-12', '2026-12-22');
-const WINTER = T('Winter term', '2027-01-05', '2027-04-16', true);
-const TODAY = '2026-10-22'; // Thursday
+const FALL = T('Fall term', '2037-09-14', '2037-12-11');
+const EXAM = T('Exam weeks', '2037-12-12', '2037-12-22');
+const WINTER = T('Winter term', '2038-01-05', '2038-04-16', true);
+const TODAY = '2037-10-22'; // Thursday
 
 describe('terms', () => {
   it('status tags: Active / Next / Draft / Past', () => {
     expect(termStatus(FALL, TODAY)).toBe('Active');
     expect(termStatus(EXAM, TODAY)).toBe('Next');
     expect(termStatus(WINTER, TODAY)).toBe('Draft');
-    expect(termStatus(T('Summer', '2026-05-01', '2026-08-20'), TODAY)).toBe('Past');
+    expect(termStatus(T('Summer', '2037-05-01', '2037-08-20'), TODAY)).toBe('Past');
   });
   it('the gap between Exam weeks and Winter term is explained; adjacent terms have no gap', () => {
     expect(termNotices([WINTER, FALL, EXAM])).toEqual([
@@ -53,7 +53,7 @@ describe('terms', () => {
     ]);
   });
   it('overlapping terms: the earlier start wins, and the notice says so', () => {
-    const longFall = { ...FALL, ends_on: '2026-12-15' };
+    const longFall = { ...FALL, ends_on: '2037-12-15' };
     expect(termNotices([longFall, EXAM])).toEqual([
       {
         kind: 'overlap',
@@ -63,8 +63,8 @@ describe('terms', () => {
     ]);
   });
   it('ends before starts is refused inline', () => {
-    expect(termDateError('2026-09-14', '2026-09-01')).toBe('Ends needs to be after starts.');
-    expect(termDateError('2026-09-14', '2026-12-11')).toBeNull();
+    expect(termDateError('2037-09-14', '2037-09-01')).toBe('Ends needs to be after starts.');
+    expect(termDateError('2037-09-14', '2037-12-11')).toBeNull();
   });
   it('labels', () => {
     expect(dateRange(FALL)).toBe('Sep 14 to Dec 11');
@@ -91,23 +91,23 @@ describe('routine editor', () => {
 
 describe('save sheet (effective date: BACKEND_SETUP §3, default next Monday)', () => {
   it('choices and the sentence that follows them', () => {
-    expect(effectiveChoices(TODAY)).toEqual({ nextMonday: '2026-10-26', today: TODAY });
-    expect(saveSentence('2026-10-26', TODAY)).toBe(
+    expect(effectiveChoices(TODAY)).toEqual({ nextMonday: '2037-10-26', today: TODAY });
+    expect(saveSentence('2037-10-26', TODAY)).toBe(
       'Changes start Monday, Oct 26. This week and earlier stay as they were.',
     );
     expect(saveSentence(TODAY, TODAY)).toBe('Changes start today. Earlier days stay as they were.');
-    expect(saveSentence('2026-11-09', TODAY)).toBe(
+    expect(saveSentence('2037-11-09', TODAY)).toBe(
       'Changes start Monday, Nov 9. Days before then stay as they were.',
     );
   });
   it('toasts', () => {
-    expect(saveToast('Fall term', '2026-10-26', TODAY, true)).toBe(
+    expect(saveToast('Fall term', '2037-10-26', TODAY, true)).toBe(
       'Fall term saved. Changes start Mon Oct 26.',
     );
     expect(saveToast('Fall term', TODAY, TODAY, true)).toBe(
       'Fall term saved. Changes start today.',
     );
-    expect(saveToast('Fall term', '2026-10-26', TODAY, false)).toBe(
+    expect(saveToast('Fall term', '2037-10-26', TODAY, false)).toBe(
       'Saved on this phone. It syncs when you reconnect.',
     );
   });
@@ -118,19 +118,19 @@ describe('name your term (D-35, behind the flag)', () => {
     expect(nameTermDefaults(TODAY)).toEqual({
       name: 'Fall term',
       starts: TODAY,
-      ends: '2027-01-21',
+      ends: '2038-01-21',
     });
-    expect(weeksHelper(TODAY, '2027-01-21')).toBe(
+    expect(weeksHelper(TODAY, '2038-01-21')).toBe(
       '13 weeks. “Rest of the year” still means Dec 31.',
     );
-    expect(weeksHelper(TODAY, '2026-10-29')).toBe('1 week. “Rest of the year” still means Dec 31.');
+    expect(weeksHelper(TODAY, '2037-10-29')).toBe('1 week. “Rest of the year” still means Dec 31.');
   });
   it('errors', () => {
-    expect(nameTermError('  ', TODAY, '2027-01-21')).toBe(
+    expect(nameTermError('  ', TODAY, '2038-01-21')).toBe(
       'Give the term a name, like “Fall term”.',
     );
     expect(nameTermError('Spring', TODAY, TODAY)).toBe('Ends needs to be after starts.');
-    expect(nameTermError('Spring', TODAY, '2027-01-21')).toBeNull();
+    expect(nameTermError('Spring', TODAY, '2038-01-21')).toBeNull();
   });
 });
 
@@ -138,7 +138,7 @@ describe('one-off changes on Routines', () => {
   it("groups a date's overrides: note as the title, a short summary, newest first", () => {
     const sk = (n: number) => ({
       id: `s${n}`,
-      on_date: '2026-10-12',
+      on_date: '2037-10-12',
       kind: 'skip' as const,
       routine_block_id: `b${n}`,
       title: null,
@@ -158,12 +158,12 @@ describe('one-off changes on Routines', () => {
       end_min: 900,
       category_id: 'c',
     };
-    const later = { ...sk(50), on_date: '2026-10-21', note: null };
+    const later = { ...sk(50), on_date: '2037-10-21', note: null };
     const rows = oneOffChanges([...Array.from({ length: 11 }, (_, i) => sk(i)), add, later]);
     expect(rows).toEqual([
-      { date: '2026-10-21', label: 'Oct 21', title: 'One-off change', line: '1 block skipped' },
+      { date: '2037-10-21', label: 'Oct 21', title: 'One-off change', line: '1 block skipped' },
       {
-        date: '2026-10-12',
+        date: '2037-10-12',
         label: 'Oct 12',
         title: 'Thanksgiving',
         line: '11 blocks skipped · Sermon Sync 2h added',
@@ -172,7 +172,7 @@ describe('one-off changes on Routines', () => {
   });
 });
 
-describe('Routines card hours (owner review 2026-10-22: this week, plus the coming change)', () => {
+describe('Routines card hours (owner review 2037-10-22: this week, plus the coming change)', () => {
   const cat = {
     id: 'w',
     name: 'Work',
@@ -212,31 +212,31 @@ describe('Routines card hours (owner review 2026-10-22: this week, plus the comi
       {
         id: 't',
         name: 'Fall term',
-        starts_on: '2026-09-14',
-        ends_on: '2026-12-11',
+        starts_on: '2037-09-14',
+        ends_on: '2037-12-11',
         is_draft: false,
         deleted_at: null,
       },
     ],
     routines: [{ id: 'r', term_id: 't', name: 'Fall term' }],
     routineBlocks: [
-      b('gym', 0, 960, 1035, 'w', '2026-09-14', '2026-10-26'), // ends next Monday
-      b('class', 1, 600, 720, 'w', '2026-09-14'),
-      b('lunch', 1, 720, 760, 'm', '2026-09-14'),
+      b('gym', 0, 960, 1035, 'w', '2037-09-14', '2037-10-26'), // ends next Monday
+      b('class', 1, 600, 720, 'w', '2037-09-14'),
+      b('lunch', 1, 720, 760, 'm', '2037-09-14'),
     ],
     overrides: [],
   };
   it('this week counts the blocks that apply this week (work only)', () => {
-    expect(routineWeekHours(data, 'r', '2026-10-19')).toBe(3.25);
+    expect(routineWeekHours(data, 'r', '2037-10-19')).toBe(3.25);
   });
   it('a saved change that starts later shows as "3h → 2h from Mon Oct 26"', () => {
-    expect(routineChangeLine(data, 'r', '2026-10-22')).toBe('3h → 2h from Mon Oct 26');
+    expect(routineChangeLine(data, 'r', '2037-10-22')).toBe('3h → 2h from Mon Oct 26');
   });
   it('no line when nothing changes ahead', () => {
     const flat = {
       ...data,
       routineBlocks: data.routineBlocks.map((x) => ({ ...x, effective_to: null })),
     };
-    expect(routineChangeLine(flat, 'r', '2026-10-22')).toBeNull();
+    expect(routineChangeLine(flat, 'r', '2037-10-22')).toBeNull();
   });
 });

@@ -25,8 +25,8 @@ const data: ScheduleData = {
     {
       id: 't1',
       name: 'Fall',
-      starts_on: '2026-09-14',
-      ends_on: '2026-12-11',
+      starts_on: '2037-09-14',
+      ends_on: '2037-12-11',
       is_draft: false,
       deleted_at: null,
     },
@@ -41,7 +41,7 @@ const data: ScheduleData = {
       end_min: 540,
       title: 'Gym',
       category_id: 'c1',
-      effective_from: '2026-09-14',
+      effective_from: '2037-09-14',
       effective_to: null,
       deleted_at: null,
     },
@@ -74,12 +74,12 @@ describe('rescheduleReminders', () => {
 
   it('only cancels notifications with the reminder: prefix', async () => {
     mockNotifications.getAllScheduledNotificationsAsync.mockResolvedValue([
-      { identifier: 'reminder:rb1:2026-11-04', content: {}, trigger: {} } as never,
+      { identifier: 'reminder:rb1:2037-11-04', content: {}, trigger: {} } as never,
       { identifier: 'plan-ready:abc', content: {}, trigger: {} } as never,
     ]);
     await cancelReminders();
     expect(mockNotifications.cancelScheduledNotificationAsync).toHaveBeenCalledWith(
-      'reminder:rb1:2026-11-04',
+      'reminder:rb1:2037-11-04',
     );
     expect(mockNotifications.cancelScheduledNotificationAsync).not.toHaveBeenCalledWith(
       'plan-ready:abc',

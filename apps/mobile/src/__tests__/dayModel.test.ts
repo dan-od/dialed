@@ -6,8 +6,8 @@ import { dayModel, heroTitleSize } from '../day/model';
 const { seedData } = require('../../../../packages/schedule/test/seed');
 
 const data = seedData();
-const mon = resolveDay('2026-10-19', data).blocks;
-const tue = resolveDay('2026-10-20', data).blocks;
+const mon = resolveDay('2037-10-19', data).blocks;
+const tue = resolveDay('2037-10-20', data).blocks;
 const colors = { acc: 'ACC', barPast: 'PAST', barFut: 'FUT' };
 // Prototype day bounds (9 am–12 am) so the numbers match the approved prototype exactly.
 const model = (minute: number) =>

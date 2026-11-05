@@ -174,15 +174,15 @@ describe('POST /v1/imports/calendar', () => {
     const events = [
       {
         title: 'Team standup',
-        start: '2036-10-20T09:00:00.000Z',
-        end: '2036-10-20T09:30:00.000Z',
+        start: '2037-10-20T09:00:00.000Z',
+        end: '2037-10-20T09:30:00.000Z',
         rrule: 'FREQ=WEEKLY',
         calendar: 'Work',
       },
       {
         title: 'Yoga',
-        start: '2036-10-21T18:00:00.000Z',
-        end: '2036-10-21T19:00:00.000Z',
+        start: '2037-10-21T18:00:00.000Z',
+        end: '2037-10-21T19:00:00.000Z',
         rrule: 'FREQ=WEEKLY',
         calendar: 'Personal',
       },
@@ -213,8 +213,8 @@ describe('POST /v1/imports/calendar', () => {
     const events = [
       {
         title: 'Doctor appointment',
-        start: '2036-10-22T14:00:00.000Z',
-        end: '2036-10-22T15:00:00.000Z',
+        start: '2037-10-22T14:00:00.000Z',
+        end: '2037-10-22T15:00:00.000Z',
       },
     ];
 
@@ -231,7 +231,7 @@ describe('POST /v1/imports/calendar', () => {
       (c: Record<string, unknown>) => c.title === 'Doctor appointment',
     );
     expect(appt).toBeDefined();
-    expect(appt.payload.on_date).toBe('2036-10-22');
+    expect(appt.payload.on_date).toBe('2037-10-22');
 
     await cleanup();
   });

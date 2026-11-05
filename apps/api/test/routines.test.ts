@@ -4,7 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ALICE, BOB, login, makeApp, TEST_NOW, type TestApp } from './helpers';
 
 // Flow 05 server rules: `routine_save` (one atomic, effective-dated transaction) and term dates.
-// Clock: Tue 2036-10-20 12:00 Toronto, so "next Monday" is 2036-10-26. Writes use Alice's seed only.
+// Clock: Tue 2037-10-20 12:00 Toronto, so "next Monday" is 2037-10-26. Writes use Alice's seed only.
 const FALL_ROUTINE = '60eec3ef-59af-52e0-b13f-6826bd08e994';
 const FALL_TERM = '1808c6be-f174-5e1b-9445-b458c0d0f328';
 const GYM = 'f3263fc8-0b7f-588f-82d0-47696d80c251';
@@ -30,7 +30,7 @@ beforeEach(async () => {
   gymBlock = randomUUID();
   await t.pool.query(
     `insert into routine_blocks (id, routine_id, user_id, weekday, start_min, end_min, title, category_id, effective_from, source)
-     values ($1, $2, $3, 0, 975, 1050, 'Gym', $4, '2036-09-14', 'seed')`,
+     values ($1, $2, $3, 0, 975, 1050, 'Gym', $4, '2037-09-14', 'seed')`,
     [gymBlock, FALL_ROUTINE, ALICE.id, GYM],
   );
 });
@@ -54,7 +54,7 @@ const save = async (ops: object[], over: object = {}) =>
     entity: 'routine_save',
     routine_id: FALL_ROUTINE,
     base_version: await routineVersion(),
-    effective_from: '2036-10-26',
+    effective_from: '2037-10-26',
     ops,
     ...over,
   });
@@ -75,7 +75,7 @@ const gymOn = async (date: string) =>
   resolveDay(date, await aliceData()).blocks.filter((b) => b.title.startsWith('Gym'));
 
 describe('routine_save (Flow 05)', () => {
-  it('build seed: Monday Gym moved to 17:00 from 2036-10-26 leaves Oct 19 unchanged and changes Oct 26', async () => {
+  it('build seed: Monday Gym moved to 17:00 from 2037-10-26 leaves Oct 19 unchanged and changes Oct 26', async () => {
     const newId = randomUUID();
     const r = await save([
       {
@@ -86,14 +86,14 @@ describe('routine_save (Flow 05)', () => {
       },
     ]);
     expect(r).toMatchObject({ status: 'applied', entity: 'routine' });
-    expect((await gymOn('2036-10-19')).map((b) => b.start_min)).toEqual([975]);
-    expect((await gymOn('2036-10-26')).map((b) => [b.start_min, b.end_min])).toEqual([
+    expect((await gymOn('2037-10-19')).map((b) => b.start_min)).toEqual([975]);
+    expect((await gymOn('2037-10-26')).map((b) => [b.start_min, b.end_min])).toEqual([
       [1020, 1095],
     ]);
     const old = await t.pool.query('select effective_to from routine_blocks where id = $1', [
       gymBlock,
     ]);
-    expect(old.rows[0].effective_to).toBe('2036-10-26');
+    expect(old.rows[0].effective_to).toBe('2037-10-26');
   });
 
   it('add, update and close in one transaction; the routine version moves once', async () => {
@@ -119,9 +119,9 @@ describe('routine_save (Flow 05)', () => {
       'select effective_from, weekday, source from routine_blocks where id = $1',
       [added],
     );
-    expect(a.rows[0]).toMatchObject({ effective_from: '2036-10-26', weekday: 2, source: 'user' });
-    expect(await gymOn('2036-10-19')).toHaveLength(1);
-    expect(await gymOn('2036-10-26')).toHaveLength(0);
+    expect(a.rows[0]).toMatchObject({ effective_from: '2037-10-26', weekday: 2, source: 'user' });
+    expect(await gymOn('2037-10-19')).toHaveLength(1);
+    expect(await gymOn('2037-10-26')).toHaveLength(0);
   });
 
   it('a block that starts on the effective date is changed in place, not versioned', async () => {
@@ -141,7 +141,7 @@ describe('routine_save (Flow 05)', () => {
       'select title, effective_from from routine_blocks where id = $1',
       [added],
     );
-    expect(rows.rows[0]).toMatchObject({ title: 'Read Acts', effective_from: '2036-10-26' });
+    expect(rows.rows[0]).toMatchObject({ title: 'Read Acts', effective_from: '2037-10-26' });
   });
 
   it('one bad op rejects the whole save (nothing half-applied)', async () => {
@@ -173,13 +173,13 @@ describe('routine_save (Flow 05)', () => {
       await save([{ op: 'close', block_id: gymBlock }], { base_version: v - 1 || 99 }),
     ).toMatchObject({ status: 'conflict', entity: 'routine' });
     expect(
-      await save([{ op: 'close', block_id: gymBlock }], { effective_from: '2036-10-19' }),
+      await save([{ op: 'close', block_id: gymBlock }], { effective_from: '2037-10-19' }),
     ).toMatchObject({
       status: 'rejected',
       message: 'Past days never change. Pick today or later.',
     });
     expect(
-      (await save([{ op: 'close', block_id: gymBlock }], { effective_from: '2036-10-20' })).status,
+      (await save([{ op: 'close', block_id: gymBlock }], { effective_from: '2037-10-20' })).status,
     ).toBe('applied'); // today is allowed
   });
 
@@ -189,7 +189,7 @@ describe('routine_save (Flow 05)', () => {
         entity: 'routine_save',
         routine_id: FALL_ROUTINE,
         base_version: await routineVersion(),
-        effective_from: '2036-10-26',
+        effective_from: '2037-10-26',
         ops: [],
       }),
     ).toMatchObject({ status: 'rejected', error_code: 'not_found' });
@@ -227,7 +227,7 @@ describe('term dates and new terms (Flow 05)', () => {
       op: 'upsert',
       id: FALL_TERM,
       base_version: await termVersion(),
-      fields: { name: 'Fall term', starts_on: '2036-09-14', ends_on: '2036-09-01' },
+      fields: { name: 'Fall term', starts_on: '2037-09-14', ends_on: '2037-09-01' },
     });
     expect(r).toMatchObject({ status: 'rejected', message: 'Ends needs to be after starts.' });
   });
@@ -237,9 +237,9 @@ describe('term dates and new terms (Flow 05)', () => {
       op: 'upsert',
       id: FALL_TERM,
       base_version: await termVersion(),
-      fields: { name: 'Fall term', starts_on: '2036-09-14', ends_on: '2036-12-11' },
+      fields: { name: 'Fall term', starts_on: '2037-09-14', ends_on: '2037-12-11' },
     });
-    expect(r).toMatchObject({ status: 'applied', row: { ends_on: '2036-12-11' } });
+    expect(r).toMatchObject({ status: 'applied', row: { ends_on: '2037-12-11' } });
   });
   it('a new term comes with its routine, using the client-chosen routine id', async () => {
     const term = randomUUID();
@@ -251,8 +251,8 @@ describe('term dates and new terms (Flow 05)', () => {
       base_version: 0,
       fields: {
         name: 'Summer term',
-        starts_on: '2027-05-03',
-        ends_on: '2027-08-20',
+        starts_on: '2038-05-03',
+        ends_on: '2038-08-20',
         is_draft: true,
         routine_id: routine,
       },

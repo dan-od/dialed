@@ -54,7 +54,7 @@ const rb = (
   end_min: end,
   title,
   category_id,
-  effective_from: '2026-09-14',
+  effective_from: '2037-09-14',
   effective_to: null,
   version: 1,
   deleted_at: null,
@@ -74,8 +74,8 @@ const rows: SyncChange[] = [
     row: {
       id: TERM,
       name: 'Fall term',
-      starts_on: '2026-09-14',
-      ends_on: '2026-12-11',
+      starts_on: '2037-09-14',
+      ends_on: '2037-12-11',
       is_draft: false,
       version: 1,
       deleted_at: null,
@@ -97,7 +97,7 @@ const rows: SyncChange[] = [
   {
     entity: 'routine_block',
     op: 'upsert',
-    row: rb(u(23), 1, 600, 700, 'Old Tuesday', STUDY, { effective_to: '2026-10-01' }),
+    row: rb(u(23), 1, 600, 700, 'Old Tuesday', STUDY, { effective_to: '2037-10-01' }),
   },
 ];
 let n = 100;
@@ -131,12 +131,12 @@ describe('routine draft (Flow 05)', () => {
         fields: { start_min: 1020, end_min: 1095 },
       },
     ]);
-    const m = saveMutation(d, 4, '2026-10-26', ids);
+    const m = saveMutation(d, 4, '2037-10-26', ids);
     expect(m).toMatchObject({
       entity: 'routine_save',
       routine_id: ROUTINE,
       base_version: 4,
-      effective_from: '2026-10-26',
+      effective_from: '2037-10-26',
     });
     // queued offline: the phone applies it locally at once
     const offline = async () => {
@@ -153,8 +153,8 @@ describe('routine draft (Flow 05)', () => {
       resolveDay(date, after)
         .blocks.filter((b) => b.title === 'Gym')
         .map((b) => b.start_min);
-    expect(gym('2026-10-19')).toEqual([975]);
-    expect(gym('2026-10-26')).toEqual([1020]);
+    expect(gym('2037-10-19')).toEqual([975]);
+    expect(gym('2037-10-26')).toEqual([1020]);
     expect((await store.getRow('routine', ROUTINE))?.version).toBe(5);
     engine.stop();
   });
@@ -223,7 +223,7 @@ describe('routine draft (Flow 05)', () => {
       start_min: 1020,
       end_min: 1095,
     });
-    const m = saveMutation(d, 4, '2026-10-26', ids) as Mutation;
+    const m = saveMutation(d, 4, '2037-10-26', ids) as Mutation;
     const get = (e: Parameters<typeof store.getRow>[0], id: string) => store.getRow(e, id);
     await store.upsertRows(await localEffects(m, get));
     const once = JSON.stringify((await store.load()).schedule.routineBlocks);

@@ -6,6 +6,8 @@ ensure_node
 load_env
 : "${FLOW_BY_FLOW_REPORT_DIR:?set FLOW_BY_FLOW_REPORT_DIR}"
 wait_for_postgres
+# The wrong-role checks hit the real /mcp endpoint, which 404s while MCP is off.
+export MCP_ENABLED=true
 API_LOG="${TMPDIR:-/tmp}/dialed-auth-smoke-api.log"
 trap stop_api EXIT
 start_api 8091

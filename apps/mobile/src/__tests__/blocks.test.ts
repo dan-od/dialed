@@ -15,7 +15,7 @@ const TERM = u(10);
 const ROUTINE = u(11);
 const GYM_BLOCK = u(20); // Mon 4:15–5:30 pm
 const LUNCH = u(21);
-const TODAY = '2026-10-19'; // Monday
+const TODAY = '2037-10-19'; // Monday
 const cat = (id: string, name: string, group: string, quiet = false) => ({
   id,
   name,
@@ -39,8 +39,8 @@ const rows: SyncChange[] = [
     row: {
       id: TERM,
       name: 'Fall term',
-      starts_on: '2026-09-14',
-      ends_on: '2026-12-11',
+      starts_on: '2037-09-14',
+      ends_on: '2037-12-11',
       is_draft: false,
       version: 1,
       deleted_at: null,
@@ -62,7 +62,7 @@ const rows: SyncChange[] = [
       end_min: 1050,
       title: 'Gym',
       category_id: GYM,
-      effective_from: '2026-09-14',
+      effective_from: '2037-09-14',
       effective_to: null,
       version: 1,
       deleted_at: null,
@@ -79,7 +79,7 @@ const rows: SyncChange[] = [
       end_min: 760,
       title: 'Lunch',
       category_id: MEAL,
-      effective_from: '2026-09-14',
+      effective_from: '2037-09-14',
       effective_to: null,
       version: 1,
       deleted_at: null,
@@ -150,8 +150,8 @@ describe('blocks service (Flow 04)', () => {
     });
     const row = (await day()).find((b) => b.title === 'Capstone reading')!;
     expect(row.key).toBe(r.key); // the key the Day sheet highlights with "New"
-    expect((await day('2026-10-12')).some((b) => b.title === 'Capstone reading')).toBe(false); // past Mondays unchanged
-    expect((await day('2026-10-26')).some((b) => b.title === 'Capstone reading')).toBe(true);
+    expect((await day('2037-10-12')).some((b) => b.title === 'Capstone reading')).toBe(false); // past Mondays unchanged
+    expect((await day('2037-10-26')).some((b) => b.title === 'Capstone reading')).toBe(true);
     expect(engine.status.pending).toBe(1);
     expect((await engine['store'].load()).pending).toContain((m as { id: string }).id); // "· waiting to sync"
     engine.stop();
@@ -179,7 +179,7 @@ describe('blocks service (Flow 04)', () => {
       },
     });
     expect((await day()).find((b) => b.key === r.key)?.source).toBe('one_off');
-    expect((await day('2026-10-26')).some((b) => b.title === 'Read Acts 2')).toBe(false);
+    expect((await day('2037-10-26')).some((b) => b.title === 'Read Acts 2')).toBe(false);
   });
 
   it('edit this Monday only: override modify; other Mondays keep the routine', async () => {
@@ -196,7 +196,7 @@ describe('blocks service (Flow 04)', () => {
       },
     });
     expect((await gymOn(day)).start_min).toBe(990);
-    expect((await gymOn(day, '2026-10-26')).start_min).toBe(975);
+    expect((await gymOn(day, '2037-10-26')).start_min).toBe(975);
     // a second change the same day updates the same override (its predicted version)
     await blocks.modifyOnce(await gymOn(day), { title: 'Gym, legs' });
     const [first, second] = await sent();
@@ -225,25 +225,25 @@ describe('blocks service (Flow 04)', () => {
     expect(newId).toBeTruthy();
     expect(r.key).toBe(`${newId}:${TODAY}`);
     expect((await gymOn(day)).start_min).toBe(1000);
-    expect((await gymOn(day, '2026-10-26')).start_min).toBe(1000);
-    expect((await gymOn(day, '2026-10-12')).start_min).toBe(975); // past days never change
+    expect((await gymOn(day, '2037-10-26')).start_min).toBe(1000);
+    expect((await gymOn(day, '2037-10-12')).start_min).toBe(975); // past days never change
   });
 
   it('move this week only: override move to the target date in the same week', async () => {
     const { blocks, day, sent } = await setup();
-    await blocks.moveOnce(await gymOn(day), '2026-10-21');
+    await blocks.moveOnce(await gymOn(day), '2037-10-21');
     expect((await sent())[0]).toMatchObject({
       entity: 'override',
       fields: {
         kind: 'move',
         routine_block_id: GYM_BLOCK,
         on_date: TODAY,
-        moved_to_date: '2026-10-21',
+        moved_to_date: '2037-10-21',
       },
     });
     expect(await gymOn(day)).toBeUndefined();
-    expect((await gymOn(day, '2026-10-21')).start_min).toBe(975);
-    expect((await gymOn(day, '2026-10-26')).start_min).toBe(975);
+    expect((await gymOn(day, '2037-10-21')).start_min).toBe(975);
+    expect((await gymOn(day, '2037-10-26')).start_min).toBe(975);
   });
 
   it('move every week: routine_block_edit with fields.weekday', async () => {
@@ -256,8 +256,8 @@ describe('blocks service (Flow 04)', () => {
       effective_from: TODAY,
     });
     expect(await gymOn(day)).toBeUndefined();
-    expect((await gymOn(day, '2026-10-21')).start_min).toBe(975);
-    expect((await gymOn(day, '2026-10-12')).start_min).toBe(975); // last Monday still had Gym
+    expect((await gymOn(day, '2037-10-21')).start_min).toBe(975);
+    expect((await gymOn(day, '2037-10-12')).start_min).toBe(975); // last Monday still had Gym
   });
 
   it('skip this Monday, then Undo deletes the skip', async () => {
@@ -284,7 +284,7 @@ describe('blocks service (Flow 04)', () => {
     const { blocks, day, sent } = await setup();
     const r = await blocks.deleteBlock(await gymOn(day), TODAY);
     expect(await gymOn(day)).toBeUndefined();
-    expect((await gymOn(day, '2026-10-12')).start_min).toBe(975);
+    expect((await gymOn(day, '2037-10-12')).start_min).toBe(975);
     await r.undo();
     const [close, reopen] = await sent();
     expect(close).toMatchObject({
@@ -323,8 +323,8 @@ describe('blocks service (Flow 04)', () => {
 
   it('a moved block can be edited and moved again (updates its move override)', async () => {
     const { blocks, day, sent } = await setup();
-    await blocks.moveOnce(await gymOn(day), '2026-10-21');
-    await blocks.modifyOnce(await gymOn(day, '2026-10-21'), { start_min: 1080, end_min: 1140 });
+    await blocks.moveOnce(await gymOn(day), '2037-10-21');
+    await blocks.modifyOnce(await gymOn(day, '2037-10-21'), { start_min: 1080, end_min: 1140 });
     const [move, edit] = (await sent()) as Mutation[] as (Mutation & { id: string })[];
     expect(edit).toMatchObject({
       entity: 'override',
@@ -332,7 +332,7 @@ describe('blocks service (Flow 04)', () => {
       base_version: 1,
       fields: { kind: 'move', start_min: 1080 },
     });
-    expect((await gymOn(day, '2026-10-21')).start_min).toBe(1080);
+    expect((await gymOn(day, '2037-10-21')).start_min).toBe(1080);
   });
 
   it('recent categories: last 3 used, newest first, falling back to work categories', async () => {
@@ -366,15 +366,15 @@ describe('blocks service (Flow 04)', () => {
   });
   it("term dates: a term upsert with the row's version; a new term carries its routine id", async () => {
     const { blocks, sent, store } = await setup();
-    await blocks.updateTerm(TERM, { starts_on: '2026-09-14', ends_on: '2026-12-18' });
+    await blocks.updateTerm(TERM, { starts_on: '2037-09-14', ends_on: '2037-12-18' });
     expect((await sent())[0]).toMatchObject({
       entity: 'term',
       op: 'upsert',
       id: TERM,
       base_version: 1,
-      fields: { name: 'Fall term', starts_on: '2026-09-14', ends_on: '2026-12-18' },
+      fields: { name: 'Fall term', starts_on: '2037-09-14', ends_on: '2037-12-18' },
     });
-    const r = await blocks.createTerm('Summer term', '2027-05-03', '2027-08-20');
+    const r = await blocks.createTerm('Summer term', '2038-05-03', '2038-08-20');
     expect((await sent())[1]).toMatchObject({
       entity: 'term',
       op: 'upsert',
@@ -416,13 +416,13 @@ describe('blocks service (Flow 04)', () => {
         [],
       ],
     };
-    await blocks.saveRoutine(draft, '2026-10-26', { [u(77)]: 10 });
+    await blocks.saveRoutine(draft, '2037-10-26', { [u(77)]: 10 });
     const [save, alert] = await sent();
     expect(save).toMatchObject({
       entity: 'routine_save',
       routine_id: ROUTINE,
       base_version: 1,
-      effective_from: '2026-10-26',
+      effective_from: '2037-10-26',
       ops: [{ op: 'add', block_id: u(77) }],
     });
     expect(alert).toMatchObject({ entity: 'profile', fields: { block_alerts: { [u(77)]: 10 } } });

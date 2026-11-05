@@ -211,12 +211,10 @@ export function oauthRoutes(
 
       if (body.grant_type === 'authorization_code') {
         if (!body.code || !body.redirect_uri || !body.code_verifier) {
-          return reply
-            .code(400)
-            .send({
-              error: 'invalid_request',
-              error_description: 'Missing code, redirect_uri or code_verifier.',
-            });
+          return reply.code(400).send({
+            error: 'invalid_request',
+            error_description: 'Missing code, redirect_uri or code_verifier.',
+          });
         }
         try {
           const result = await oauth.exchangeCode(

@@ -24,8 +24,8 @@ const data = (
     {
       id: 't',
       name: 'Fall term',
-      starts_on: '2026-09-14',
-      ends_on: '2026-12-11',
+      starts_on: '2037-09-14',
+      ends_on: '2037-12-11',
       is_draft: false,
       deleted_at: null,
     },
@@ -39,7 +39,7 @@ const data = (
     end_min: b.end,
     title: b.title,
     category_id: 'c',
-    effective_from: '2026-09-14',
+    effective_from: '2037-09-14',
     effective_to: null,
     deleted_at: null,
   })),
@@ -49,13 +49,13 @@ const quiet = { start: 0, end: 540 }; // 12 am – 9 am
 
 describe('instantAt', () => {
   it('turns a local date + minute in the profile time zone into an instant (DST aware)', () => {
-    expect(instantAt('2026-10-19', 975, TZ).toISOString()).toBe('2026-10-19T20:15:00.000Z'); // EDT
-    expect(instantAt('2026-11-02', 975, TZ).toISOString()).toBe('2026-11-02T21:15:00.000Z'); // EST
+    expect(instantAt('2037-10-19', 975, TZ).toISOString()).toBe('2037-10-19T20:15:00.000Z'); // EDT
+    expect(instantAt('2037-11-02', 975, TZ).toISOString()).toBe('2037-11-02T21:15:00.000Z'); // EST
   });
 });
 
 describe('planReminders', () => {
-  const now = new Date('2026-10-19T17:15:00Z'); // Mon 1:15 pm Toronto
+  const now = new Date('2037-10-19T17:15:00Z'); // Mon 1:15 pm Toronto
   it('one per alerted block occurrence in the next 48 h, after now', () => {
     const d = data([
       { id: 'gym', weekday: 0, start: 975, end: 1050, title: 'Gym' },
@@ -63,10 +63,10 @@ describe('planReminders', () => {
     ]);
     const r = planReminders(d, { gym: 10, 'gym-tue': 0 }, now, TZ, quiet);
     expect(r.map((x) => [x.at.toISOString(), x.title, x.body])).toEqual([
-      ['2026-10-19T20:05:00.000Z', 'Gym in 10 min', 'Starts at 4:15 pm.'],
-      ['2026-10-20T20:15:00.000Z', 'Gym starts now', 'Until 5:30 pm.'],
+      ['2037-10-19T20:05:00.000Z', 'Gym in 10 min', 'Starts at 4:15 pm.'],
+      ['2037-10-20T20:15:00.000Z', 'Gym starts now', 'Until 5:30 pm.'],
     ]);
-    expect(r[0]!.blockKey).toBe('gym:2026-10-19');
+    expect(r[0]!.blockKey).toBe('gym:2037-10-19');
   });
   it('blocks that already started or fall in quiet hours are left out', () => {
     const d = data([

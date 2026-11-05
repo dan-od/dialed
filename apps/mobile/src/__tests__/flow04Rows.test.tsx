@@ -10,7 +10,7 @@ import { RestOfToday } from '../day/RestOfToday';
 const { seedData } = require('../../../../packages/schedule/test/seed');
 const data = seedData();
 const c = colors.dark;
-const blocks = resolveDay('2026-10-19', data).blocks;
+const blocks = resolveDay('2037-10-19', data).blocks;
 const gym = blocks.find((b: { title: string }) => b.title === 'Gym')!;
 const model = (o: { highlight?: string; pending?: string[] }) =>
   dayModel({

@@ -84,5 +84,5 @@ export async function login(t: TestApp, email: string, password = DEV_PASSWORD) 
   return r.json() as { access_token: string; refresh_token: string; user: { id: string } };
 }
 
-/** BUILD_AGENT test clock: 2036-10-20 12:00 America/Toronto. */
-export const TEST_NOW = () => new Date('2036-10-20T16:00:00Z');
+/** BUILD_AGENT test clock: 2037-10-20 12:00 America/Toronto. */
+export const TEST_NOW = () => new Date('2037-10-20T16:00:00Z');

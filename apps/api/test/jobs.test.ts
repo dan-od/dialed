@@ -123,7 +123,7 @@ describe('push.plan_ready handler', () => {
   it('defers during quiet hours', async () => {
     // OWNER seed: quiet_start_min=0, quiet_end_min=450 (midnight–7:30am).
     // Set now to 3am ET (minute 180) — inside quiet hours.
-    const threeAm = () => new Date('2036-10-20T07:00:00Z'); // 3am ET
+    const threeAm = () => new Date('2037-10-20T07:00:00Z'); // 3am ET
 
     const handlers = createHandlers({
       db: t.db,

@@ -18,7 +18,7 @@ function base(): ScheduleData {
   return {
     categories: [cat('work'), cat('meal', true)],
     terms: [
-      { id: 't', name: 'T', starts_on: '2026-09-14', ends_on: '2026-12-11', is_draft: false },
+      { id: 't', name: 'T', starts_on: '2037-09-14', ends_on: '2037-12-11', is_draft: false },
     ],
     routines: [{ id: 'r', term_id: 't', name: 'T' }],
     routineBlocks: [
@@ -30,8 +30,8 @@ function base(): ScheduleData {
         end_min: 660,
         title: 'A',
         category_id: 'work',
-        effective_from: '2026-09-14',
-        effective_to: '2026-10-26',
+        effective_from: '2037-09-14',
+        effective_to: '2037-10-26',
       },
       {
         id: 'a2',
@@ -41,7 +41,7 @@ function base(): ScheduleData {
         end_min: 675,
         title: 'A',
         category_id: 'work',
-        effective_from: '2026-10-26',
+        effective_from: '2037-10-26',
         effective_to: null,
       },
       {
@@ -52,7 +52,7 @@ function base(): ScheduleData {
         end_min: 760,
         title: 'Lunch',
         category_id: 'meal',
-        effective_from: '2026-09-14',
+        effective_from: '2037-09-14',
         effective_to: null,
       },
       {
@@ -63,9 +63,9 @@ function base(): ScheduleData {
         end_min: 860,
         title: 'Gone',
         category_id: 'work',
-        effective_from: '2026-09-14',
+        effective_from: '2037-09-14',
         effective_to: null,
-        deleted_at: '2026-09-15T00:00:00Z',
+        deleted_at: '2037-09-15T00:00:00Z',
       },
     ],
     overrides: [],
@@ -74,20 +74,20 @@ function base(): ScheduleData {
 
 describe('resolveDay rules', () => {
   it('effective dates: past days keep the old row, later days use the new row', () => {
-    expect(resolveDay('2026-10-19', base()).blocks.map((b) => b.routine_block_id)).toEqual([
+    expect(resolveDay('2037-10-19', base()).blocks.map((b) => b.routine_block_id)).toEqual([
       'a',
       'b',
     ]);
-    expect(resolveDay('2026-10-26', base()).blocks.map((b) => b.routine_block_id)).toEqual([
+    expect(resolveDay('2037-10-26', base()).blocks.map((b) => b.routine_block_id)).toEqual([
       'a2',
       'b',
     ]);
   });
 
   it('term edges are inclusive', () => {
-    expect(resolveDay('2026-09-14', base()).blocks).toHaveLength(2);
-    expect(resolveDay('2026-12-07', base()).blocks).toHaveLength(2);
-    expect(resolveDay('2026-12-14', base()).blocks).toHaveLength(0);
+    expect(resolveDay('2037-09-14', base()).blocks).toHaveLength(2);
+    expect(resolveDay('2037-12-07', base()).blocks).toHaveLength(2);
+    expect(resolveDay('2037-12-14', base()).blocks).toHaveLength(0);
   });
 
   it('modify replaces fields, skip removes, add inserts', () => {
@@ -95,7 +95,7 @@ describe('resolveDay rules', () => {
     d.overrides = [
       {
         id: 'o1',
-        on_date: '2026-10-19',
+        on_date: '2037-10-19',
         kind: 'modify',
         routine_block_id: 'a',
         title: 'A late',
@@ -107,7 +107,7 @@ describe('resolveDay rules', () => {
       },
       {
         id: 'o2',
-        on_date: '2026-10-19',
+        on_date: '2037-10-19',
         kind: 'skip',
         routine_block_id: 'b',
         title: null,
@@ -119,7 +119,7 @@ describe('resolveDay rules', () => {
       },
       {
         id: 'o3',
-        on_date: '2026-10-19',
+        on_date: '2037-10-19',
         kind: 'add',
         routine_block_id: null,
         title: 'Extra',
@@ -130,7 +130,7 @@ describe('resolveDay rules', () => {
         note: null,
       },
     ];
-    const day = resolveDay('2026-10-19', d);
+    const day = resolveDay('2037-10-19', d);
     expect(day.blocks.map((b) => [b.title, b.start_min, b.end_min, b.source])).toEqual([
       ['Extra', 540, 570, 'one_off'],
       ['A late', 630, 690, 'routine'],
@@ -142,21 +142,21 @@ describe('resolveDay rules', () => {
     d.overrides = [
       {
         id: 'm',
-        on_date: '2026-10-19',
+        on_date: '2037-10-19',
         kind: 'move',
         routine_block_id: 'a',
         title: null,
         start_min: 900,
         end_min: 960,
         category_id: null,
-        moved_to_date: '2026-10-21',
+        moved_to_date: '2037-10-21',
         note: null,
       },
     ];
-    expect(resolveDay('2026-10-19', d).blocks.map((b) => b.title)).toEqual(['Lunch']);
-    const wed = resolveDay('2026-10-21', d);
+    expect(resolveDay('2037-10-19', d).blocks.map((b) => b.title)).toEqual(['Lunch']);
+    const wed = resolveDay('2037-10-21', d);
     expect(wed.blocks.map((b) => [b.title, b.start_min, b.end_min, b.key])).toEqual([
-      ['A', 900, 960, 'm:2026-10-21'],
+      ['A', 900, 960, 'm:2037-10-21'],
     ]);
   });
 
@@ -165,7 +165,7 @@ describe('resolveDay rules', () => {
     d.overrides = [
       {
         id: 'x',
-        on_date: '2026-10-19',
+        on_date: '2037-10-19',
         kind: 'skip',
         routine_block_id: 'a',
         title: null,
@@ -174,11 +174,11 @@ describe('resolveDay rules', () => {
         category_id: null,
         moved_to_date: null,
         note: null,
-        deleted_at: '2026-10-01T00:00:00Z',
+        deleted_at: '2037-10-01T00:00:00Z',
       },
       {
         id: 'y',
-        on_date: '2026-12-25',
+        on_date: '2037-12-25',
         kind: 'add',
         routine_block_id: null,
         title: 'Xmas',
@@ -189,11 +189,11 @@ describe('resolveDay rules', () => {
         note: null,
       },
     ];
-    expect(resolveDay('2026-10-19', d).blocks).toHaveLength(2);
-    expect(resolveDay('2026-12-25', d).blocks.map((b) => b.title)).toEqual(['Xmas']);
+    expect(resolveDay('2037-10-19', d).blocks).toHaveLength(2);
+    expect(resolveDay('2037-12-25', d).blocks.map((b) => b.title)).toEqual(['Xmas']);
   });
 
-  it('DST day (Nov 1 2026, Toronto) keeps wall-clock minutes', () => {
+  it('DST day (Nov 1 2037, Toronto) keeps wall-clock minutes', () => {
     const d = base();
     d.routineBlocks.push({
       id: 's',
@@ -203,10 +203,10 @@ describe('resolveDay rules', () => {
       end_min: 180,
       title: 'Night',
       category_id: 'work',
-      effective_from: '2026-09-14',
+      effective_from: '2037-09-14',
       effective_to: null,
     });
-    expect(resolveDay('2026-11-01', d).blocks.map((b) => [b.start_min, b.end_min])).toEqual([
+    expect(resolveDay('2037-11-01', d).blocks.map((b) => [b.start_min, b.end_min])).toEqual([
       [120, 180],
     ]);
   });

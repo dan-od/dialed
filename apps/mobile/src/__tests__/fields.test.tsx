@@ -32,14 +32,14 @@ describe('plain time and date fields', () => {
     const onClose = jest.fn();
     await render(
       <DateRange
-        start="2026-09-14"
-        end="2026-12-11"
+        start="2037-09-14"
+        end="2037-12-11"
         onStart={() => {}}
         onEnd={() => {}}
         onClose={onClose}
       />,
     );
-    expect(screen.getByText('Sep 14, 2026')).toBeTruthy();
+    expect(screen.getByText('Sep 14, 2037')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('ends'));
     expect(screen.getByTestId('ends-wheel')).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();

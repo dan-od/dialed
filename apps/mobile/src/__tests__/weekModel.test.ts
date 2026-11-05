@@ -5,8 +5,8 @@ import { cardsModel, monthModel, weekModel } from '../week/model';
 const { seedData } = require('../../../../packages/schedule/test/seed');
 const data = seedData();
 const colors = { isLight: false };
-// The prototype's sample clock: Monday Oct 19, 2026, 1:15 pm.
-const NOW = { date: '2026-10-19', minute: 795 };
+// The prototype's sample clock: Monday Oct 19, 2037, 1:15 pm.
+const NOW = { date: '2037-10-19', minute: 795 };
 
 describe('Week lanes (prototype numbers from the seeded owner)', () => {
   const w = weekModel(data, weekStartOf(NOW.date), NOW, colors);
@@ -89,11 +89,11 @@ describe('Day cards', () => {
 });
 
 describe('Month poster and weeks', () => {
-  const m = monthModel(data, '2026-10', NOW, colors);
+  const m = monthModel(data, '2037-10', NOW, colors);
   it('poster: computed planned / done / days to go', () => {
     expect(m).toMatchObject({
       month: 'Oct',
-      year: '2026',
+      year: '2037',
       planned: '276h planned',
       done: '153h done',
       toGo: '12 days to go',
@@ -108,10 +108,10 @@ describe('Month poster and weeks', () => {
   });
   it('axis numbers never overlap: today and noted days win over Mondays and the last day', () => {
     const at = (date: string, minute = 600) =>
-      monthModel(data, '2026-10', { date, minute }, colors).axis.map((a) => a.label);
-    expect(at('2026-10-19')).toEqual(['1', '5', '12', '19', '26', '31']);
-    expect(at('2026-10-21')).toEqual(['1', '5', '12', '19', '21', '26', '31']);
-    expect(at('2026-10-30')).toEqual(['1', '5', '12', '19', '26', '30']); // 31 would overlap today's 30
+      monthModel(data, '2037-10', { date, minute }, colors).axis.map((a) => a.label);
+    expect(at('2037-10-19')).toEqual(['1', '5', '12', '19', '26', '31']);
+    expect(at('2037-10-21')).toEqual(['1', '5', '12', '19', '21', '26', '31']);
+    expect(at('2037-10-30')).toEqual(['1', '5', '12', '19', '26', '30']); // 31 would overlap today's 30
   });
   it('week rows: ranges, hours, current and past', () => {
     expect(m.weeks.map((w) => [w.label, w.total, w.current, w.past])).toEqual([

@@ -58,7 +58,9 @@ export class OAuthService {
     const clientId = `dialed_${randomBytes(16).toString('hex')}`;
     await this.db.execute(sql`
       insert into oauth_clients (id, name, redirect_uris, scope, registration_ip)
-      values (${clientId}, ${name}, ${redirectUris}, 'schedule:read plans:draft', ${clientIp}::inet)`);
+      values (${clientId}, ${name},
+        array(select jsonb_array_elements_text(${JSON.stringify(redirectUris)}::jsonb)),
+        'schedule:read plans:draft', ${clientIp}::inet)`);
 
     return { client_id: clientId, client_name: name, redirect_uris: redirectUris };
   }

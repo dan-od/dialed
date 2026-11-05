@@ -60,4 +60,9 @@ start_api() {
   done
   die "API did not become ready on $API_URL."
 }
-stop_api() { [[ -n "${API_PID:-}" ]] && kill "$API_PID" 2>/dev/null || true; }
+# tsx runs the server in a child node process; stop the child too so no stale API keeps the port.
+stop_api() {
+  [[ -n "${API_PID:-}" ]] || return 0
+  pkill -P "$API_PID" 2>/dev/null || true
+  kill "$API_PID" 2>/dev/null || true
+}

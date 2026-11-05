@@ -3,7 +3,7 @@ import { nextFreeSlot, overlapOf, resolveDay, termFor } from '../src';
 import { seedData } from './seed';
 
 // Flow 04: overlap warning + default times for the Add sheet.
-const mon = resolveDay('2026-10-19', seedData()).blocks;
+const mon = resolveDay('2037-10-19', seedData()).blocks;
 
 describe('overlapOf (only work blocks count, touching edges do not)', () => {
   it('8:30–10 pm runs into WellServices (prototype add-overlap)', () => {
@@ -52,20 +52,20 @@ describe('termFor with overlapping terms (Flow 05: the earlier start wins)', () 
     const late = {
       id: 'b',
       name: 'Exam weeks',
-      starts_on: '2026-12-08',
-      ends_on: '2026-12-22',
+      starts_on: '2037-12-08',
+      ends_on: '2037-12-22',
       is_draft: false,
       deleted_at: null,
     };
     const early = {
       id: 'a',
       name: 'Fall term',
-      starts_on: '2026-09-14',
-      ends_on: '2026-12-11',
+      starts_on: '2037-09-14',
+      ends_on: '2037-12-11',
       is_draft: false,
       deleted_at: null,
     };
-    expect(termFor('2026-12-09', [late, early])?.name).toBe('Fall term');
-    expect(termFor('2026-12-12', [late, early])?.name).toBe('Exam weeks');
+    expect(termFor('2037-12-09', [late, early])?.name).toBe('Fall term');
+    expect(termFor('2037-12-12', [late, early])?.name).toBe('Exam weeks');
   });
 });

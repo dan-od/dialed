@@ -96,8 +96,8 @@ describe('calendar file', () => {
         {
           id: 't',
           name: 'Fall',
-          starts_on: '2036-09-14',
-          ends_on: '2036-12-11',
+          starts_on: '2037-09-14',
+          ends_on: '2037-12-11',
           is_draft: false,
           deleted_at: null,
         },
@@ -112,17 +112,17 @@ describe('calendar file', () => {
           end_min: 1440,
           title: 'Read; plan, next\\one',
           category_id: 'c',
-          effective_from: '2036-09-14',
+          effective_from: '2037-09-14',
           effective_to: null,
           deleted_at: null,
         },
       ],
       overrides: [],
     } as unknown as ScheduleData;
-    const ics = calendar(data, '2036-10-20', 'America/Toronto', new Date('2036-10-20T16:00:00Z'));
+    const ics = calendar(data, '2037-10-20', 'America/Toronto', new Date('2037-10-20T16:00:00Z'));
     expect(ics).toContain('SUMMARY:Read\\; plan\\, next\\\\one\r\n');
     expect(ics).toContain('CATEGORIES:Study\\, deep\r\n');
-    expect(ics).toContain('DTEND;TZID=America/Toronto:20361021T000000\r\n');
+    expect(ics).toContain('DTEND;TZID=America/Toronto:20371021T000000\r\n');
   });
 });
 
@@ -154,8 +154,8 @@ describe('export my data', () => {
     const uids = [...ics.matchAll(/^UID:(.+)$/gm)].map((m) => m[1]);
     expect(uids.length).toBeGreaterThan(0);
     expect(new Set(uids).size).toBe(uids.length);
-    expect(uids[0]).toMatch(/^[0-9a-f-]{36}-2036\d{4}@dialed\r?$/);
-    expect(ics).toMatch(/DTSTART;TZID=America\/Toronto:2036\d{4}T\d{6}/);
+    expect(uids[0]).toMatch(/^[0-9a-f-]{36}-2037\d{4}@dialed\r?$/);
+    expect(ics).toMatch(/DTSTART;TZID=America\/Toronto:2037\d{4}T\d{6}/);
   });
   it('allows 3 exports a day', async () => {
     for (let i = 0; i < 3; i++) expect((await exp()).statusCode).toBe(200);
@@ -170,7 +170,7 @@ describe('export my data', () => {
     const ics = strFromU8(unzipSync(new Uint8Array(r.rawPayload))['dialed.ics']!);
     // Tue Oct 20: Cryptography lecture 8:10–11:00 (resolved from the routine).
     expect(ics).toMatch(
-      /DTSTART;TZID=America\/Toronto:20361020T081000\r\nDTEND;TZID=America\/Toronto:20361020T110000\r\nSUMMARY:Cryptography lecture/,
+      /DTSTART;TZID=America\/Toronto:20371020T081000\r\nDTEND;TZID=America\/Toronto:20371020T110000\r\nSUMMARY:Cryptography lecture/,
     );
     expect(ics.split('BEGIN:VEVENT').length - 1).toBeGreaterThan(300);
   });

@@ -12,7 +12,7 @@ import {
 } from '../src';
 import { seedData } from './seed';
 
-const mon = resolveDay('2026-10-19', seedData()).blocks;
+const mon = resolveDay('2037-10-19', seedData()).blocks;
 
 describe('hero state at the Flow 03 clock points (Mon Oct 19)', () => {
   it('795 min (1:15 pm): in Sermon Sync, 1:15 left, ends 2:30 pm', () => {
@@ -54,13 +54,13 @@ describe('formats', () => {
 
 describe('effectiveFrom', () => {
   it('routine editor → next Monday; plans clamp to tomorrow; imports → term start or tomorrow', () => {
-    expect(effectiveFrom({ kind: 'routine_editor', today: '2026-10-20' })).toBe('2026-10-26');
-    expect(effectiveFrom({ kind: 'plan_repeat', today: '2026-10-20', from: '2026-10-19' })).toBe(
-      '2026-10-21',
+    expect(effectiveFrom({ kind: 'routine_editor', today: '2037-10-20' })).toBe('2037-10-26');
+    expect(effectiveFrom({ kind: 'plan_repeat', today: '2037-10-20', from: '2037-10-19' })).toBe(
+      '2037-10-21',
     );
-    expect(effectiveFrom({ kind: 'import', today: '2026-10-20', termStart: '2026-09-14' })).toBe(
-      '2026-10-21',
+    expect(effectiveFrom({ kind: 'import', today: '2037-10-20', termStart: '2037-09-14' })).toBe(
+      '2037-10-21',
     );
-    expect(effectiveFrom({ kind: 'edit_every', occurrence: '2026-10-20' })).toBe('2026-10-20');
+    expect(effectiveFrom({ kind: 'edit_every', occurrence: '2037-10-20' })).toBe('2037-10-20');
   });
 });

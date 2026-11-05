@@ -140,7 +140,7 @@ describe('POST /v1/sync/push', () => {
       op: 'upsert',
       id,
       base_version: 0,
-      fields: { on_date: '2036-10-19', kind: 'skip', routine_block_id: BOB_PROBE_BLOCK },
+      fields: { on_date: '2037-10-19', kind: 'skip', routine_block_id: BOB_PROBE_BLOCK },
     };
     const r = (await push(alice, [m])).json().results[0];
     expect(r).toMatchObject({ status: 'rejected', error_code: 'not_found' });
@@ -162,7 +162,7 @@ describe('POST /v1/sync/push', () => {
           id,
           base_version: 0,
           fields: {
-            on_date: '2036-10-24',
+            on_date: '2037-10-24',
             kind: 'add',
             title: 'Pitch prep',
             start_min: 600,
@@ -192,7 +192,7 @@ describe('POST /v1/sync/push', () => {
           entity: 'routine_block_edit',
           block_id: block,
           base_version: 1,
-          effective_from: '2036-11-02',
+          effective_from: '2037-11-02',
           fields: { start_min: 780 },
         },
       ])
@@ -200,13 +200,13 @@ describe('POST /v1/sync/push', () => {
     expect(r.status).toBe('applied');
     const rows = await t.pool.query(
       'select id, start_min, effective_from, effective_to from routine_blocks where id = $1 or (title = $2 and weekday = 0 and effective_from = $3)',
-      [block, 'Sermon Sync', '2036-11-02'],
+      [block, 'Sermon Sync', '2037-11-02'],
     );
     const old = rows.rows.find((x) => x.id === block)!;
-    expect(old).toMatchObject({ start_min: 760, effective_to: '2036-11-02' });
+    expect(old).toMatchObject({ start_min: 760, effective_to: '2037-11-02' });
     expect(rows.rows.find((x) => x.id !== block)).toMatchObject({
       start_min: 780,
-      effective_from: '2036-11-02',
+      effective_from: '2037-11-02',
       effective_to: null,
     });
   });
@@ -234,7 +234,7 @@ describe('POST /v1/sync/push', () => {
         id: randomUUID(),
         base_version: 0,
         fields: {
-          on_date: '2036-10-24',
+          on_date: '2037-10-24',
           kind: 'add',
           title: 'x',
           start_min: 601,

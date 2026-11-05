@@ -95,10 +95,14 @@ const mcpTokenAtSync = await call('POST', '/v1/sync/push', {
   token: 'fake-mcp-opaque-token-not-a-jwt',
   body: { mutations: [] },
 });
-const mcpTokenAtApprove = await call('POST', '/v1/plans/00000000-0000-0000-0000-000000000000/approve', {
-  token: 'fake-mcp-opaque-token-not-a-jwt',
-  body: { plan_version: 1 },
-});
+const mcpTokenAtApprove = await call(
+  'POST',
+  '/v1/plans/00000000-0000-0000-0000-000000000000/approve',
+  {
+    token: 'fake-mcp-opaque-token-not-a-jwt',
+    body: { plan_version: 1 },
+  },
+);
 const wrongRole: Sub[] = [
   { id: 'app_token_at_mcp_401', passed: appAtMcp.status === 401, observed: appAtMcp.status },
   {
@@ -140,7 +144,7 @@ const ov = await call('POST', '/v1/sync/push', {
         op: 'upsert',
         id: ovId,
         base_version: 0,
-        fields: { on_date: '2026-10-19', kind: 'skip', routine_block_id: BOB_PROBE_BLOCK },
+        fields: { on_date: '2037-10-19', kind: 'skip', routine_block_id: BOB_PROBE_BLOCK },
       },
     ],
   },

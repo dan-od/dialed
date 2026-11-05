@@ -13,17 +13,17 @@ describe('importSummary', () => {
     const events: CalendarEvent[] = [
       {
         title: 'Standup',
-        start: '2026-10-20T09:00:00Z',
-        end: '2026-10-20T09:30:00Z',
+        start: '2037-10-20T09:00:00Z',
+        end: '2037-10-20T09:30:00Z',
         rrule: 'FREQ=WEEKLY',
       },
       {
         title: 'Standup',
-        start: '2026-10-21T09:00:00Z',
-        end: '2026-10-21T09:30:00Z',
+        start: '2037-10-21T09:00:00Z',
+        end: '2037-10-21T09:30:00Z',
         rrule: 'FREQ=WEEKLY',
       },
-      { title: 'Doctor', start: '2026-10-22T14:00:00Z', end: '2026-10-22T15:00:00Z' },
+      { title: 'Doctor', start: '2037-10-22T14:00:00Z', end: '2037-10-22T15:00:00Z' },
     ];
     const s = importSummary(events);
     expect(s.recurring).toBe(2);
@@ -40,8 +40,8 @@ describe('importSummary', () => {
     const events: CalendarEvent[] = [
       {
         title: 'A',
-        start: '2026-10-20T09:00:00Z',
-        end: '2026-10-20T10:00:00Z',
+        start: '2037-10-20T09:00:00Z',
+        end: '2037-10-20T10:00:00Z',
         rrule: 'FREQ=WEEKLY',
       },
     ];
@@ -53,8 +53,8 @@ describe('CalendarEvent shape', () => {
   it('recurring events have rrule field', () => {
     const ev: CalendarEvent = {
       title: 'Standup',
-      start: '2026-10-20T09:00:00Z',
-      end: '2026-10-20T09:30:00Z',
+      start: '2037-10-20T09:00:00Z',
+      end: '2037-10-20T09:30:00Z',
       rrule: 'FREQ=WEEKLY',
       calendar: 'Work',
     };
@@ -65,8 +65,8 @@ describe('CalendarEvent shape', () => {
   it('one-off events have no rrule', () => {
     const ev: CalendarEvent = {
       title: 'Doctor',
-      start: '2026-10-22T14:00:00Z',
-      end: '2026-10-22T15:00:00Z',
+      start: '2037-10-22T14:00:00Z',
+      end: '2037-10-22T15:00:00Z',
     };
     expect(ev.rrule).toBeUndefined();
   });

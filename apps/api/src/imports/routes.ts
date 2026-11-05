@@ -107,6 +107,8 @@ export function importsRoutes(
       }
       chunks.push(chunk);
     }
+    // @fastify/multipart stops the stream at the limit instead of erroring; a cut-off file is too large.
+    if (filePart.file.truncated) throw new AppError('file_too_large');
     const fileBuf = Buffer.concat(chunks);
 
     const fileKind = detectFileKind(fileBuf);

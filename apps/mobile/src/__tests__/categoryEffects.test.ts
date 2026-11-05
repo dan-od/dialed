@@ -5,7 +5,7 @@ import { Categories } from '../settings/service';
 
 // Flow 09 on the phone: merge and delete show at once (offline too), mirroring the server
 // (apps/api categoryMerge / categoryDelete); re-applying on top of a pull gives the same rows.
-jest.mock('../clock/clock', () => ({ now: () => ({ date: '2026-10-23', minute: 795 }) }));
+jest.mock('../clock/clock', () => ({ now: () => ({ date: '2037-10-23', minute: 795 }) }));
 
 const cat = (id: string, name: string, version = 1) => ({
   id,
@@ -20,7 +20,7 @@ const cat = (id: string, name: string, version = 1) => ({
   deleted_at: null,
   version,
 });
-const rb = (id: string, category_id: string, effective_from = '2026-09-14') => ({
+const rb = (id: string, category_id: string, effective_from = '2037-09-14') => ({
   id,
   routine_id: 'r',
   weekday: 1,
@@ -61,10 +61,10 @@ async function setup() {
       { entity: 'category', op: 'upsert', row: cat('well', 'WellServices', 4) },
       { entity: 'routine_block', op: 'upsert', row: rb('a', 'speed') },
       { entity: 'routine_block', op: 'upsert', row: rb('b', 'speed') },
-      { entity: 'routine_block', op: 'upsert', row: rb('later', 'speed', '2026-10-26') },
+      { entity: 'routine_block', op: 'upsert', row: rb('later', 'speed', '2037-10-26') },
       { entity: 'routine_block', op: 'upsert', row: rb('w', 'well') },
-      { entity: 'override', op: 'upsert', row: ov('past', '2026-10-12') },
-      { entity: 'override', op: 'upsert', row: ov('future', '2026-10-24') },
+      { entity: 'override', op: 'upsert', row: ov('past', '2037-10-12') },
+      { entity: 'override', op: 'upsert', row: ov('future', '2037-10-24') },
     ],
     10,
   );
@@ -135,7 +135,7 @@ describe('delete on the phone', () => {
     const { sent, cats, get } = await setup();
     await cats.remove('speed', { deleteBlocks: true });
     expect(sent[0]).toMatchObject({ entity: 'category_delete', delete_blocks: true });
-    expect((await get('routine_block', 'a')).effective_to).toBe('2026-10-23');
+    expect((await get('routine_block', 'a')).effective_to).toBe('2037-10-23');
     expect((await get('routine_block', 'later')).deleted_at).not.toBeNull();
     expect((await get('override', 'past')).deleted_at).toBeNull();
     expect((await get('override', 'future')).deleted_at).not.toBeNull();

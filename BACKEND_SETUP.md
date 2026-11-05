@@ -44,6 +44,9 @@ Recorded at Batch 0 (2026-10-20) on the owner's Mac:
 | @react-native-community/datetimepicker / expo-notifications | 9.2.1 / 58.1.6 | Flow 04: native time picker; local reminders + permission prompt (`enableRemoteNotifications` only on `APPLE_TEAM_TIER=paid`) |
 | fflate (API) / expo-file-system (mobile) | 0.8.2 / 58.0.10 | Flow 09 Export my data: dependency-free zip writer for `dialed-export.zip`; a temp file for the iOS share sheet (RN `Share`, no expo-sharing) |
 | App Groups on Personal Team | not tested yet | Flow 08 |
+| @modelcontextprotocol/sdk | 1.32.2 | Flow 07; was 1.12.1 (7 high advisories incl. cross-client leak). Tools use `registerTool`; one `McpServer` per request bound to the verified caller (2026-11-05) |
+| node-forge (pnpm override) | 1.4.3 | transitive via `expo`; 1.4.0 had 6 high advisories (2026-11-05) |
+| Audit ignore | GHSA-mrhx-c7xc-m3w5 | zod 3.25.76 inside `@expo/cli` (build-time CLI only; no zod 3 fix, latest @expo/cli 58.1.19 still needs zod 3). Owner-approved 2026-11-05; remove from `pnpm.auditConfig.ignoreGhsas` once Expo moves to zod ≥ 4.6.6 |
 
 ## 2. Repository layout (pnpm workspaces)
 

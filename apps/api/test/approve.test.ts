@@ -10,7 +10,7 @@ const WELLSERVICES_WED = '50c05f16-23bd-5fe1-b748-148243e8611a';
 const SPEEDWATCH_FRI = '4785aeda-e8f8-5873-8ff4-6b01e0fad168';
 const BOB_PLAN = '3f64b5e1-eed2-5e8e-9db2-a6499a142fc6';
 
-const TODAY: IsoDate = '2036-10-20';
+const TODAY: IsoDate = '2037-10-20';
 
 let t: TestApp;
 const planIds: string[] = [];
@@ -53,7 +53,7 @@ async function seedPlan(userId: string, opts: { status?: string; baseRevision?: 
     (id, user_id, source, provider, request_text, status, base_revision, version, range_from, range_to)
     values (${planId}, ${userId}, 'in_app', 'fixture',
       'Bible study with Chichi every Wednesday at 7, for the rest of the year. And move Friday Speedwatch to Saturday evening.',
-      ${status}, ${baseRevision}, 1, '2036-10-21', '2036-12-31')`);
+      ${status}, ${baseRevision}, 1, '2037-10-21', '2037-12-31')`);
 
   const changes = [
     {
@@ -70,7 +70,7 @@ async function seedPlan(userId: string, opts: { status?: string; baseRevision?: 
       title: 'Bible study with Chichi',
       payload: {
         category_id: 'c1',
-        repeat: { weekday: 'wed', from: '2036-10-21', until: '2036-12-31' },
+        repeat: { weekday: 'wed', from: '2037-10-21', until: '2037-12-31' },
         start: '19:00',
         end: '20:30',
       },
@@ -81,11 +81,11 @@ async function seedPlan(userId: string, opts: { status?: string; baseRevision?: 
       title: 'WellServices',
       payload: {
         block_ref: WELLSERVICES_WED,
-        repeat: { weekday: 'sun', from: '2036-10-25', until: '2036-12-11' },
+        repeat: { weekday: 'sun', from: '2037-10-25', until: '2037-12-11' },
         to_weekday: 'sun',
         start: '15:00',
         end: '16:45',
-        close_from: '2036-10-21',
+        close_from: '2037-10-21',
       },
     },
     {
@@ -94,11 +94,11 @@ async function seedPlan(userId: string, opts: { status?: string; baseRevision?: 
       title: 'Speedwatch Ontario',
       payload: {
         block_ref: SPEEDWATCH_FRI,
-        repeat: { weekday: 'sat', from: '2036-10-24', until: '2036-12-11' },
+        repeat: { weekday: 'sat', from: '2037-10-24', until: '2037-12-11' },
         to_weekday: 'sat',
         start: '17:30',
         end: '18:45',
-        close_from: '2036-10-23',
+        close_from: '2037-10-23',
       },
     },
   ];

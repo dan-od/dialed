@@ -75,19 +75,19 @@ const data: ScheduleData = {
   routineBlocks: rows('routine_block') as ScheduleData['routineBlocks'],
   overrides: rows('override') as ScheduleData['overrides'],
 };
-const mon = resolveDay('2026-10-19', data);
+const mon = resolveDay('2037-10-19', data);
 const sermon = mon.blocks.find((b) => b.title === 'Sermon Sync' && b.start_min === 760);
 check(
-  'resolveDay(2026-10-19) from synced rows = 11 blocks incl. Sermon Sync 12:40–14:30',
+  'resolveDay(2037-10-19) from synced rows = 11 blocks incl. Sermon Sync 12:40–14:30',
   mon.blocks.length === 11 && sermon?.end_min === 870,
   { blocks: mon.blocks.length },
 );
-const week = weekWorkMinutes('2026-10-19', data);
+const week = weekWorkMinutes('2037-10-19', data);
 check('owner week of Oct 19 = 64.3h (64.25 h, half-up)', formatHours(week) === '64.3h', {
   minutes: week,
   display: formatHours(week),
 });
-const thanksgiving = resolveDay('2026-10-12', data).blocks.map(
+const thanksgiving = resolveDay('2037-10-12', data).blocks.map(
   (b) => `${b.title} ${b.start_min}-${b.end_min}`,
 );
 check(

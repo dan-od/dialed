@@ -71,8 +71,13 @@ describe('observability', () => {
   });
 
   it('app tokens are refused at /mcp', async () => {
-    const r = await t.app.inject({ method: 'POST', url: '/mcp', payload: {} });
-    expect(r.statusCode).toBe(401);
-    expect(r.headers['www-authenticate']).toContain('resource_metadata');
+    const mcp = await makeApp({ MCP_ENABLED: true });
+    try {
+      const r = await mcp.app.inject({ method: 'POST', url: '/mcp', payload: {} });
+      expect(r.statusCode).toBe(401);
+      expect(r.headers['www-authenticate']).toContain('resource_metadata');
+    } finally {
+      await mcp.close();
+    }
   });
 });

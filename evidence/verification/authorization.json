@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-21T05:37:17.918Z",
+  "generated_at": "2026-11-05T18:01:21.548Z",
   "api": "http://127.0.0.1:8091",
   "checks": [
     {
@@ -36,7 +36,7 @@
     },
     {
       "id": "wrong_role_denied",
-      "passed": null,
+      "passed": true,
       "available_from": "flow-01 (partial); full from flow-07",
       "sub_checks": [
         {
@@ -46,13 +46,13 @@
         },
         {
           "id": "mcp_token_at_sync_push_denied",
-          "passed": null,
-          "reason": "needs MCP OAuth tokens (flow-07)"
+          "passed": true,
+          "observed": 401
         },
         {
           "id": "mcp_token_at_plan_approve_denied",
-          "passed": null,
-          "reason": "needs MCP OAuth tokens (flow-07) and plans API (flow-06)"
+          "passed": true,
+          "observed": 401
         }
       ]
     },
@@ -65,7 +65,7 @@
           "id": "sync_push_bob_routine_block_rejected_not_found",
           "passed": true,
           "observed": {
-            "client_mutation_id": "eb704260-e777-452a-a587-34f346c696a9",
+            "client_mutation_id": "98abfbb9-7111-41c1-8e8c-1d0bc1786a4c",
             "status": "rejected",
             "error_code": "not_found",
             "message": "That isn’t available."
@@ -75,7 +75,7 @@
           "id": "sync_push_override_on_bob_block_rejected_not_found",
           "passed": true,
           "observed": {
-            "client_mutation_id": "5964496d-3c14-4177-8f74-16b82fc42e3f",
+            "client_mutation_id": "8c773b67-88a6-4d11-9021-0ce24f04d345",
             "status": "rejected",
             "error_code": "not_found",
             "message": "That isn’t available."

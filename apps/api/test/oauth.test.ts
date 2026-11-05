@@ -132,7 +132,7 @@ describe('Full OAuth code flow', () => {
       payload: `csrf_token=${csrf}&email=${ALICE.email}&password=${DEV_PASSWORD}&action=signin`,
     });
     expect(signin.statusCode).toBe(200);
-    expect(signin.body).toContain('consent');
+    expect(signin.body).toContain('name="action" value="allow"');
     const consentCsrf = signin.body.match(/name="csrf_token" value="([^"]+)"/)?.[1];
     expect(consentCsrf).toBeTruthy();
 
@@ -176,16 +176,41 @@ describe('Full OAuth code flow', () => {
     const newTokens = refreshRes.json();
     expect(newTokens.access_token).not.toBe(tokens.access_token);
 
-    // 8. Reuse old refresh token → family revoked
-    const reuseRes = await t.app.inject({
-      method: 'POST',
-      url: '/oauth/token',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      payload: `grant_type=refresh_token&client_id=${clientId}&refresh_token=${tokens.refresh_token}`,
-    });
-    expect(reuseRes.statusCode).toBe(400);
+    // 7b. The MCP token reaches the tools, scoped to its user, on repeated requests
+    const mcpCall = async (id: number, method: string, params: Record<string, unknown> = {}) => {
+      const res = await t.app.inject({
+        method: 'POST',
+        url: '/mcp',
+        headers: {
+          authorization: `Bearer ${newTokens.access_token}`,
+          accept: 'application/json, text/event-stream',
+          'content-type': 'application/json',
+        },
+        payload: { jsonrpc: '2.0', id, method, params },
+      });
+      expect(res.statusCode).toBe(200);
+      const data = res.body
+        .split('\n')
+        .find((l) => l.startsWith('data: '))
+        ?.slice(6);
+      return JSON.parse(data ?? res.body) as { result?: Record<string, unknown>; error?: unknown };
+    };
+    const listed = await mcpCall(1, 'tools/list');
+    const toolNames = (listed.result?.tools as { name: string }[]).map((x) => x.name);
+    expect(toolNames).toEqual(
+      expect.arrayContaining(['list_terms', 'get_schedule', 'propose_changes']),
+    );
+    for (const id of [2, 3]) {
+      const called = await mcpCall(id, 'tools/call', { name: 'list_terms', arguments: {} });
+      expect(called.error).toBeUndefined();
+      const text = (called.result?.content as { text: string }[])[0]!.text;
+      const terms = JSON.parse(text).terms as { id: string }[];
+      expect(terms.length).toBeGreaterThan(0);
+      // The owner's Winter term never shows up for Alice's connector.
+      expect(terms.map((x) => x.id)).not.toContain('8754b690-65d4-5061-a09b-392df0b56252');
+    }
 
-    // 9. Connector list shows the client
+    // 8. Connector list shows the client
     const connList = await t.app.inject({
       method: 'GET',
       url: '/v1/connector',
@@ -195,7 +220,25 @@ describe('Full OAuth code flow', () => {
     const connectors = connList.json().connectors as { client_id: string }[];
     expect(connectors.some((c) => c.client_id === clientId)).toBe(true);
 
-    // 10. Disconnect
+    // 9. Reuse old refresh token → family revoked
+    const reuseRes = await t.app.inject({
+      method: 'POST',
+      url: '/oauth/token',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      payload: `grant_type=refresh_token&client_id=${clientId}&refresh_token=${tokens.refresh_token}`,
+    });
+    expect(reuseRes.statusCode).toBe(400);
+
+    // 10. The revoked family drops the connector from the list
+    const afterReuse = await t.app.inject({
+      method: 'GET',
+      url: '/v1/connector',
+      headers: { authorization: `Bearer ${aliceToken}` },
+    });
+    const remaining = afterReuse.json().connectors as { client_id: string }[];
+    expect(remaining.some((c) => c.client_id === clientId)).toBe(false);
+
+    // 11. Disconnect
     const disc = await t.app.inject({
       method: 'DELETE',
       url: `/v1/connector/${clientId}`,
@@ -223,6 +266,7 @@ describe('MCP endpoint', () => {
       payload: { jsonrpc: '2.0', id: 1, method: 'tools/list' },
     });
     expect(r.statusCode).toBe(401);
+    expect(r.headers['www-authenticate']).toContain('resource_metadata');
   });
 
   it('returns 404 when MCP_ENABLED=false', async () => {

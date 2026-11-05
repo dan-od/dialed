@@ -49,7 +49,7 @@ const block = (id: string, cat: string, weekday: number, s: number, e: number, o
   end_min: e,
   title: id,
   category_id: cat,
-  effective_from: '2026-09-14',
+  effective_from: '2037-09-14',
   effective_to: null as string | null,
   deleted_at: null as string | null,
   ...over,
@@ -60,8 +60,8 @@ const data: ScheduleData = {
     {
       id: 't',
       name: 'Fall term',
-      starts_on: '2026-09-14',
-      ends_on: '2026-12-11',
+      starts_on: '2037-09-14',
+      ends_on: '2037-12-11',
       is_draft: false,
       deleted_at: null,
     },
@@ -72,13 +72,13 @@ const data: ScheduleData = {
     block('sw-thu', 'speed', 3, 1140, 1230),
     block('sw-fri', 'speed', 4, 1155, 1230),
     // Ended last week: not in this week's hours.
-    block('sw-old', 'speed', 5, 600, 720, { effective_to: '2026-10-19' }),
+    block('sw-old', 'speed', 5, 600, 720, { effective_to: '2037-10-19' }),
     block('lunch', 'meal', 4, 750, 810),
     block('dinner', 'meal', 4, 1080, 1125),
   ],
   overrides: [],
 };
-const TODAY = '2026-10-23'; // Friday
+const TODAY = '2037-10-23'; // Friday
 
 describe('categories page', () => {
   it('hours and blocks per category in this week of the active term (quiet ones count too)', () => {
@@ -101,7 +101,7 @@ describe('categories page', () => {
     expect(sameName(data.categories, '  wellservices ')?.name).toBe('WellServices');
     expect(sameName(data.categories, 'Speedwatch  Ontario', 'speed')).toBeNull();
     expect(sameName(data.categories, 'Speedwatch Ontario', 'well')?.id).toBe('speed');
-    expect(sameName([{ ...WELL, deleted_at: '2026-10-01' }], 'WellServices')).toBeNull();
+    expect(sameName([{ ...WELL, deleted_at: '2037-10-01' }], 'WellServices')).toBeNull();
   });
   it('plain counts, singular when it is one', () => {
     expect(blocksUseLine(3)).toBe('3 blocks a week use it.');
@@ -157,7 +157,7 @@ describe('notifications page', () => {
     expect(quietHoursText(1380, 420)).toBe('11 pm – 7 am');
   });
   it('the live count uses the same planner as the phone: heads-up for work blocks, notes for meals, capped', () => {
-    const at1315 = new Date('2026-10-23T17:15:00Z'); // Fri 1:15 pm Toronto
+    const at1315 = new Date('2037-10-23T17:15:00Z'); // Fri 1:15 pm Toronto
     const q = { start: 0, end: 450 };
     const tz = 'America/Toronto';
     expect(notifCount(data, {}, prefs, at1315, tz, q)).toBe(0);
