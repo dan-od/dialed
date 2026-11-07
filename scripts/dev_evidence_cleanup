@@ -76,8 +76,8 @@ SELECT '$OWNER', rev.revision, 'term', gone.id, 'upsert', to_jsonb(gone) - 'user
 -- Term dates back to the seed (Flow 05 date edits).
 WITH fixed AS (
   UPDATE terms t SET starts_on = v.s::date, ends_on = v.e::date, version = t.version + 1
-  FROM (VALUES ('Fall term', '2026-09-14', '2026-12-11'), ('Exam weeks', '2026-12-12', '2026-12-22'),
-               ('Winter term', '2027-01-05', '2027-04-16')) v(n, s, e)
+  FROM (VALUES ('Fall term', '2037-09-14', '2037-12-11'), ('Exam weeks', '2037-12-12', '2037-12-22'),
+               ('Winter term', '2038-01-05', '2038-04-16')) v(n, s, e)
   WHERE t.user_id = '$OWNER' AND t.name = v.n AND t.deleted_at IS NULL
     AND (t.starts_on <> v.s::date OR t.ends_on <> v.e::date) RETURNING t.*
 ), rev AS (
