@@ -24,7 +24,7 @@ import { AppError } from '../lib/errors';
 import { parse } from '../lib/validate';
 import { PlanService } from '../plans/service';
 import { findByIdempotencyKey } from '../plans/idempotency';
-import { dailyPlanCount, incrementUsage } from '../plans/usage';
+import { dailyImportCount, incrementUsage } from '../plans/usage';
 
 type Row = Record<string, unknown>;
 
@@ -79,7 +79,7 @@ export function importsRoutes(
       }
     }
 
-    const count = await dailyPlanCount(db, userId, today);
+    const count = await dailyImportCount(db, userId, today);
     if (count >= config.IMPORT_DAILY_LIMIT) {
       throw new AppError(
         'daily_limit',
@@ -199,7 +199,7 @@ export function importsRoutes(
           values (${planId}, ${userId}, 'timetable', ${provider.id},
             ${'Timetable import'}, 'failed', ${baseRevision},
             'server', ${idempotencyKey ?? null}, 1, 'nothing_found')`);
-        await incrementUsage(db, userId, today, result.tokensIn, result.tokensOut);
+        await incrementUsage(db, userId, today, result.tokensIn, result.tokensOut, 'imports');
         const plan = await planService.get(userId, planId, tz);
         return reply.code(200).send(plan);
       }
@@ -312,7 +312,9 @@ export function importsRoutes(
         checks,
         result.tokensIn,
         result.tokensOut,
+        { skipUsage: true },
       );
+      await incrementUsage(db, userId, today, result.tokensIn, result.tokensOut, 'imports');
 
       const plan = await planService.get(userId, planId, tz);
       return reply.code(201).send(plan);

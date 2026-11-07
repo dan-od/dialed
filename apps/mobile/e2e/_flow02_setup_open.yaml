@@ -1,0 +1,7 @@
+# Relaunch keeping the session and wait for the empty-Day setup chooser (Flow 02 entry).
+appId: me.okoro.dialed
+---
+- launchApp: { stopApp: true }
+- runFlow: _open.yaml
+- extendedWaitUntil: { visible: 'Set up your week', timeout: 90000 }
+- waitForAnimationToEnd: { timeout: 3000 }

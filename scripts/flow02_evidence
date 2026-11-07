@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# Flow 02 runtime evidence on the iOS Simulator (Maestro). Needs the dev client installed (scripts/ios_dev),
+# Metro on :8081 and the API with AI_MODE=fixture writing its log to $API_LOG (console emails carry the code).
+# Signs up the dev-only invite account newplanner@dialed.test (reset first) so Day opens on the setup chooser,
+# copies the timetable fixtures into the app's Caches and opens Reading on them by deep link (the file name
+# picks the fixture variant). Usage: API_LOG=/tmp/f02-api.log ./scripts/flow02_evidence [udid]
+source "$(dirname "$0")/lib/common.sh"
+ensure_xcode_env
+load_env
+: "${API_LOG:?set API_LOG to the API dev server log}"
+DEVICE="${1:-$(xcrun simctl list devices booted | grep -oE '[0-9A-F-]{36}' | head -1)}"
+export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}" MAESTRO_DRIVER_STARTUP_TIMEOUT=180000 MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
+APP=me.okoro.dialed
+EMAIL=newplanner@dialed.test
+DAY=2037-10-20
+EV="$ROOT/evidence/flows/Flow_02"
+RAW="$EV/e2e-evidence"
+mkdir -p "$EV/screens" "$RAW"
+reset_driver() { pkill -f "xcodebuild test-without-building -xctestrun" 2>/dev/null || true; }
+run() { reset_driver; (cd "$ROOT/apps/mobile" && maestro --device "$DEVICE" test --test-output-dir "$RAW/$1" "${@:2}"); }
+retry() { local n; for n in 1 2 3; do "$@" && return 0; log "attempt $n failed; retrying"; done; return 1; }
+sql() { compose exec -T postgres psql -qtAU dialed -d dialed -c "$1"; }
+collect() { find "$RAW" -path "*takeScreenshot*" -name "*.png" -print0 | xargs -0 ls -tr 2>/dev/null | while read -r f; do cp "$f" "$EV/screens/"; done; }
+trap collect EXIT
+
+FROM="${FROM:-signup}"   # resume: FROM=camera|nothing|limit|partial|happy
+step=0; order=(signup camera nothing limit partial happy)
+for i in "${!order[@]}"; do [[ "${order[$i]}" == "$FROM" ]] && step=$i; done
+at() { local i; for i in "${!order[@]}"; do [[ "${order[$i]}" == "$1" ]] && { (( i >= step )); return; }; done; return 1; }
+
+if at signup; then
+log "Sign up $EMAIL (dev-only invite account, reset first)"
+sql "delete from users where email='$EMAIL'; update invites set used_at = null where email='$EMAIL';" >/dev/null
+run signup e2e/signup_until_verify.yaml || die "signup failed"
+CODE=$(grep -F "[email:console] to=$EMAIL " "$API_LOG" | tail -1 | sed -E 's/.*code ([0-9]{6}).*/\1/')
+[[ "$CODE" =~ ^[0-9]{6}$ ]] || die "No verification code for $EMAIL in $API_LOG"
+WRONG=$([[ "$CODE" == 000000 ]] && echo 111111 || echo 000000)
+run verify -e CODE="$CODE" -e WRONG="$WRONG" e2e/verify_code.yaml || die "verify failed"
+fi
+
+log "Copy fixtures into the app's Caches"
+CACHES="$(xcrun simctl get_app_container "$DEVICE" "$APP" data)/Library/Caches/flow02"
+mkdir -p "$CACHES"
+FX="$ROOT/backend/seed/fixtures/timetable/timetable-ref002.png"
+for n in timetable.png partial-timetable.png empty-timetable.png; do rm -f "$CACHES/$n"; cp "$FX" "$CACHES/$n"; done
+link() { python3 -c 'import sys,urllib.parse as u; print("dialed:///import/reading?"+u.urlencode({"uri":"file://"+sys.argv[1],"name":sys.argv[2],"mime":"image/png","source":"files"}))' "$CACHES/$1" "$1"; }
+
+xcrun simctl ui "$DEVICE" appearance dark
+UID_=$(sql "select id from users where email='$EMAIL'")
+at signup && retry run setup -e THEME=dark e2e/flow02_setup.yaml
+
+if at camera; then
+log "Camera denied"
+retry run camera -e THEME=dark e2e/flow02_camera_denied.yaml
+fi
+
+if at nothing; then
+log "No classes found"
+retry run nothing -e THEME=dark -e LINK="$(link empty-timetable.png)" e2e/flow02_nothing_found.yaml
+fi
+
+if at limit; then
+log "Limit (usage counter set to 6)"
+sql "insert into usage_counters (user_id, day, imports) values ('$UID_', '$DAY', 6) on conflict (user_id, day) do update set imports = 6;" >/dev/null
+retry run limit -e THEME=dark -e LINK="$(link timetable.png)" e2e/flow02_limit.yaml
+sql "update usage_counters set imports = 0 where user_id = '$UID_';" >/dev/null
+fi
+
+if at partial; then
+log "Partial read (dark, light, AX1)"
+retry run partial-dark -e THEME=dark -e LINK="$(link partial-timetable.png)" e2e/flow02_partial.yaml
+xcrun simctl ui "$DEVICE" appearance light
+retry run partial-light -e THEME=light -e LINK="$(link partial-timetable.png)" e2e/flow02_partial.yaml
+xcrun simctl ui "$DEVICE" content_size accessibility-large
+retry run partial-ax1 -e THEME=ax1 -e LINK="$(link partial-timetable.png)" e2e/flow02_partial.yaml
+xcrun simctl ui "$DEVICE" content_size large
+xcrun simctl ui "$DEVICE" appearance dark
+sql "update usage_counters set imports = 0 where user_id = '$UID_';" >/dev/null
+fi
+
+log "Happy path: Found 6 → Add 5 → Day + toast"
+retry run happy -e THEME=dark -e LINK="$(link timetable.png)" e2e/flow02_happy.yaml
+log "Done. Screens in $EV/screens"

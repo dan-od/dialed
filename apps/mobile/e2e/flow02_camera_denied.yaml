@@ -1,0 +1,16 @@
+# Flow 02: camera permission denied → Take a photo → inline stamp + Open Settings (not a toast).
+# launchApp grants permissions by default, so this flow launches with the camera denied.
+appId: me.okoro.dialed
+---
+- launchApp:
+    stopApp: true
+    permissions: { camera: deny }
+- runFlow: _open.yaml
+- extendedWaitUntil: { visible: 'Set up your week', timeout: 90000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- tapOn: 'Add your timetable.*'
+- extendedWaitUntil: { visible: 'Take a photo', timeout: 5000 }
+- tapOn: 'Take a photo'
+- extendedWaitUntil: { visible: 'Camera access is off.*', timeout: 10000 }
+- assertVisible: 'Open Settings'
+- takeScreenshot: camera-denied-${THEME}

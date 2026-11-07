@@ -165,7 +165,9 @@ export default function Found() {
 
   return (
     <Page>
-      <Header left={<BackLink label={backLabel} onPress={goBackToSource} />} />
+      <Header
+        left={<BackLink label={backLabel} a11yLabel={backLabel} onPress={goBackToSource} />}
+      />
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
         <View style={{ paddingHorizontal: 20 }}>
           <H1 size={56}>{foundTitle(m.classes.length)}</H1>

@@ -1,0 +1,11 @@
+# Flow 02: today's timetable reads used up (usage counter set by the script) → Limit stamp.
+appId: me.okoro.dialed
+---
+- runFlow: _flow02_setup_open.yaml
+- runFlow: _flow02_read.yaml
+- extendedWaitUntil: { visible: 'Limit', timeout: 60000 }
+- assertVisible: '.*used today.s 6 timetable reads.*'
+- assertVisible: 'Bring your own key'
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: limit-${THEME}
+- tapOn: 'Back'

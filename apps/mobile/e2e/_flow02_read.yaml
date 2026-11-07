@@ -1,0 +1,13 @@
+# Opens Reading on a fixture file already copied into the app's Caches (env LINK = url-encoded deep link).
+# The file name picks the server fixture variant (empty / partial / full) in AI_MODE=fixture.
+appId: me.okoro.dialed
+---
+- openLink: ${LINK}
+- waitForAnimationToEnd: { timeout: 3000 }
+# iOS may ask "Open in “Dialed”?" for the custom scheme: tap Open by position (system UI).
+- runFlow:
+    when:
+      notVisible: '.*(Reading your classes|Found .* class|No classes found|Limit|Can.t read that).*'
+    commands:
+      - tapOn:
+          point: 70%,54%

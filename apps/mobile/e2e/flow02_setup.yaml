@@ -1,0 +1,15 @@
+# Flow 02: setup chooser → Add your timetable → source action sheet (Cancel). Needs a new account (no routine).
+appId: me.okoro.dialed
+---
+- runFlow: _flow02_setup_open.yaml
+- assertVisible: 'Add your timetable.*'
+- assertVisible: 'Describe your week.*'
+- assertVisible: 'Import from Apple Calendar.*'
+- assertVisible: 'Build it myself.*'
+- takeScreenshot: setup-${THEME}
+- tapOn: 'Add your timetable.*'
+- extendedWaitUntil: { visible: 'Take a photo', timeout: 5000 }
+- assertVisible: 'Choose from Photos'
+- assertVisible: 'Import a file.*'
+- takeScreenshot: source-sheet-${THEME}
+- tapOn: 'Cancel'

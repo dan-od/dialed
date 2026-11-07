@@ -196,6 +196,36 @@ async function uploadPng(fileName: string, key: string) {
 
 type ChangeDTO = { id: string; ord: number; kind: string; payload: Record<string, unknown> };
 
+describe('timetable read limit is its own counter', () => {
+  const day = TEST_NOW().toISOString().slice(0, 10);
+  const counters = async () =>
+    (
+      await t.db.execute<{ plan_runs: number; imports: number }>(
+        sql`select plan_runs, imports from usage_counters where user_id = ${OWNER.id}`,
+      )
+    ).rows[0];
+
+  it('a read counts as an import, not a plan run', async () => {
+    await cleanup();
+    expect((await uploadPng('timetable.png', 'test-count-1')).statusCode).toBe(201);
+    expect((await uploadPng('empty-timetable.png', 'test-count-2')).statusCode).toBe(200);
+    expect(await counters()).toMatchObject({ plan_runs: 0, imports: 2 });
+    await cleanup();
+  });
+
+  it('AI plan runs do not block timetable reads; 6 imports do', async () => {
+    await cleanup();
+    await t.db.execute(sql`insert into usage_counters (user_id, day, plan_runs, imports)
+      values (${OWNER.id}, ${day}, 20, 0)`);
+    expect((await uploadPng('timetable.png', 'test-limit-runs')).statusCode).toBe(201);
+    await t.db.execute(sql`update usage_counters set imports = 6 where user_id = ${OWNER.id}`);
+    const r = await uploadPng('timetable.png', 'test-limit-imports');
+    expect(r.statusCode).toBe(429);
+    expect(r.json().error.message).toContain("today's 6 timetable reads");
+    await cleanup();
+  });
+});
+
 describe('timetable read results (Flow 02 Found classes)', () => {
   it('a read with no classes returns a failed plan marked nothing_found', async () => {
     await cleanup();

@@ -1,0 +1,18 @@
+# Flow 02 happy path: Reading → Found 6 classes → switch one off → Add 5 classes to Fall term → Day + toast.
+appId: me.okoro.dialed
+---
+- runFlow: _flow02_setup_open.yaml
+- runFlow: _flow02_read.yaml
+- extendedWaitUntil: { visible: 'Reading your classes', timeout: 20000 }
+- takeScreenshot: reading-${THEME}
+- extendedWaitUntil: { visible: 'Found 6 classes', timeout: 60000 }
+- assertVisible: 'Add 6 classes to Fall term'
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: found-${THEME}
+- tapOn: 'Include Capstone Study Project lecture'
+- extendedWaitUntil: { visible: 'Add 5 classes to Fall term', timeout: 10000 }
+- takeScreenshot: found-toggled-${THEME}
+- tapOn: 'Add 5 classes to Fall term'
+- extendedWaitUntil: { visible: 'Added 5 classes to Fall term.*', timeout: 30000 }
+- assertVisible: 'Describe'
+- takeScreenshot: after-approve-${THEME}

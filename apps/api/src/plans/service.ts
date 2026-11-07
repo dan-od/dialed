@@ -73,7 +73,14 @@ export class PlanService {
     checks: PlanCheck[],
     tokensIn: number,
     tokensOut: number,
-    opts?: { question?: string; options?: string[]; errorCode?: string; text?: string },
+    opts?: {
+      question?: string;
+      options?: string[];
+      errorCode?: string;
+      text?: string;
+      /** The caller counts usage itself (timetable reads count as imports, not plan runs). */
+      skipUsage?: boolean;
+    },
   ): Promise<void> {
     const now = this.now();
     const today = localNow(now, 'UTC').date;
@@ -105,7 +112,7 @@ export class PlanService {
           ${JSON.stringify(opts.options ?? [])}::jsonb)`);
     }
 
-    if (status !== 'failed') {
+    if (status !== 'failed' && !opts?.skipUsage) {
       await incrementUsage(this.db, userId, today, tokensIn, tokensOut);
     }
 

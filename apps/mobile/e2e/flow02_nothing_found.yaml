@@ -1,0 +1,13 @@
+# Flow 02: a read with no classes → "No classes found" with Pick another / Describe instead.
+appId: me.okoro.dialed
+---
+- runFlow: _flow02_setup_open.yaml
+- runFlow: _flow02_read.yaml
+- extendedWaitUntil: { visible: 'No classes found', timeout: 60000 }
+- assertVisible: 'Try a clearer photo or a PDF from your student portal.'
+- assertVisible: 'Pick another'
+- assertVisible: 'Describe instead'
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: nothing-found-${THEME}
+- tapOn: 'Back to Set up'
+- extendedWaitUntil: { visible: 'Set up your week', timeout: 10000 }
