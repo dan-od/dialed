@@ -3,6 +3,8 @@ import { describe, it, expect, afterAll, beforeAll } from 'vitest';
 import { makeApp, login, ALICE, DEV_PASSWORD, type TestApp } from './helpers';
 
 let t: TestApp;
+// The DB-backed registration limit (10/h per IP) persists across runs: each test client gets its own IP.
+const freshIp = () => `10.${[0, 0, 0].map(() => Math.floor(Math.random() * 250) + 1).join('.')}`;
 let aliceToken: string;
 
 beforeAll(async () => {
@@ -38,6 +40,7 @@ describe('Dynamic Client Registration', () => {
     const r = await t.app.inject({
       method: 'POST',
       url: '/oauth/register',
+      remoteAddress: freshIp(),
       payload: {
         client_name: 'Test Client',
         redirect_uris: ['https://example.com/callback'],
@@ -53,6 +56,7 @@ describe('Dynamic Client Registration', () => {
     const r = await t.app.inject({
       method: 'POST',
       url: '/oauth/register',
+      remoteAddress: freshIp(),
       payload: { client_name: 'No URIs', redirect_uris: [] },
     });
     expect(r.statusCode).toBe(400);
@@ -62,6 +66,7 @@ describe('Dynamic Client Registration', () => {
     const r = await t.app.inject({
       method: 'POST',
       url: '/oauth/register',
+      remoteAddress: freshIp(),
       payload: { client_name: 'Bad', redirect_uris: ['http://evil.com/callback'] },
     });
     expect(r.statusCode).toBe(400);
@@ -71,6 +76,7 @@ describe('Dynamic Client Registration', () => {
     const r = await t.app.inject({
       method: 'POST',
       url: '/oauth/register',
+      remoteAddress: freshIp(),
       payload: { client_name: 'Local', redirect_uris: ['http://localhost:9999/callback'] },
     });
     expect(r.statusCode).toBe(201);
@@ -88,9 +94,15 @@ describe('Authorization flow', () => {
   });
 
   it('renders sign-in page with valid params', async () => {
+    const reg = await t.app.inject({
+      method: 'POST',
+      url: '/oauth/register',
+      remoteAddress: freshIp(),
+      payload: { client_name: 'Sign-in page', redirect_uris: ['https://x.com/cb'] },
+    });
     const r = await t.app.inject({
       method: 'GET',
-      url: '/oauth/authorize?response_type=code&client_id=x&redirect_uri=https://x.com/cb&code_challenge=abc&code_challenge_method=S256',
+      url: `/oauth/authorize?response_type=code&client_id=${reg.json().client_id}&redirect_uri=https://x.com/cb&code_challenge=abc&code_challenge_method=S256`,
     });
     expect(r.statusCode).toBe(200);
     expect(r.headers['content-type']).toContain('text/html');
@@ -104,6 +116,7 @@ describe('Full OAuth code flow', () => {
     const reg = await t.app.inject({
       method: 'POST',
       url: '/oauth/register',
+      remoteAddress: freshIp(),
       payload: {
         client_name: 'Flow Test',
         redirect_uris: ['https://test.example.com/callback'],

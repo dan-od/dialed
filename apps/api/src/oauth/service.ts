@@ -247,7 +247,7 @@ export class OAuthService {
 
   // ---------- Helpers ----------
 
-  private async getClient(clientId: string): Promise<OAuthClient | null> {
+  async getClient(clientId: string): Promise<OAuthClient | null> {
     const { rows } = await this.db.execute<Row>(sql`
       select id, name, redirect_uris, scope from oauth_clients where id = ${clientId}`);
     const r = rows[0];

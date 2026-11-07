@@ -59,7 +59,13 @@ ${errorHtml}
   );
 }
 
-export function consentPage(config: Config, csrf: string, clientId: string, scope: string): string {
+export function consentPage(
+  config: Config,
+  csrf: string,
+  clientName: string,
+  redirectHost: string,
+  scope: string,
+): string {
   const scopes = scope.split(' ');
   const canRead = scopes.includes('schedule:read');
   const canDraft = scopes.includes('plans:draft');
@@ -67,7 +73,8 @@ export function consentPage(config: Config, csrf: string, clientId: string, scop
   return layout(
     config,
     'Connect',
-    `<h1><span class="client-name">${escapeHtml(clientId.replace(/^dialed_/, ''))}</span> wants to use ${escapeHtml(config.APP_NAME)}</h1>
+    `<h1><span class="client-name">${escapeHtml(clientName)}</span> wants to use ${escapeHtml(config.APP_NAME)}</h1>
+<p class="redirect-host">Returns you to ${escapeHtml(redirectHost)}</p>
 <p>It can:</p>
 <ul class="scope-list">
 ${canRead ? '<li><span class="check">&#10003;</span> See your schedule, categories, terms and recent plans</li>' : ''}

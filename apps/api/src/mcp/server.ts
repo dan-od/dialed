@@ -75,6 +75,10 @@ export function mountMcp(
   // is the SDK's cross-client leak pattern (GHSA advisory fixed in 1.26) and throws on reconnect since 1.2x.
   type McpCaller = { userId: string; clientId: string; clientName: string };
   const createMcpServer = (caller: McpCaller) => {
+    // Every read is audited as ai:<client> (Flow 07 actions table; SECURITY.md audit log).
+    const auditRead = (toolName: string) =>
+      db.execute(sql`insert into audit_log (user_id, actor, action, target)
+        values (${caller.userId}, ${'ai:' + caller.clientId}, 'mcp_read', ${toolName})`);
     const mcpServer = new McpServer(
       { name: 'dialed', version: '0.1.0' },
       {
@@ -133,6 +137,7 @@ export function mountMcp(
       { description: 'All terms with dates and status.', inputSchema: {} },
       async () => {
         const userId = caller.userId;
+        await auditRead('list_terms');
         const today = localNow(now(), 'UTC').date;
         const { rows } = await db.execute<Row>(
           sql`select id, name, starts_on, ends_on from terms where user_id = ${userId} order by starts_on`,
@@ -170,6 +175,7 @@ export function mountMcp(
       },
       async (args) => {
         const userId = caller.userId;
+        await auditRead('get_schedule');
         const from = args.from as IsoDate;
         const to = args.to as IsoDate;
 
@@ -235,8 +241,14 @@ export function mountMcp(
       },
       async () => {
         const userId = caller.userId;
+        await auditRead('list_categories');
         const { rows } = await db.execute<Row>(
-          sql`select id, name, "group", color_dark, color_light, quiet, protected, usual_minutes from categories where user_id = ${userId} order by sort`,
+          sql`select c.id, c.name, c.group_name, c.color_dark, c.quiet, c.protected,
+            coalesce((select round(avg(((rb.end_min - rb.start_min) + 1440) % 1440))::int
+                      from routine_blocks rb
+                      where rb.category_id = c.id and rb.user_id = c.user_id and rb.deleted_at is null), 60)
+              as usual_minutes
+          from categories c where c.user_id = ${userId} and c.deleted_at is null order by c.sort`,
         );
         return {
           content: [
@@ -246,7 +258,7 @@ export function mountMcp(
                 categories: rows.map((c) => ({
                   id: String(c.id),
                   name: String(c.name),
-                  group: String(c.group),
+                  group: String(c.group_name),
                   color: String(c.color_dark),
                   quiet: Boolean(c.quiet),
                   protected: Boolean(c.protected),
@@ -265,6 +277,7 @@ export function mountMcp(
       { description: 'The last 10 planning requests.', inputSchema: {} },
       async () => {
         const userId = caller.userId;
+        await auditRead('get_recent_plans');
         const { rows: plans } = await db.execute<Row>(sql`
         select p.id, p.created_at, p.source, p.client_name, p.request_text, p.status
         from plans p where p.user_id = ${userId}

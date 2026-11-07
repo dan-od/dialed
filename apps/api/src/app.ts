@@ -89,7 +89,9 @@ export async function buildApp(config: Config, deps: Deps) {
     max: 120 * config.RATE_LIMIT_MULTIPLIER,
     timeWindow: '1 minute',
     keyGenerator: (req) => (req as { clientIp?: string }).clientIp ?? req.ip,
-    errorResponseBuilder: () => appError('rate_limited').toBody(),
+    // The plugin throws what this returns: an AppError reaches the error handler as a 429 (a plain body had
+    // no status and came back as a 500). retry-after is already set by the plugin.
+    errorResponseBuilder: () => appError('rate_limited'),
   });
 
   app.setErrorHandler((err: FastifyError | AppError, req, reply) => {

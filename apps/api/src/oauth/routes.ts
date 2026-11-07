@@ -31,6 +31,7 @@ const csrfTokens = new Map<
   string,
   {
     clientId: string;
+    clientName: string;
     redirectUri: string;
     codeChallenge: string;
     scope: string;
@@ -112,9 +113,20 @@ export function oauthRoutes(
         .send(errorHtml('Only S256 code challenge is supported.'));
     }
 
+    // Exact client + redirect match before anything else: an unknown client or redirect gets an error
+    // page here and is never redirected to (RFC 6749 §4.1.2.1; no open redirect via Cancel).
+    const client = await oauth.getClient(clientId);
+    if (!client || !client.redirect_uris.includes(redirectUri)) {
+      return reply
+        .code(400)
+        .type('text/html')
+        .send(errorHtml('This app isn’t set up correctly. Start over from your AI app.'));
+    }
+
     const csrf = randomBytes(32).toString('hex');
     csrfTokens.set(csrf, {
       clientId,
+      clientName: client.name,
       redirectUri,
       codeChallenge,
       scope,
@@ -169,7 +181,15 @@ export function oauthRoutes(
           loginResult.user.id;
         return reply
           .type('text/html')
-          .send(consentPage(config, consentCsrf, pending.clientId, pending.scope));
+          .send(
+            consentPage(
+              config,
+              consentCsrf,
+              pending.clientName,
+              new URL(pending.redirectUri).host,
+              pending.scope,
+            ),
+          );
       } catch (e) {
         const msg =
           e instanceof Error && 'code' in e ? 'Wrong email or password.' : 'Sign in failed.';
