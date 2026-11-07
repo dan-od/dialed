@@ -8,6 +8,7 @@ import {
   extractTextFromPdf,
   extractTimetable,
   termNameFromDate,
+  newTermDates,
   validateDocxSafety,
   type ExtractedClass,
 } from '../src/timetable';
@@ -190,4 +191,21 @@ describe('termNameFromDate', () => {
   it('September → Fall term', () => expect(termNameFromDate('2026-09-14')).toBe('Fall term'));
   it('January → Winter term', () => expect(termNameFromDate('2027-01-15')).toBe('Winter term'));
   it('June → Summer term', () => expect(termNameFromDate('2026-06-01')).toBe('Summer term'));
+});
+
+describe('newTermDates', () => {
+  it('uses the file hint when its term is still running', () =>
+    expect(newTermDates('2026-09-14', '2026-11-07')).toEqual({
+      starts: '2026-09-14',
+      ends: '2026-12-14',
+    }));
+  it('ignores a hint whose term is already over', () =>
+    expect(newTermDates('2026-09-14', '2037-10-20')).toEqual({
+      starts: '2037-10-20',
+      ends: '2038-01-20',
+    }));
+  it('no or malformed hint → today', () => {
+    expect(newTermDates(undefined, '2037-10-20').starts).toBe('2037-10-20');
+    expect(newTermDates('Sep 14', '2037-10-20').starts).toBe('2037-10-20');
+  });
 });

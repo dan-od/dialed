@@ -307,6 +307,25 @@ export function classesToPlanChanges(
   }));
 }
 
+/**
+ * Dates for a new term (no term yet): starts on the file's "Week of" hint, runs about three months.
+ * A hint whose term would already be over (wrong year, last year's file) is ignored: today instead.
+ */
+export function newTermDates(
+  hint: string | undefined,
+  today: string,
+): { starts: string; ends: string } {
+  const span = (start: string) => {
+    const d = new Date(start + 'T12:00:00Z');
+    d.setUTCMonth(d.getUTCMonth() + 3);
+    return d.toISOString().split('T')[0]!;
+  };
+  if (hint && /^\d{4}-\d{2}-\d{2}$/.test(hint) && span(hint) >= today) {
+    return { starts: hint, ends: span(hint) };
+  }
+  return { starts: today, ends: span(today) };
+}
+
 export function termNameFromDate(dateStr: string): string {
   const month = new Date(dateStr + 'T12:00:00Z').getMonth();
   if (month >= 8 && month <= 11) return 'Fall term';

@@ -12,6 +12,7 @@ import {
   detectFileKind,
   validateDocxSafety,
   termNameFromDate,
+  newTermDates,
   createFixtureProvider,
 } from '@dialed/planning';
 import { requireApp } from '../auth/guard';
@@ -226,10 +227,7 @@ export function importsRoutes(
         termEnd = String(existingTerm.ends_on);
         termName = String(existingTerm.name);
       } else {
-        termStart = result.termHint ?? today;
-        const endDate = new Date(termStart + 'T12:00:00Z');
-        endDate.setMonth(endDate.getMonth() + 3);
-        termEnd = endDate.toISOString().split('T')[0]!;
+        ({ starts: termStart, ends: termEnd } = newTermDates(result.termHint, today));
         termName = termNameFromDate(termStart);
         createTermChange = true;
       }
