@@ -92,3 +92,44 @@ describe('upload error codes', () => {
     expect(handled).toContain('daily_limit');
   });
 });
+
+describe('summarizeDeviceEvents (Pick calendars preview)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { summarizeDeviceEvents, previewStamp } = require('../import/calendarImport');
+  const weekly = { frequency: 2 }; // jest mock: Frequency.WEEKLY = 2
+
+  it('counts a weekly series once and one-offs per event, skipping all-day', () => {
+    const s = summarizeDeviceEvents([
+      { title: 'Gym', startDate: '2037-10-19T07:00:00', recurrenceRule: weekly },
+      { title: 'Gym', startDate: '2037-10-26T07:00:00', recurrenceRule: weekly },
+      { title: 'Gym', startDate: '2037-10-21T07:00:00', recurrenceRule: weekly },
+      { title: 'Dentist', startDate: '2037-10-22T14:00:00' },
+      { title: 'Dentist', startDate: '2037-10-22T14:00:00' },
+      { title: 'Holiday', startDate: '2037-10-23T00:00:00', allDay: true },
+      { title: '  ', startDate: '2037-10-23T09:00:00' },
+    ]);
+    expect(s).toEqual({ repeating: 2, oneOff: 1 });
+  });
+
+  it('builds the split stamp', () => {
+    expect(previewStamp(12, 3, 'Fall term')).toBe(
+      'Preview: 12 repeating events become your Fall term routine. 3 one-off events stay as one-off changes.',
+    );
+    expect(previewStamp(1, 1, 'Fall term')).toBe(
+      'Preview: 1 repeating event becomes your Fall term routine. 1 one-off event stays as one-off changes.',
+    );
+  });
+});
+
+describe('isUploadableUri', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { isUploadableUri } = require('../import/api');
+  const roots = ['file:///data/Caches/', 'file:///data/Documents/'];
+  it('allows files the pickers copied into the sandbox only', () => {
+    expect(isUploadableUri('file:///data/Caches/ImagePicker/a.jpg', roots)).toBe(true);
+    expect(isUploadableUri('file:///etc/passwd', roots)).toBe(false);
+    expect(isUploadableUri('file:///data/Caches/../../etc/passwd', roots)).toBe(false);
+    expect(isUploadableUri('https://evil.test/a.png', roots)).toBe(false);
+    expect(isUploadableUri('file:///data/Caches/a.png', ['', ''])).toBe(false);
+  });
+});

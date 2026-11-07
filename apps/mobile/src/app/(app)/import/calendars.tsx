@@ -7,6 +7,7 @@ import {
   requestCalendarAccess,
   loadCalendars,
   readEvents,
+  previewStamp,
   type DeviceCalendar,
 } from '../../../import/calendarImport';
 import { importCalendar } from '../../../import/api';
@@ -37,7 +38,7 @@ export default function Calendars() {
       d.setMonth(d.getMonth() + 4);
       return d.toISOString().slice(0, 10);
     })();
-  const termName = term?.name ?? 'your schedule';
+  const termName = term?.name ?? 'term';
 
   const [cals, setCals] = useState<DeviceCalendar[] | null>(null);
   const [denied, setDenied] = useState(false);
@@ -85,7 +86,9 @@ export default function Calendars() {
     }
   };
 
-  const totalEvents = selected.reduce((n, c) => n + c.eventCount, 0);
+  const repeating = selected.reduce((n, c) => n + c.repeating, 0);
+  const oneOff = selected.reduce((n, c) => n + c.oneOff, 0);
+  const totalEvents = repeating + oneOff;
 
   if (denied) {
     return (
@@ -135,7 +138,7 @@ export default function Calendars() {
           Pick calendars
         </T>
         <T size={14} weight="500" color={c.muted} style={{ marginTop: 4 }}>
-          Repeating events become your routine. One-off events stay as one-off changes.
+          Only the ones with your classes, work and projects. Birthdays and holidays stay out.
         </T>
 
         <View style={{ marginTop: 16, gap: 1 }}>
@@ -170,10 +173,7 @@ export default function Calendars() {
 
         {selectedIds.length > 0 ? (
           <View style={{ marginTop: 16 }}>
-            <Stamp
-              text={`Preview: ${totalEvents} event${totalEvents === 1 ? '' : 's'} from ${selectedIds.length} calendar${selectedIds.length === 1 ? '' : 's'} into ${termName}.`}
-              kind="info"
-            />
+            <Stamp text={previewStamp(repeating, oneOff, termName)} kind="info" />
           </View>
         ) : null}
       </ScrollView>

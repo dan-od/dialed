@@ -21,6 +21,16 @@ export default function PlanRouter() {
     );
   }
 
+  // Flow 02: timetable plans are checked on Found classes (also when reopened from Recent plans).
+  const timetable =
+    plan.source === 'timetable' &&
+    (plan.status === 'ready' ||
+      plan.status === 'stale' ||
+      (plan.status === 'failed' && plan.error_code === 'nothing_found'));
+  if (timetable) {
+    return <Redirect href={{ pathname: '/import/found', params: { id } }} />;
+  }
+
   switch (plan.status) {
     case 'drafting':
       return <Redirect href={{ pathname: '/plan/[id]/drafting', params: { id } }} />;

@@ -63,6 +63,7 @@ export default function AppLayout() {
           <Stack.Screen name="ai-assistant" options={page} />
           {/* Flow 02: Timetable and calendar import. */}
           <Stack.Screen name="import/reading" options={page} />
+          <Stack.Screen name="import/found" options={page} />
           <Stack.Screen name="import/calendars" options={page} />
         </Stack>
       </RoutinesUiProvider>

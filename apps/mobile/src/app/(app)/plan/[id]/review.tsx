@@ -4,6 +4,7 @@ import { useApp } from '../../../../AppProvider';
 import { usePlan } from '../../../../plan/usePlan';
 import { toChangeCards, enabledCount } from '../../../../plan/model';
 import { approveLabel, reviewTitle, staleSentence, planSourceLabel } from '../../../../plan/copy';
+import { calendarImportedToast } from '../../../../import/foundClasses';
 import { useTheme } from '../../../../theme/theme';
 import { BackLink, Header, Page } from '../../../../ui/Chrome';
 import { Button } from '../../../../ui/Button';
@@ -58,6 +59,15 @@ export default function Review() {
       haptic.success();
       syncNow();
       setPlan(result);
+      if (plan.source === 'calendar') {
+        // Flow 02: calendar imports land on Day with a toast instead of the Done page.
+        router.dismissAll();
+        const termCh = plan.changes.find(
+          (ch) => ch.kind === 'create_term' || ch.kind === 'update_term',
+        );
+        toast(calendarImportedToast(termCh?.title ?? termName));
+        return;
+      }
       router.replace({ pathname: '/plan/[id]/done', params: { id } });
     } catch (e: unknown) {
       const err = e as { code?: string };
@@ -73,7 +83,7 @@ export default function Review() {
     } finally {
       setBusy(false);
     }
-  }, [plan, id, planApi, busy, setPlan, syncNow, router, refresh, toast]);
+  }, [plan, id, planApi, busy, setPlan, syncNow, router, refresh, toast, termName]);
 
   const discard = useCallback(async () => {
     haptic.warning();

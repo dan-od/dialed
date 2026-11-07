@@ -12,7 +12,43 @@ export interface DeviceCalendar {
   color: string;
   source: string;
   eventCount: number;
+  /** Distinct weekly series in the term range (each becomes one routine block). */
+  repeating: number;
+  /** Non-repeating timed events (each stays a one-off change). */
+  oneOff: number;
   checked: boolean;
+}
+
+/** The fields of a device event the summary needs (expo-calendar `Event` fits). */
+export interface DeviceEventLike {
+  title?: string | null;
+  startDate: string | Date;
+  allDay?: boolean;
+  recurrenceRule?: { frequency?: string | null } | null;
+}
+
+const WEEKLY = String(Frequency.WEEKLY);
+
+/**
+ * Preview counts for the Pick calendars stamp. iOS expands a series into one instance per
+ * week, so repeating events are counted once per series (title + weekday + start time).
+ * All-day events are skipped (they never become blocks).
+ */
+export function summarizeDeviceEvents(events: DeviceEventLike[]): {
+  repeating: number;
+  oneOff: number;
+} {
+  const series = new Set<string>();
+  const singles = new Set<string>();
+  for (const ev of events) {
+    const title = ev.title?.trim();
+    if (!title || ev.allDay) continue;
+    const d = new Date(ev.startDate);
+    const weekly = String(ev.recurrenceRule?.frequency ?? '') === WEEKLY;
+    if (weekly) series.add(`${title}|${d.getDay()}|${d.getHours()}:${d.getMinutes()}`);
+    else singles.add(`${title}|${d.toISOString()}`);
+  }
+  return { repeating: series.size, oneOff: singles.size };
 }
 
 const SKIP_SOURCES = ['Birthdays', 'Holidays', 'Other'];
@@ -37,12 +73,15 @@ export async function loadCalendars(termStart: string, termEnd: string): Promise
   const result: DeviceCalendar[] = [];
   for (const cal of cals) {
     const events = await getEventsAsync([cal.id], start, end);
+    const { repeating, oneOff } = summarizeDeviceEvents(events);
     result.push({
       id: cal.id,
       title: cal.title,
       color: cal.color ?? '#888',
       source: cal.source?.name ?? '',
-      eventCount: events.length,
+      eventCount: repeating + oneOff,
+      repeating,
+      oneOff,
       checked: shouldDefault(cal.title, cal.source?.name ?? ''),
     });
   }
@@ -62,7 +101,7 @@ export async function readEvents(
   const result: CalendarEvent[] = [];
 
   for (const ev of events) {
-    if (!ev.title?.trim()) continue;
+    if (!ev.title?.trim() || ev.allDay) continue;
     const key = `${ev.title}|${ev.startDate}|${ev.endDate}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -81,6 +120,11 @@ export async function readEvents(
     if (result.length >= 500) break;
   }
   return result;
+}
+
+/** Pick calendars stamp (Flow 02). */
+export function previewStamp(repeating: number, oneOff: number, termName: string): string {
+  return `Preview: ${repeating} repeating event${repeating === 1 ? '' : 's'} become${repeating === 1 ? 's' : ''} your ${termName} routine. ${oneOff} one-off event${oneOff === 1 ? '' : 's'} stay${oneOff === 1 ? 's' : ''} as one-off changes.`;
 }
 
 export function importSummary(events: CalendarEvent[]): { recurring: number; oneOff: number } {

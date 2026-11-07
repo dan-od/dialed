@@ -1,6 +1,7 @@
 import { ActionSheetIOS, Linking } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import { aiName } from '../config';
 
 export interface PickedFile {
   uri: string;
@@ -69,49 +70,55 @@ async function pickFromFiles(): Promise<PickedFile | null> {
   };
 }
 
+export type TimetableSource = 'camera' | 'photos' | 'files';
+
 export type TimetablePickResult =
-  { kind: 'file'; file: PickedFile } | { kind: 'cancelled' } | { kind: 'camera_denied' };
+  | { kind: 'file'; file: PickedFile; source: TimetableSource }
+  | { kind: 'cancelled' }
+  | { kind: 'camera_denied' };
+
+/** Opens one source directly (Retake goes straight back to the camera). */
+export async function pickTimetableFrom(source: TimetableSource): Promise<TimetablePickResult> {
+  try {
+    let file: PickedFile | null = null;
+    if (source === 'camera') {
+      const perm = await ImagePicker.getCameraPermissionsAsync();
+      if (!perm.granted) {
+        const req = await ImagePicker.requestCameraPermissionsAsync();
+        if (!req.granted)
+          return req.canAskAgain ? { kind: 'cancelled' } : { kind: 'camera_denied' };
+      }
+      file = await pickFromCamera();
+    } else if (source === 'photos') {
+      file = await pickFromPhotos();
+    } else {
+      file = await pickFromFiles();
+    }
+    return file ? { kind: 'file', file, source } : { kind: 'cancelled' };
+  } catch {
+    return { kind: 'cancelled' };
+  }
+}
+
+const SHEET_SOURCES: TimetableSource[] = ['camera', 'photos', 'files'];
 
 export function showTimetableSourceSheet(isLight: boolean): Promise<TimetablePickResult> {
   return new Promise((resolve) => {
-    const options = ['Take a photo', 'Choose from Photos', 'Import a file', 'Cancel'];
     ActionSheetIOS.showActionSheetWithOptions(
       {
         title: 'Add your timetable',
-        options,
+        message: `${aiName()} reads it once and shows you what it found. Nothing is added until you approve.`,
+        options: ['Take a photo', 'Choose from Photos', 'Import a file (PDF or Word)', 'Cancel'],
         cancelButtonIndex: 3,
         userInterfaceStyle: isLight ? 'light' : 'dark',
       },
-      async (index) => {
-        try {
-          let file: PickedFile | null = null;
-          switch (index) {
-            case 0: {
-              const perm = await ImagePicker.getCameraPermissionsAsync();
-              if (!perm.granted) {
-                const req = await ImagePicker.requestCameraPermissionsAsync();
-                if (!req.granted) {
-                  resolve(req.canAskAgain ? { kind: 'cancelled' } : { kind: 'camera_denied' });
-                  return;
-                }
-              }
-              file = await pickFromCamera();
-              break;
-            }
-            case 1:
-              file = await pickFromPhotos();
-              break;
-            case 2:
-              file = await pickFromFiles();
-              break;
-            default:
-              resolve({ kind: 'cancelled' });
-              return;
-          }
-          resolve(file ? { kind: 'file', file } : { kind: 'cancelled' });
-        } catch {
+      (index) => {
+        const source = SHEET_SOURCES[index];
+        if (!source) {
           resolve({ kind: 'cancelled' });
+          return;
         }
+        void pickTimetableFrom(source).then(resolve);
       },
     );
   });

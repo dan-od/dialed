@@ -1,6 +1,6 @@
 import { addDays, resolveDay } from '@dialed/schedule';
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { useApp } from '../../../AppProvider';
 import { newEditDraft, useBlocksUi } from '../../../blocks/BlocksUi';
@@ -11,18 +11,19 @@ import { dayModel } from '../../../day/model';
 import { useNavState } from '../../../day/navState';
 import { RestOfToday } from '../../../day/RestOfToday';
 import { SetupChooser } from '../../../day/SetupChooser';
-import { showTimetableSourceSheet, openSettings } from '../../../import/pickTimetable';
+import { openSettings } from '../../../import/pickTimetable';
+import { useTimetableStart } from '../../../import/useTimetableStart';
 import { useTheme } from '../../../theme/theme';
 import { OfflineLine } from '../../../ui/Inline';
 import { TabPage } from '../../../ui/TabPage';
+import { Button } from '../../../ui/Button';
 import { Spinner } from '../../../ui/Spinner';
+import { Stamp } from '../../../ui/Stamp';
 import { T } from '../../../ui/Text';
-import { useToast } from '../../../ui/Toast';
 
 export default function DayScreen() {
   const { c, isLight } = useTheme();
   const router = useRouter();
-  const toast = useToast();
   const { width } = useWindowDimensions();
   const { data, sync, online, session, syncNow, toggleTheme } = useApp();
   const { setMini } = useNavState();
@@ -57,18 +58,9 @@ export default function DayScreen() {
     };
   }, [data, clock, profile, width, isLight, c, ui.highlight]);
 
-  const pickTimetable = async () => {
-    const result = await showTimetableSourceSheet(isLight);
-    if (result.kind === 'camera_denied') {
-      toast('Camera access denied.', { label: 'Settings', onPress: openSettings });
-      return;
-    }
-    if (result.kind === 'cancelled') return;
-    router.push({
-      pathname: '/import/reading',
-      params: { uri: result.file.uri, name: result.file.name, mime: result.file.mimeType },
-    });
-  };
+  // Camera denied: an inline stamp + Open Settings on the chooser (not a toast).
+  const [cameraOff, setCameraOff] = useState(false);
+  const startTimetable = useTimetableStart(() => setCameraOff(true));
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -109,10 +101,20 @@ export default function DayScreen() {
           </View>
         ) : model?.setup ? (
           <SetupChooser
+            offline={!online}
+            notice={
+              cameraOff ? (
+                <View style={{ gap: 8, marginTop: 14 }}>
+                  <Stamp text="Camera access is off. Turn it on in Settings to take a photo." />
+                  <Button kind="secondary" label="Open Settings" onPress={openSettings} />
+                </View>
+              ) : null
+            }
             onPick={(o) => {
+              setCameraOff(false);
               switch (o) {
                 case 'timetable':
-                  void pickTimetable();
+                  void startTimetable();
                   break;
                 case 'describe':
                   router.push('/plan');
