@@ -64,7 +64,13 @@ export function Button({
       {busy ? (
         <Spinner color={fg} />
       ) : kind === 'primary' ? (
-        <Text style={{ fontFamily: fonts.display, fontSize: 20, letterSpacing: 0.3, color: fg }}>
+        // Long labels at large text sizes shrink to fit instead of clipping (e.g. "Add 6 classes to Fall term").
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.5}
+          style={{ fontFamily: fonts.display, fontSize: 20, letterSpacing: 0.3, color: fg }}
+        >
           {label}
         </Text>
       ) : (

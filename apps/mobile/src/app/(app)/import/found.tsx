@@ -189,49 +189,58 @@ export default function Found() {
             <Animated.View
               key={cl.id}
               entering={reduce ? FadeIn.duration(150) : FadeInDown.delay(i * 60).duration(250)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 12,
-                padding: 14,
-                borderRadius: 18,
-                borderWidth: 1,
-                borderColor: cl.checkThis ? c.err : c.line,
-                backgroundColor: c.surf,
-                opacity: cl.enabled ? 1 : 0.55,
-              }}
             >
-              <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-                <T size={16} weight="700" style={{ lineHeight: 20 }}>
-                  {cl.title}
-                </T>
-                <View
-                  style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'baseline' }}
-                >
-                  <D size={15}>{`${weekdayShort(cl.weekday)} ${cl.start}–${cl.end}`}</D>
-                  <T size={13} weight="600" color={c.muted}>
-                    {cl.kind}
-                    {cl.room ? ` · ${cl.room}` : ''}
+              {/* Dimming lives on an inner view: the entering fade animates the wrapper's opacity. */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: 14,
+                  borderRadius: 18,
+                  borderWidth: 1,
+                  borderColor: cl.checkThis ? c.err : c.line,
+                  backgroundColor: c.surf,
+                  opacity: cl.enabled ? 1 : 0.55,
+                }}
+              >
+                <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                  <T size={16} weight="700" style={{ lineHeight: 20 }}>
+                    {cl.title}
                   </T>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      gap: 8,
+                      flexWrap: 'wrap',
+                      alignItems: 'baseline',
+                    }}
+                  >
+                    <D size={15}>{`${weekdayShort(cl.weekday)} ${cl.start}–${cl.end}`}</D>
+                    <T size={13} weight="600" color={c.muted}>
+                      {cl.kind}
+                      {cl.room ? ` · ${cl.room}` : ''}
+                    </T>
+                  </View>
+                  {cl.checkThis ? (
+                    <T size={13} weight="700" color={c.err}>
+                      Check these: this time was hard to read
+                    </T>
+                  ) : null}
+                  {cl.overlap ? (
+                    <T size={13} weight="600" color={c.muted}>
+                      {cl.overlap}
+                    </T>
+                  ) : null}
                 </View>
-                {cl.checkThis ? (
-                  <T size={13} weight="700" color={c.err}>
-                    Check these: this time was hard to read
-                  </T>
-                ) : null}
-                {cl.overlap ? (
-                  <T size={13} weight="600" color={c.muted}>
-                    {cl.overlap}
-                  </T>
-                ) : null}
+                <Switch
+                  accessibilityLabel={`Include ${cl.title} ${cl.kind}`}
+                  value={cl.enabled}
+                  disabled={stale || busy}
+                  onValueChange={(v) => void toggle(cl.id, v)}
+                  trackColor={{ false: c.surf2, true: c.acc }}
+                />
               </View>
-              <Switch
-                accessibilityLabel={`Include ${cl.title} ${cl.kind}`}
-                value={cl.enabled}
-                disabled={stale || busy}
-                onValueChange={(v) => void toggle(cl.id, v)}
-                trackColor={{ false: c.surf2, true: c.acc }}
-              />
             </Animated.View>
           ))}
         </View>

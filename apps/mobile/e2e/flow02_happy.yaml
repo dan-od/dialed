@@ -3,16 +3,21 @@ appId: me.okoro.dialed
 ---
 - runFlow: _flow02_setup_open.yaml
 - runFlow: _flow02_read.yaml
-- extendedWaitUntil: { visible: 'Reading your classes', timeout: 20000 }
-- takeScreenshot: reading-${THEME}
+# The fixture read returns in well under a second, so Reading is captured only if it is still up.
+- runFlow:
+    when: { visible: 'Reading your classes' }
+    commands:
+      - takeScreenshot: reading-${THEME}
 - extendedWaitUntil: { visible: 'Found 6 classes', timeout: 60000 }
 - assertVisible: 'Add 6 classes to Fall term'
 - waitForAnimationToEnd: { timeout: 2000 }
 - takeScreenshot: found-${THEME}
 - tapOn: 'Include Capstone Study Project lecture'
 - extendedWaitUntil: { visible: 'Add 5 classes to Fall term', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
 - takeScreenshot: found-toggled-${THEME}
 - tapOn: 'Add 5 classes to Fall term'
 - extendedWaitUntil: { visible: 'Added 5 classes to Fall term.*', timeout: 30000 }
+- assertVisible: 'Rest of today|.*Advanced Networking.*'
 - assertVisible: 'Describe'
 - takeScreenshot: after-approve-${THEME}

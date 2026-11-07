@@ -5,10 +5,11 @@ appId: me.okoro.dialed
 - runFlow: _flow02_read.yaml
 - extendedWaitUntil: { visible: 'Found 4 classes', timeout: 60000 }
 - assertVisible: 'Check these: 2 times were hard to read.'
-- assertVisible: 'Overlaps Capstone Study Project on Wednesday'
 - assertVisible: 'Add 4 classes to Fall term'
 - waitForAnimationToEnd: { timeout: 2000 }
 - takeScreenshot: partial-${THEME}
+# At large text sizes the overlap note sits below the fold.
+- scrollUntilVisible: { element: 'Overlaps Capstone Study Project on Wednesday', direction: DOWN }
 - scrollUntilVisible: { element: 'Term ends', direction: DOWN }
 - takeScreenshot: partial-dates-${THEME}
 - tapOn: 'Pick another'

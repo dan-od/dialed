@@ -18,7 +18,9 @@ RAW="$EV/e2e-evidence"
 mkdir -p "$EV/screens" "$RAW"
 reset_driver() { pkill -f "xcodebuild test-without-building -xctestrun" 2>/dev/null || true; }
 run() { reset_driver; (cd "$ROOT/apps/mobile" && maestro --device "$DEVICE" test --test-output-dir "$RAW/$1" "${@:2}"); }
-retry() { local n; for n in 1 2 3; do "$@" && return 0; log "attempt $n failed; retrying"; done; return 1; }
+# Every read counts against today's 6 (fixture reads too): reset before each attempt, except for the Limit step.
+reads0() { [[ -n "${UID_:-}" && -z "${KEEP_READS:-}" ]] && sql "update usage_counters set imports = 0 where user_id = '$UID_';" >/dev/null; return 0; }
+retry() { local n; for n in 1 2 3; do reads0; "$@" && return 0; log "attempt $n failed; retrying"; done; return 1; }
 sql() { compose exec -T postgres psql -qtAU dialed -d dialed -c "$1"; }
 collect() { find "$RAW" -path "*takeScreenshot*" -name "*.png" -print0 | xargs -0 ls -tr 2>/dev/null | while read -r f; do cp "$f" "$EV/screens/"; done; }
 trap collect EXIT
@@ -62,7 +64,7 @@ fi
 if at limit; then
 log "Limit (usage counter set to 6)"
 sql "insert into usage_counters (user_id, day, imports) values ('$UID_', '$DAY', 6) on conflict (user_id, day) do update set imports = 6;" >/dev/null
-retry run limit -e THEME=dark -e LINK="$(link timetable.png)" e2e/flow02_limit.yaml
+KEEP_READS=1 retry run limit -e THEME=dark -e LINK="$(link timetable.png)" e2e/flow02_limit.yaml
 sql "update usage_counters set imports = 0 where user_id = '$UID_';" >/dev/null
 fi
 
