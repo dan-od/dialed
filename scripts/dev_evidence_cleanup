@@ -63,6 +63,24 @@ WITH gone AS (
 INSERT INTO change_log(user_id, revision, entity, entity_id, op, row_json)
 SELECT '$OWNER', rev.revision, 'routine_block', x.id, 'upsert', to_jsonb(x) - 'user_id'
 FROM rev, (SELECT * FROM gone UNION ALL SELECT * FROM reopened) x;
+-- Rows written by approving evidence plans (Flow 06 fixture approves, Flow 07 chat drafts, Flow 02 imports):
+-- the owner has no real ones yet. Flow 06 runs left seven copies of a moved Saturday block (2026-11-05),
+-- which made every later Saturday plan fail the overlap check.
+WITH gone_rb AS (
+  UPDATE routine_blocks SET deleted_at = now(), version = version + 1
+  WHERE user_id = '$OWNER' AND source IN ('plan', 'timetable', 'calendar') AND deleted_at IS NULL RETURNING *
+), gone_ov AS (
+  UPDATE overrides SET deleted_at = now(), version = version + 1
+  WHERE user_id = '$OWNER' AND source IN ('plan', 'timetable', 'calendar') AND deleted_at IS NULL RETURNING *
+), rev AS (
+  INSERT INTO revisions(user_id, revision, updated_at) SELECT '$OWNER', 1, now()
+  WHERE EXISTS (SELECT 1 FROM gone_rb) OR EXISTS (SELECT 1 FROM gone_ov)
+  ON CONFLICT (user_id) DO UPDATE SET revision = revisions.revision + 1, updated_at = now() RETURNING revision
+)
+INSERT INTO change_log(user_id, revision, entity, entity_id, op, row_json)
+SELECT '$OWNER', rev.revision, x.entity, x.id, 'upsert', x.row FROM rev, (
+  SELECT 'routine_block' AS entity, id, to_jsonb(gone_rb) - 'user_id' AS row FROM gone_rb
+  UNION ALL SELECT 'override', id, to_jsonb(gone_ov) - 'user_id' FROM gone_ov) x;
 -- Terms created by the Flow 05 "Name your term" evidence (feature-flagged sheet).
 WITH gone AS (
   UPDATE terms SET deleted_at = now(), version = version + 1
@@ -135,6 +153,11 @@ SELECT '$OWNER', rev.revision, x.entity, x.id, 'upsert', x.row FROM rev, (
   UNION ALL SELECT 'override', id, to_jsonb(ovs) - 'user_id' FROM ovs) x;
 -- Merges made by evidence runs can no longer be undone (their rows are back).
 UPDATE category_merges SET undone_at = now() WHERE user_id = '$OWNER' AND undone_at IS NULL;
+-- Connector tokens made by Flow 07 evidence (scripted MCP client): revoke so the next run starts not connected.
+UPDATE oauth_tokens SET revoked_at = now() WHERE user_id = '$OWNER' AND revoked_at IS NULL;
+-- ...and delete the scripted client's registrations (codes/tokens cascade), so reruns stay under the
+-- 10-per-hour registration limit for 127.0.0.1.
+DELETE FROM oauth_clients WHERE name IN ('Proof Inspector', 'probe');
 -- Plans made by evidence runs (Flow 06): remove all plans and related rows so the next run starts clean.
 DELETE FROM plan_messages WHERE plan_id IN (SELECT id FROM plans WHERE user_id = '$OWNER');
 DELETE FROM plan_changes WHERE plan_id IN (SELECT id FROM plans WHERE user_id = '$OWNER');

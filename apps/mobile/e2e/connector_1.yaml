@@ -1,0 +1,23 @@
+# Flow 07 connector, not connected: steps + URL, Copy toast, "I've added it" before signing in.
+# Requires: Metro on :8081, API with MCP_ENABLED=true, owner signed in, no connector (dev_evidence_cleanup).
+appId: me.okoro.dialed
+---
+- runFlow: _settings.yaml
+- tapOn: { id: 'set-ai' }
+- extendedWaitUntil: { visible: { id: 'ai-server' }, timeout: 10000 }
+- tapOn: { id: 'ai-server' }
+- scrollUntilVisible:
+    element: "I've added it"
+    direction: DOWN
+- waitForAnimationToEnd: { timeout: 2000 }
+- assertVisible: 'Plan from your AI app'
+- assertVisible: '.*A normal Pro or Plus plan covers it; no API key.*'
+- takeScreenshot: connector-not-connected-${THEME}
+- tapOn: { id: 'connector-url' }
+- extendedWaitUntil: { visible: 'Copied the connector URL.', timeout: 5000 }
+- takeScreenshot: connector-copied-${THEME}
+- waitForAnimationToEnd: { timeout: 4000 }
+- tapOn: "I've added it"
+- extendedWaitUntil:
+    { visible: 'Not connected yet. Finish signing in from your AI app.', timeout: 8000 }
+- takeScreenshot: connector-not-yet-${THEME}

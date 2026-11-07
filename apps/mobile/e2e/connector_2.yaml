@@ -1,0 +1,58 @@
+# Flow 07 connector, after the scripted MCP client signed in and sent a draft (scripts/flow07_evidence):
+# connected row on open; chat draft deep link → Flow 06 Review "From <client> chat" → Approve;
+# per-row Disconnect asks first → toast.
+# Requires: PLAN_ID (the chat draft), Metro, API with MCP_ENABLED=true, owner signed in.
+appId: me.okoro.dialed
+---
+- runFlow: _settings.yaml
+- tapOn: { id: 'set-ai' }
+- extendedWaitUntil: { visible: { id: 'ai-server' }, timeout: 10000 }
+- tapOn: { id: 'ai-server' }
+# The section loads the client list on open: the signed-in client is already there.
+- scrollUntilVisible:
+    element: 'Disconnect all'
+    direction: DOWN
+- waitForAnimationToEnd: { timeout: 2000 }
+- assertVisible: 'Proof Inspector connected via 127.0.0.1:33418.*'
+- takeScreenshot: connector-connected-${THEME}
+
+# The push deep link (dialed://plan/<id>) → Review of the chat draft
+- openLink: dialed://plan/${PLAN_ID}
+# iOS asks "Open in “Dialed”?" for a scheme link opened from outside the app.
+- runFlow:
+    when: { visible: 'Open in .*Dialed.*' }
+    commands:
+      - tapOn: 'Open'
+- extendedWaitUntil: { visible: '.*changes? to .*', timeout: 20000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- assertVisible: 'From Proof Inspector chat'
+- takeScreenshot: review-chat-${THEME}
+# The deep link renders the plan router, then redirects to Review: a tap during that swap is lost.
+- extendedWaitUntil:
+    visible: { text: 'Approve 1 change', enabled: true }
+    timeout: 10000
+- waitForAnimationToEnd: { timeout: 5000 }
+- swipe: { direction: UP, duration: 400 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- tapOn:
+    text: 'Approve 1 change'
+    enabled: true
+    retryTapIfNoChange: true
+- extendedWaitUntil: { visible: '.*updated.*', timeout: 15000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: approved-chat-${THEME}
+
+# Back to the connector and disconnect the row (asks first)
+- runFlow: _settings.yaml
+- tapOn: { id: 'set-ai' }
+- extendedWaitUntil: { visible: { id: 'ai-server' }, timeout: 10000 }
+- scrollUntilVisible:
+    element: { id: 'connector-0' }
+    direction: DOWN
+- tapOn: { id: 'connector-0' }
+- extendedWaitUntil: { visible: 'Disconnect Proof Inspector?', timeout: 5000 }
+- takeScreenshot: connector-disconnect-ask-${THEME}
+- tapOn: 'Disconnect'
+- extendedWaitUntil:
+    { visible: 'Disconnected. No AI app can see your schedule now.', timeout: 8000 }
+- takeScreenshot: connector-disconnected-${THEME}

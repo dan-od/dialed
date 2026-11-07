@@ -1,0 +1,438 @@
+{
+  "base": "http://localhost:8080",
+  "client": "Proof Inspector",
+  "at": "2026-11-07T17:53:57.846Z",
+  "steps": [
+    {
+      "step": "401 points at protected-resource metadata",
+      "ok": true,
+      "detail": {
+        "status": 401,
+        "www-authenticate": "Bearer resource_metadata=\"http://localhost:8080/.well-known/oauth-protected-resource\""
+      }
+    },
+    {
+      "step": "discovery",
+      "ok": true,
+      "detail": {
+        "prm": {
+          "resource": "http://localhost:8080",
+          "authorization_servers": [
+            "http://localhost:8080"
+          ],
+          "bearer_methods_supported": [
+            "header"
+          ],
+          "scopes_supported": [
+            "schedule:read",
+            "plans:draft"
+          ]
+        },
+        "asm": {
+          "issuer": "http://localhost:8080",
+          "authorization_endpoint": "http://localhost:8080/oauth/authorize",
+          "token_endpoint": "http://localhost:8080/oauth/token",
+          "registration_endpoint": "http://localhost:8080/oauth/register",
+          "scopes_supported": [
+            "schedule:read",
+            "plans:draft"
+          ],
+          "response_types_supported": [
+            "code"
+          ],
+          "grant_types_supported": [
+            "authorization_code",
+            "refresh_token"
+          ],
+          "code_challenge_methods_supported": [
+            "S256"
+          ],
+          "token_endpoint_auth_methods_supported": [
+            "none"
+          ],
+          "service_documentation": "http://localhost:8080/mcp"
+        }
+      }
+    },
+    {
+      "step": "register (RFC 7591)",
+      "ok": true,
+      "detail": {
+        "client_id": "dialed_d0d0829ba4cf9ff723847bfba06ff905",
+        "client_name": "Proof Inspector",
+        "redirect_uris": [
+          "http://127.0.0.1:33418/callback"
+        ]
+      }
+    },
+    {
+      "step": "sign-in page",
+      "ok": true,
+      "detail": {
+        "bytes": 2706
+      }
+    },
+    {
+      "step": "sign-in error inline",
+      "ok": true,
+      "detail": {
+        "status": 200
+      }
+    },
+    {
+      "step": "consent page names client + redirect host",
+      "ok": true,
+      "detail": {
+        "bytes": 2897
+      }
+    },
+    {
+      "step": "allow → 302 to registered redirect with code + state",
+      "ok": true,
+      "detail": {
+        "status": 302,
+        "location": "http://127.0.0.1:33418/callback?code=«redacted»&state=proof-state"
+      }
+    },
+    {
+      "step": "token (PKCE S256)",
+      "ok": true,
+      "detail": {
+        "token_type": "bearer",
+        "expires_in": 3600,
+        "scope": "schedule:read plans:draft"
+      }
+    },
+    {
+      "step": "code replay refused",
+      "ok": true,
+      "detail": {
+        "status": 400
+      }
+    },
+    {
+      "step": "MCP token refused by /v1 (audience)",
+      "ok": true,
+      "detail": {
+        "status": 401
+      }
+    },
+    {
+      "step": "initialize (server instructions)",
+      "ok": true,
+      "detail": {
+        "instructions": "Dialed manages one person's weekly schedule. Read the resource dialed://planning-guide before planning. Tools only read the schedule or create drafts. Nothing changes until the person taps Approve in the Dialed app — tell them their plan is ready to review there."
+      }
+    },
+    {
+      "step": "tools/list",
+      "ok": true,
+      "detail": {
+        "tools": [
+          {
+            "name": "list_terms",
+            "readOnlyHint": null
+          },
+          {
+            "name": "get_schedule",
+            "readOnlyHint": null
+          },
+          {
+            "name": "list_categories",
+            "readOnlyHint": null
+          },
+          {
+            "name": "get_recent_plans",
+            "readOnlyHint": null
+          },
+          {
+            "name": "propose_changes",
+            "readOnlyHint": null
+          }
+        ]
+      }
+    },
+    {
+      "step": "planning guide resource",
+      "ok": true,
+      "detail": {
+        "resources": [
+          "dialed://planning-guide"
+        ],
+        "guide_head": "# Dialed planning guide\n\n> Served to every AI that plans for a Dialed user: the in-app engine (any provider) and any MCP client (Claude, ChatGPT, Gemini, Cursor…). `` are filled from the user's profile when served. The server enforces the hard rules itself (last section), so a model that ignores thi"
+      }
+    },
+    {
+      "step": "list_terms",
+      "ok": true,
+      "detail": {
+        "terms": [
+          {
+            "id": "1a06a4f3-f659-599c-a470-8fc982a2e12e",
+            "name": "Fall term",
+            "starts_on": "2037-09-14",
+            "ends_on": "2037-12-11",
+            "status": "active"
+          },
+          {
+            "id": "112614aa-a4bd-47b2-aae0-d40446c2db95",
+            "name": "Spring term",
+            "starts_on": "2037-10-23",
+            "ends_on": "2038-01-22",
+            "status": "upcoming"
+          },
+          {
+            "id": "47bea813-120d-48b4-bad4-8fca3c7d0398",
+            "name": "Spring term",
+            "starts_on": "2037-10-23",
+            "ends_on": "2038-01-22",
+            "status": "upcoming"
+          },
+          {
+            "id": "b6fb733b-7af7-55e9-acd6-d0dd73d2e259",
+            "name": "Exam weeks",
+            "starts_on": "2037-12-12",
+            "ends_on": "2037-12-22",
+            "status": "upcoming"
+          },
+          {
+            "id": "8754b690-65d4-5061-a09b-392df0b56252",
+            "name": "Winter term",
+            "starts_on": "2038-01-05",
+            "ends_on": "2038-04-16",
+            "status": "upcoming"
+          }
+        ]
+      }
+    },
+    {
+      "step": "list_categories",
+      "ok": true,
+      "detail": {
+        "categories": [
+          {
+            "id": "82972f34-0c7e-5bbf-986d-3373a76f187f",
+            "name": "Sermon Sync",
+            "group": "Projects",
+            "color": "#FF5A1F",
+            "quiet": false,
+            "protected": false,
+            "usual_minutes": 109
+          },
+          {
+            "id": "cc53c419-f8c1-5f24-849a-7a885843c138",
+            "name": "WellServices",
+            "group": "Projects",
+            "color": "#FFC15E",
+            "quiet": false,
+            "protected": false,
+            "usual_minutes": 94
+          },
+          {
+            "id": "95241bab-0e54-5600-99bd-7c0ac36fec41",
+            "name": "Prayers",
+            "group": "Projects",
+            "color": "#F2D3A0",
+            "quiet": false,
+            "protected": false,
+            "usual_minutes": 90
+          },
+          {
+            "id": "00528638-18e9-5268-bff9-0cbea3b180ad",
+            "name": "Speedwatch Ontario",
+            "group": "Projects",
+            "color": "#FF8F8F",
+            "quiet": false,
+            "protected": false,
+            "usual_minutes": 85
+          },
+          {
+            "id": "26d75a14-3700-5aee-bd80-d565cf7c7660",
+            "name": "Class",
+            "group": "School",
+            "color": "#8FB0FF",
+            "quiet": false,
+            "protected": true,
+            "usual_minutes": 125
+          },
+          {
+            "id": "b18f1f52-538f-5364-b33f-339193e909c8",
+            "name": "Study",
+            "group": "School",
+            "color": "#5FD8BE",
+            "quiet": false,
+            "protected": false,
+            "usual_minutes": 88
+          },
+          {
+            "id": "a3e6e6e2-3ba5-5c10-ac7c-335e1aa0bc47",
+            "name": "Gym",
+            "group": "Life",
+            "color": "#B5E36A",
+            "quiet": false,
+            "protected": false,
+            "usual_minutes": 75
+          },
+          {
+            "id": "e172c524-4072-5bb1-bbc8-3ddbe18c20e4",
+            "name": "Meal",
+            "group": "Life",
+            "color": "#8A6A5C",
+            "quiet": true,
+            "protected": false,
+            "usual_minutes": 43
+          },
+          {
+            "id": "6c94390b-711e-5a19-a9e3-51a17702d3d6",
+            "name": "Break",
+            "group": "Life",
+            "color": "#5A3A2A",
+            "quiet": true,
+            "protected": false,
+            "usual_minutes": 15
+          },
+          {
+            "id": "d6a03148-a050-48c3-9674-9b8f5da99e3a",
+            "name": "goat",
+            "group": "Life",
+            "color": "#9EC1E0",
+            "quiet": false,
+            "protected": false,
+            "usual_minutes": 60
+          }
+        ]
+      }
+    },
+    {
+      "step": "get_schedule 7 days",
+      "ok": true,
+      "detail": {
+        "days": [
+          {
+            "date": "2037-10-19",
+            "blocks": 11
+          },
+          {
+            "date": "2037-10-20",
+            "blocks": 10
+          },
+          {
+            "date": "2037-10-21",
+            "blocks": 9
+          },
+          {
+            "date": "2037-10-22",
+            "blocks": 10
+          },
+          {
+            "date": "2037-10-23",
+            "blocks": 10
+          },
+          {
+            "date": "2037-10-24",
+            "blocks": 5
+          },
+          {
+            "date": "2037-10-25",
+            "blocks": 4
+          }
+        ],
+        "saturday": {
+          "date": "2037-10-24",
+          "weekday": 5,
+          "term_id": "1a06a4f3-f659-599c-a470-8fc982a2e12e",
+          "blocks": [
+            {
+              "key": "479d281c-9673-50ba-b002-0d8c117a988e:2037-10-24",
+              "routine_block_id": "479d281c-9673-50ba-b002-0d8c117a988e",
+              "title": "Breakfast",
+              "category_id": "e172c524-4072-5bb1-bbc8-3ddbe18c20e4",
+              "start": "09:30",
+              "end": "10:30",
+              "quiet": true,
+              "protected": false,
+              "source": "routine"
+            },
+            {
+              "key": "4df778d0-885c-5363-99d5-ff3c5b8ccc22:2037-10-24",
+              "routine_block_id": "4df778d0-885c-5363-99d5-ff3c5b8ccc22",
+              "title": "Sermon Sync",
+              "category_id": "82972f34-0c7e-5bbf-986d-3373a76f187f",
+              "start": "10:30",
+              "end": "13:00",
+              "quiet": false,
+              "protected": false,
+              "source": "routine"
+            },
+            {
+              "key": "ce1fd210-f054-5efd-9dac-d553516f1b0f:2037-10-24",
+              "routine_block_id": "ce1fd210-f054-5efd-9dac-d553516f1b0f",
+              "title": "Lunch",
+              "category_id": "e172c524-4072-5bb1-bbc8-3ddbe18c20e4",
+              "start": "13:00",
+              "end": "13:45",
+              "quiet": true,
+              "protected": false,
+              "source": "routine"
+            },
+            {
+              "key": "ab7bc35c-5d9d-55e7-8d8a-f2279f876e99:2037-10-24",
+              "routine_block_id": "ab7bc35c-5d9d-55e7-8d8a-f2279f876e99",
+              "title": "WellServices",
+              "category_id": "cc53c419-f8c1-5f24-849a-7a885843c138",
+              "start": "13:45",
+              "end": "15:15",
+              "quiet": false,
+              "protected": false,
+              "source": "routine"
+            },
+            {
+              "key": "f1880ee9-a730-5885-a339-f393191c7cce:2037-10-24",
+              "routine_block_id": "f1880ee9-a730-5885-a339-f393191c7cce",
+              "title": "Gym",
+              "category_id": "a3e6e6e2-3ba5-5c10-ac7c-335e1aa0bc47",
+              "start": "16:00",
+              "end": "17:15",
+              "quiet": false,
+              "protected": false,
+              "source": "routine"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "get_recent_plans",
+      "ok": true,
+      "detail": {
+        "count": 0
+      }
+    },
+    {
+      "step": "propose_changes invalid → errors only",
+      "ok": true,
+      "detail": {
+        "proposal_id": null,
+        "status": "invalid",
+        "errors": [
+          {
+            "change_index": 0,
+            "code": "bad_time",
+            "message": "End time is before the start time."
+          }
+        ],
+        "review_hint": null
+      }
+    },
+    {
+      "step": "propose_changes valid → ready",
+      "ok": true,
+      "detail": {
+        "proposal_id": "adcf591f-7800-4255-93f4-afed70b7c664",
+        "status": "ready",
+        "errors": [],
+        "review_hint": "Ready to review in Dialed."
+      }
+    }
+  ]
+}

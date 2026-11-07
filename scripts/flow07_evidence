@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Flow 07 runtime evidence. Needs: the API on :8080 with MCP_ENABLED=true (and the worker), Metro on :8081,
+# the dev client installed and the owner signed in on the booted Simulator.
+# 1. connector_1.yaml: not connected (steps, Copy, "Not connected yet").
+# 2. apps/api/src/cli/flow07_proof.ts: a scripted MCP client does discovery → DCR → PKCE → sign-in → consent →
+#    token → tools → propose_changes (invalid, then valid) against the live API; transcript + OAuth HTML on disk.
+# 3. connector_2.yaml: connected row → chat-draft deep link → Review "From <client> chat" → Approve →
+#    Disconnect (asks first) → toast. Recorded.
+# Usage: ONLY=all|light|se|ax1 ./scripts/flow07_evidence [udid]
+source "$(dirname "$0")/lib/common.sh"
+ensure_xcode_env
+DEVICE="${1:-$(xcrun simctl list devices booted | grep -oE '[0-9A-F-]{36}' | head -1)}"
+[[ -n "$DEVICE" ]] || die "Boot a Simulator first."
+export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}" MAESTRO_DRIVER_STARTUP_TIMEOUT=180000 MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
+EV="$ROOT/evidence/flows/Flow_07"
+RAW="$EV/e2e-evidence"
+mkdir -p "$EV/screens" "$EV/recordings" "$EV/runtime" "$RAW"
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:8080/mcp)
+[[ "$code" == 401 ]] || die "The API isn't serving /mcp (got $code). Start it with MCP_ENABLED=true."
+run() { pkill -f "xcodebuild test-without-building -xctestrun" 2>/dev/null || true; (cd "$ROOT/apps/mobile" && maestro --device "$DEVICE" test --test-output-dir "$RAW/$1" "${@:2}"); }
+retry() { local n; for n in 1 2 3; do "$@" && return 0; log "attempt $n failed; retrying"; done; return 1; }
+record() {
+  local name="$1"; shift
+  xcrun simctl io "$DEVICE" recordVideo --codec h264 --force "$EV/recordings/$name.mp4" >/dev/null 2>&1 &
+  local rec=$!
+  sleep 2
+  REC_PID=$rec
+  local rc=0; run "$name" "$@" || rc=$?
+  kill -INT "$rec" 2>/dev/null || true; wait "$rec" 2>/dev/null || true; REC_PID=""
+  [[ $rc == 0 ]] || { rm -f "$EV/recordings/$name.mp4"; return $rc; }
+  if command -v ffmpeg >/dev/null; then
+    ffmpeg -loglevel error -y -i "$EV/recordings/$name.mp4" -vf "scale=586:-2,fps=30" -c:v libx264 -crf 27 \
+      -preset slow -pix_fmt yuv420p -an "$EV/recordings/$name.small.mp4" && mv "$EV/recordings/$name.small.mp4" "$EV/recordings/$name.mp4"
+  fi
+  return $rc
+}
+collect() { find "$RAW" -path "*takeScreenshot*" -name "*.png" -print0 | xargs -0 ls -tr 2>/dev/null | while read -r f; do cp "$f" "$EV/screens/"; done; }
+REC_PID=""
+# Never leave a recording running, whatever exits the script.
+finish() { [[ -n "$REC_PID" ]] && kill -INT "$REC_PID" 2>/dev/null; collect; }
+trap finish EXIT
+plan_id() {
+  local pid; pid=$(sed -E 's/.*"proposal_id":"([^"]+)".*/\1/' "$EV/runtime/proposal.json")
+  docker exec dialed-postgres-1 psql -U dialed -d dialed -Atc "select id from plans where proposal_id = '$pid'"
+}
+pass() { # theme + label
+  local theme="$1" tag="$2" rec="${3:-run}"
+  "$ROOT/scripts/dev_evidence_cleanup"
+  retry run "connector1-$tag" -e THEME="$theme" e2e/connector_1.yaml
+  (cd "$ROOT/apps/api" && "$ROOT/node_modules/.bin/tsx" src/cli/flow07_proof.ts "$EV/runtime") > "$EV/runtime/proof-$tag.log" 2>&1 \
+    || { tail -5 "$EV/runtime/proof-$tag.log"; die "MCP client proof failed"; }
+  local id; id=$(plan_id)
+  [[ -n "$id" ]] || die "No plan for the chat draft."
+  "$rec" "connector2-$tag" -e THEME="$theme" -e PLAN_ID="$id" e2e/connector_2.yaml
+  "$ROOT/scripts/dev_evidence_cleanup"
+}
+ONLY="${ONLY:-all}"
+want() { [[ "$ONLY" == all || "$ONLY" == "$1" ]]; }
+
+if want dark || [[ "$ONLY" == all ]]; then
+  xcrun simctl ui "$DEVICE" appearance dark
+  pass dark dark record
+fi
+if want light; then
+  xcrun simctl ui "$DEVICE" appearance light
+  pass light light
+  xcrun simctl ui "$DEVICE" appearance dark
+fi
+if want se; then pass se se; fi
+if want ax1; then pass ax1 ax1; fi
+log "Flow 07 evidence written to $EV"
