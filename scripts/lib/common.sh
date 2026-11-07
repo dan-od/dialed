@@ -41,7 +41,12 @@ tsx() { "$ROOT/node_modules/.bin/tsx" "$@"; }
 wait_for_postgres() {
   for _ in $(seq 1 60); do
     # TCP check: the init-time temporary server listens on the socket only, so this waits for the real one.
-    if compose exec -T postgres pg_isready -h 127.0.0.1 -U dialed -d dialed >/dev/null 2>&1; then return 0; fi
+    # CI has no compose stack: Postgres is a service container on the host port, so ask it directly.
+    if [[ -n "${CI:-}" ]]; then
+      pg_isready -h 127.0.0.1 -U dialed -d dialed >/dev/null 2>&1 && return 0
+    elif compose exec -T postgres pg_isready -h 127.0.0.1 -U dialed -d dialed >/dev/null 2>&1; then
+      return 0
+    fi
     sleep 1
   done
   die "Postgres did not become ready."
