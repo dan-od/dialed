@@ -1,0 +1,9 @@
+{
+  "classes": [
+    { "title": "Advanced Networking I", "kind": "lecture", "weekday": "mon", "start": "09:40", "end": "11:00", "room": "SCI1140" },
+    { "title": "Cryptography & Network Security", "kind": "lecture", "weekday": "tue", "start": "08:10", "end": "11:00", "room": "SCI2120", "confidence": 0.5 },
+    { "title": "Capstone Study Project", "kind": "lecture", "weekday": "wed", "start": "11:10", "end": "14:00", "room": "SCI1140" },
+    { "title": "Advanced Networking I", "kind": "tutorial", "weekday": "wed", "start": "13:30", "end": "15:00", "room": "SCI1140", "confidence": 0.6 }
+  ],
+  "term_hint": "2026-09-14"
+}

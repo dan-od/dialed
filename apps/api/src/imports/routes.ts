@@ -147,9 +147,19 @@ export function importsRoutes(
           'fixtures',
           'timetable',
         );
+        // Fixture variants are picked by file name so tests and Maestro can reach the
+        // nothing-found and partial-read states (fixture mode only, never with a real provider).
+        const variant = /empty/i.test(filePart.filename ?? '')
+          ? '-empty'
+          : /partial/i.test(filePart.filename ?? '')
+            ? '-partial'
+            : '';
         let fixtureResponse;
         try {
-          fixtureResponse = readFileSync(join(fixtureDir, 'fixture-response.json'), 'utf8');
+          fixtureResponse = readFileSync(
+            join(fixtureDir, `fixture-response${variant}.json`),
+            'utf8',
+          );
         } catch {
           fixtureResponse = '{"classes":[],"term_hint":null}';
         }
@@ -240,6 +250,18 @@ export function importsRoutes(
         });
       }
 
+      if (existingTerm) {
+        // Always carried so Found classes can edit the dates (PATCH payload); a no-op if unchanged.
+        changes.push({
+          kind: 'update_term' as const,
+          title: termName,
+          term_id: String(existingTerm.id),
+          starts_on: termStart,
+          ends_on: termEnd,
+          note: `Classes run inside ${termName}.`,
+        });
+      }
+
       if (createTermChange) {
         changes.push({
           kind: 'create_term' as const,
@@ -255,6 +277,7 @@ export function importsRoutes(
       }
 
       const catId = classCategoryId ?? 'cat-class';
+      const firstClassOrd = changes.length;
       changes.push(...classesToPlanChanges(result.classes, catId, termStart, termEnd));
 
       const {
@@ -270,13 +293,18 @@ export function importsRoutes(
           ${'Timetable import'}, 'drafting', ${baseRevision},
           'server', ${idempotencyKey ?? null}, 1)`);
 
-      const checks = result.classes
-        .filter((c) => c.confidence !== undefined && c.confidence < 0.7)
-        .map((c) => ({
-          id: `low_confidence:${c.weekday}:${c.start}`,
-          passed: false,
-          detail: `${c.title} on ${c.weekday} ${c.start} was hard to read.`,
-        }));
+      // Check id names the change's position so the client marks exactly that card.
+      const checks = result.classes.flatMap((c, i) =>
+        c.confidence !== undefined && c.confidence < 0.7
+          ? [
+              {
+                id: `low_confidence:${firstClassOrd + i}`,
+                passed: false,
+                detail: `${c.title} on ${c.weekday} ${c.start} was hard to read.`,
+              },
+            ]
+          : [],
+      );
 
       await planService.storeResult(
         planId,

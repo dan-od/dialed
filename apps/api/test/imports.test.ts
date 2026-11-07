@@ -56,8 +56,11 @@ describe('POST /v1/imports/timetable', () => {
     const plan = r.json();
     expect(plan.source).toBe('timetable');
     expect(plan.status).toBe('ready');
-    expect(plan.changes.length).toBe(6);
-    expect(plan.changes[0].title).toContain('Advanced Networking I');
+    const classes = plan.changes.filter((c: { kind: string }) => c.kind === 'new');
+    expect(classes.length).toBe(6);
+    expect(classes[0].title).toContain('Advanced Networking I');
+    // Existing term: an update_term change carries the dates Found classes can edit.
+    expect(plan.changes.filter((c: { kind: string }) => c.kind === 'update_term').length).toBe(1);
 
     await cleanup();
   });
@@ -164,6 +167,93 @@ describe('POST /v1/imports/timetable', () => {
     });
 
     expect(r.statusCode).toBe(429);
+    await cleanup();
+  });
+});
+
+async function uploadPng(fileName: string, key: string) {
+  const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const boundary = '----dialed-test-boundary-v';
+  const body = Buffer.concat([
+    Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${fileName}"\r\nContent-Type: image/png\r\n\r\n`,
+    ),
+    pngHeader,
+    Buffer.alloc(100),
+    Buffer.from(`\r\n--${boundary}--\r\n`),
+  ]);
+  return t.app.inject({
+    method: 'POST',
+    url: '/v1/imports/timetable',
+    headers: {
+      ...auth(owner),
+      'content-type': `multipart/form-data; boundary=${boundary}`,
+      'idempotency-key': key,
+    },
+    payload: body,
+  });
+}
+
+type ChangeDTO = { id: string; ord: number; kind: string; payload: Record<string, unknown> };
+
+describe('timetable read results (Flow 02 Found classes)', () => {
+  it('a read with no classes returns a failed plan marked nothing_found', async () => {
+    await cleanup();
+    const r = await uploadPng('empty-timetable.png', 'test-empty');
+    expect(r.statusCode).toBe(200);
+    expect(r.json().status).toBe('failed');
+    expect(r.json().error_code).toBe('nothing_found');
+    await cleanup();
+  });
+
+  it('low-confidence checks name the exact change by position', async () => {
+    await cleanup();
+    const r = await uploadPng('partial-timetable.png', 'test-partial');
+    expect(r.statusCode).toBe(201);
+    const plan = r.json();
+    const low = plan.checks.filter((c: { id: string }) => c.id.startsWith('low_confidence:'));
+    expect(low.length).toBe(2);
+    const marked = low.map((c: { id: string }) => {
+      const ord = Number(c.id.split(':')[1]);
+      return plan.changes.find((ch: ChangeDTO) => ch.ord === ord);
+    });
+    expect(marked.map((ch: { title: string }) => ch.title)).toEqual([
+      expect.stringContaining('Cryptography'),
+      expect.stringContaining('(tutorial)'),
+    ]);
+    expect(marked.every((ch: ChangeDTO) => ch.kind === 'new')).toBe(true);
+    await cleanup();
+  });
+
+  it("editing the term dates moves the classes' repeat dates with them", async () => {
+    await cleanup();
+    const r = await uploadPng('timetable.png', 'test-dates');
+    const plan = r.json();
+    const term = plan.changes.find((c: ChangeDTO) => c.kind === 'update_term') as ChangeDTO;
+    const p = await t.app.inject({
+      method: 'PATCH',
+      url: `/v1/plans/${plan.id}/changes/${term.id}`,
+      headers: auth(owner),
+      payload: { payload: { starts_on: '2037-09-07', ends_on: '2037-12-18' } },
+    });
+    expect(p.statusCode).toBeLessThan(300);
+    const g = await t.app.inject({
+      method: 'GET',
+      url: `/v1/plans/${plan.id}`,
+      headers: auth(owner),
+    });
+    const classes = g.json().changes.filter((c: ChangeDTO) => c.kind === 'new') as ChangeDTO[];
+    expect(classes.length).toBe(6);
+    for (const c of classes) {
+      expect(c.payload.repeat).toMatchObject({ from: '2037-09-07', until: '2037-12-18' });
+    }
+    const bad = await t.app.inject({
+      method: 'PATCH',
+      url: `/v1/plans/${plan.id}/changes/${term.id}`,
+      headers: auth(owner),
+      payload: { payload: { starts_on: '2037-12-20', ends_on: '2037-12-18' } },
+    });
+    expect(bad.statusCode).toBe(400);
     await cleanup();
   });
 });

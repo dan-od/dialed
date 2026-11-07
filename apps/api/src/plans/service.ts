@@ -269,6 +269,28 @@ export class PlanService {
     await this.db
       .execute(sql`update plan_changes set payload_json = ${JSON.stringify(merged)}::jsonb
       where id = ${changeId} and plan_id = ${planId}`);
+
+    // Repeating changes drafted for the old term dates follow the edited dates, so a class
+    // imported into a term still runs for the whole term (Flow 02 Found classes).
+    const termDates = (p: Record<string, unknown>) => {
+      const src = kind === 'create_term' ? ((p.new_term as Record<string, unknown>) ?? {}) : p;
+      return { from: String(src.starts_on ?? ''), until: String(src.ends_on ?? '') };
+    };
+    const before = termDates(existing);
+    const after = termDates(merged);
+    if (before.from && (before.from !== after.from || before.until !== after.until)) {
+      const { rows: repeats } = await this.db.execute<Row>(sql`
+        select id, payload_json from plan_changes
+        where plan_id = ${planId} and kind = 'new' and payload_json ? 'repeat'`);
+      for (const r of repeats) {
+        const pj = r.payload_json as { repeat?: { from?: string; until?: string } };
+        if (pj.repeat?.from !== before.from || pj.repeat?.until !== before.until) continue;
+        const next = { ...pj, repeat: { ...pj.repeat, from: after.from, until: after.until } };
+        await this.db
+          .execute(sql`update plan_changes set payload_json = ${JSON.stringify(next)}::jsonb
+          where id = ${String(r.id)}`);
+      }
+    }
     await this.db.execute(sql`update plans set version = version + 1 where id = ${planId}`);
   }
 
