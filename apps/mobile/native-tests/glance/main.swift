@@ -124,5 +124,46 @@ check(LockModel.context(snap, now: iso.date(from: "2037-10-21T12:00:00.000Z")!) 
 let ctl = LockModel.timeline(snap, from: iso.date(from: "2037-10-19T17:15:30.000Z")!) { LockModel.upNext($0) }
 check(ctl.count > 1 && ctl.count <= 361, "Up next timeline entries (\(ctl.count))")
 
+// Home widgets (step 6).
+let t1315 = iso.date(from: "2037-10-19T17:15:00.000Z")!
+let hn = HomeModel.now(at1315)!
+check(hn.title == "Sermon Sync" && hn.left(at: t1315) == "1:15" && hn.foot == "Then Cryptography prep",
+      "Now 1:15 pm: \(hn.title) \(hn.left(at: t1315)) / \(hn.foot)")
+check(hn.start == iso.date(from: "2037-10-19T16:40:00.000Z")! && hn.end == iso.date(from: "2037-10-19T18:30:00.000Z")!,
+      "Now timer runs 12:40–2:30 pm local")
+check(hn.accessibility == "Now: Sermon Sync, until 2:30 pm. Then Cryptography prep at 2:45 pm", "Now label: \(hn.accessibility)")
+check(HomeModel.now(at1730) == nil && HomeModel.now(at2020) == nil, "Now falls back to Up next in a meal and in a gap")
+let hx = HomeModel.next(at1315)
+check(hx.time == "2:45" && hx.title == "Cryptography prep" && hx.foot == "in 1h 30m · 1h 30m", "Up next: \(hx.time) \(hx.title) / \(hx.foot)")
+let hxGap = HomeModel.next(at2020)
+check(hxGap.time == "8:30" && hxGap.foot == "in 10 min · 1h 30m", "Up next in a gap: \(hxGap.foot)")
+let hxLate = HomeModel.next(at2230)
+check(hxLate.kicker == "Tomorrow" && hxLate.time == "8:10" && hxLate.title == "Cryptography lecture", "Up next after 10 pm: tomorrow")
+let rt = HomeModel.rundownToday(at1315, meals: true)
+check(rt.kicker == "Today · 7h 30m of work left", "Rundown kicker: \(rt.kicker)")
+check(rt.rows.count == 4 && rt.rows[0].current && rt.rows[0].detail == "1:15 left" && rt.rows[0].time == "12:40",
+      "Rundown current row: \(rt.rows.first.map { "\($0.time) \($0.detail)" } ?? "none")")
+check(rt.rows.filter(\.current).count == 1 && rt.rows[1].title == "Break", "Rundown with meals shows the break")
+let rtWork = HomeModel.rundownToday(at1315, meals: false)
+check(rtWork.rows.map(\.title) == ["Sermon Sync", "Cryptography prep", "Gym", "Sermon Sync"], "Rundown without meals: \(rtWork.rows.map(\.title))")
+check(rtWork.rows[1].detail == "1h 30m", "Rundown later rows show length")
+let rtDone = HomeModel.rundownToday(at2230, meals: true)
+check(rtDone.rows.isEmpty && rtDone.empty == "Tomorrow 8:10 · Cryptography lecture", "Rundown after 10 pm: \(rtDone.empty ?? "nil")")
+let rw = HomeModel.rundownWeek(at1315)
+check(rw.kicker.hasPrefix("Week 43 · ") && rw.kicker.hasSuffix(" hrs"), "Rundown week kicker: \(rw.kicker)")
+check(rw.bars.count == 7 && rw.todayIndex == 0 && rw.top.count <= 3 && !rw.top.isEmpty, "Rundown week bars and top categories")
+check(rw.top.allSatisfy { $0.hours.hasSuffix("h") && $0.name != "Other" }, "Rundown week categories named: \(rw.top.map(\.name))")
+let tl1315 = HomeModel.timeline(at1315, meals: true)
+check(tl1315.kicker == "Mon 19 · 5 blocks left", "Timeline kicker: \(tl1315.kicker)")
+check(tl1315.blocks.count == 7 && tl1315.blocks.filter(\.current).count == 1 && tl1315.blocks[0].past, "Timeline: 7 blocks, lunch past, one current")
+check(tl1315.nowLabel == "1:15" && tl1315.now > 0 && tl1315.now < 1 && tl1315.empty == nil, "Timeline now line at 1:15")
+check(tl1315.blocks.allSatisfy { $0.top >= 0 && $0.top + $0.height <= 1.0001 }, "Timeline blocks fit the rail")
+let tlLate = HomeModel.timeline(at2230, meals: false)
+check(tlLate.empty == "Tomorrow 8:10 · Cryptography lecture" && tlLate.kicker == "Mon 19 · 0 blocks left", "Timeline after 10 pm: \(tlLate.empty ?? "nil")")
+check(HomeModel.isoWeek("2038-01-04") == 1 && HomeModel.dayLabel("2037-10-20") == "Tue 20", "ISO week and day label")
+// Now changes only at boundaries (the timer runs itself): few entries over 6 h.
+let ntl = LockModel.timeline(snap, from: t1315) { HomeModel.now($0) }
+check(ntl.count < 20, "Now timeline only at boundaries (\(ntl.count))")
+
 print(failures == 0 ? "PASS" : "\(failures) FAILED")
 exit(failures == 0 ? 0 : 1)

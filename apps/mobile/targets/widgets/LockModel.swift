@@ -9,6 +9,10 @@ enum LockModel {
     let today: [SnapshotV1.Block]
     let tomorrow: [SnapshotV1.Block]
     let minute: Int
+    /// Today's local date "yyyy-MM-dd" and the snapshot's time zone (home widgets turn minutes into instants).
+    var date: String = ""
+    var timeZone: String = ""
+    var categories: [String: SnapshotV1.Category] = [:]
     let week: SnapshotV1.Week
     /// Today's position in `week.hoursByDay` (Monday = 0); nil after the week rolled over.
     let weekIndex: Int?
@@ -21,7 +25,7 @@ enum LockModel {
     else { return nil }
     let idx = daysBetween(s.week.start, l.date).flatMap { (0...6).contains($0) ? $0 : nil }
     return Context(today: s.days[i].blocks, tomorrow: i == 0 ? s.days[1].blocks : [], minute: l.minute,
-                   week: s.week, weekIndex: idx)
+                   date: l.date, timeZone: s.timeZone, categories: s.categories, week: s.week, weekIndex: idx)
   }
 
   /// The copy every widget shows instead of data (Flow 08 states), or nil when there is data.
