@@ -9,7 +9,7 @@ import {
   type ScheduleData,
 } from '@dialed/schedule';
 import { palette } from '@dialed/tokens';
-import { planReminders } from '../notifications/plan';
+import { planReminders } from '../glance/plan';
 import type { Part } from '../ui/Inline';
 
 // Flow 09 rules and copy (prototype v11 `settings`, `categories`, `catEdit`, `catMerge`, `catDelete`,

@@ -1,10 +1,7 @@
-import type { DevicePrefs } from '@dialed/contracts';
-import type { ScheduleData } from '@dialed/schedule';
 import * as Notifications from 'expo-notifications';
 import type { Perm } from '../blocks/form';
-import { planReminders } from './plan';
 
-// Local reminders only (D-39: no APNs on the free account). Flow 08 adds the BLOCK_REMINDER actions.
+// Notification permission and presentation. Scheduling lives in glance/schedule.ts (Flow 08).
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -13,8 +10,6 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
-
-const REMINDER_PREFIX = 'reminder:';
 
 const asPerm = (p: Notifications.NotificationPermissionsStatus): Perm =>
   p.granted ? 'granted' : p.status === 'undetermined' && p.canAskAgain ? 'undetermined' : 'denied';
@@ -30,37 +25,4 @@ export async function requestNotificationPermission(): Promise<Perm> {
       ios: { allowAlert: true, allowSound: true, allowBadge: false },
     }),
   );
-}
-
-async function cancelReminderNotifications() {
-  const all = await Notifications.getAllScheduledNotificationsAsync();
-  const ids = all.filter((n) => n.identifier.startsWith(REMINDER_PREFIX)).map((n) => n.identifier);
-  if (ids.length) await Notifications.cancelScheduledNotificationAsync(ids[0]!);
-  for (const id of ids.slice(1)) {
-    await Notifications.cancelScheduledNotificationAsync(id);
-  }
-}
-
-/** Replace this phone's scheduled reminders with the next 48 h: block alerts, heads-ups and meal notes. */
-export async function rescheduleReminders(
-  data: ScheduleData,
-  alerts: Record<string, number>,
-  timeZone: string,
-  quiet: { start: number; end: number },
-  prefs?: DevicePrefs,
-) {
-  if ((await notificationPermission()) !== 'granted') return;
-  const planned = planReminders(data, alerts, new Date(), timeZone, quiet, prefs);
-  await cancelReminderNotifications();
-  for (const r of planned) {
-    await Notifications.scheduleNotificationAsync({
-      identifier: `${REMINDER_PREFIX}${r.blockKey}`,
-      content: { title: r.title, body: r.body, data: { block_key: r.blockKey } },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: r.at },
-    });
-  }
-}
-
-export async function cancelReminders() {
-  await cancelReminderNotifications().catch(() => {});
 }

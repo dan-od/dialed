@@ -1,5 +1,5 @@
 import type { Category, ScheduleData } from '@dialed/schedule';
-import { planReminders } from '../notifications/plan';
+import { planReminders } from '../glance/plan';
 import {
   blocksUseLine,
   categoryWeek,

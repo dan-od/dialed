@@ -1,5 +1,5 @@
 import type { ScheduleData } from '@dialed/schedule';
-import { instantAt, planReminders } from '../notifications/plan';
+import { instantAt, planReminders } from '../glance/plan';
 
 // Flow 04 per-block alerts (D-32): scheduled on this phone for the next 48 h, never in quiet hours,
 // at most 6 a day (Flow 08 daily cap).

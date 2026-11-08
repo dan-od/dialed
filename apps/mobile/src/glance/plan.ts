@@ -8,9 +8,15 @@ import {
   type ScheduleData,
 } from '@dialed/schedule';
 
+/** Notification categories (BACKEND_SETUP §8): actions on heads-ups and alerts; meal notes are passive. */
+export type ReminderCategory = 'BLOCK_REMINDER' | 'MEAL_NOTE';
+
 export interface PlannedReminder {
   /** `<block id>:<date>` (the Live Activity block_key shape). */
   blockKey: string;
+  /** alert = the block's own alert (D-32); heads_up = N min before a work block; meal = quiet block start. */
+  kind: 'alert' | 'heads_up' | 'meal';
+  category: ReminderCategory;
   at: Date;
   title: string;
   body: string;
@@ -78,8 +84,12 @@ export function planReminders(
       if (at <= now || at.getTime() > end || inQuiet(((minute % 1440) + 1440) % 1440, quiet))
         continue;
       count++;
+      const kind =
+        explicit !== undefined ? 'alert' : isQuiet.has(b.category_id) ? 'meal' : 'heads_up';
       out.push({
         blockKey: b.key,
+        kind,
+        category: kind === 'meal' ? 'MEAL_NOTE' : 'BLOCK_REMINDER',
         at,
         title: before === 0 ? `${b.title} starts now` : `${b.title} in ${before} min`,
         body:

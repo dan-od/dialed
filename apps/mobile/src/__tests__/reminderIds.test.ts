@@ -1,5 +1,5 @@
 import * as Notifications from 'expo-notifications';
-import { rescheduleReminders, cancelReminders } from '../notifications/reminders';
+import { scheduleNotifications, cancelNotifications } from '../glance/schedule';
 import type { ScheduleData } from '@dialed/schedule';
 
 jest.mock('expo-notifications');
@@ -49,7 +49,7 @@ const data: ScheduleData = {
   overrides: [],
 };
 
-describe('rescheduleReminders', () => {
+describe('scheduleNotifications', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockNotifications.getPermissionsAsync.mockResolvedValue({
@@ -65,7 +65,7 @@ describe('rescheduleReminders', () => {
   });
 
   it('uses reminder: prefix for scheduled notification identifiers', async () => {
-    await rescheduleReminders(data, {}, 'America/Toronto', { start: 1380, end: 420 });
+    await scheduleNotifications(data, {}, 'America/Toronto', { start: 1380, end: 420 });
     const calls = mockNotifications.scheduleNotificationAsync.mock.calls;
     for (const [req] of calls) {
       expect((req as { identifier?: string }).identifier).toMatch(/^reminder:/);
@@ -77,7 +77,7 @@ describe('rescheduleReminders', () => {
       { identifier: 'reminder:rb1:2037-11-04', content: {}, trigger: {} } as never,
       { identifier: 'plan-ready:abc', content: {}, trigger: {} } as never,
     ]);
-    await cancelReminders();
+    await cancelNotifications();
     expect(mockNotifications.cancelScheduledNotificationAsync).toHaveBeenCalledWith(
       'reminder:rb1:2037-11-04',
     );

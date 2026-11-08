@@ -1,5 +1,7 @@
 # Flow 08 — Glance without opening: build plan
 
+**Progress (2026-11-08):** steps 1 and 3 done in TS (`apps/mobile/src/glance/`, D-77…D-87). Step 2 (native target + `DialedNative` module) not started; until it ships the writer finds no module and does nothing. Next: step 2 (needs a native build), then 4.
+
 Sources:
 - `flows/Flow_08_Glance.md`, `Sub_Interactions/Flow_08_sub_interactions.md`
 - `00_Flow_Contracts.md`: C-x08, C-0803, `notifications`, `identity-session`

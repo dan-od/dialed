@@ -19,6 +19,8 @@ import {
   type ReactNode,
 } from 'react';
 import { AppState } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import { router } from 'expo-router';
 import { ApiClient, type TokenSource } from './api/client';
 import { API_BASE_URL, setAiConfig } from './config';
 import { Blocks } from './blocks/service';
@@ -26,7 +28,12 @@ import { PlanApi } from './plan/api';
 import { SQLiteStore } from './data/sqliteStore';
 import type { LocalData, LocalStore } from './data/types';
 import { haptic } from './lib/haptics';
-import { cancelReminders, rescheduleReminders } from './notifications/reminders';
+import {
+  cancelNotifications,
+  handleReminderResponse,
+  scheduleNotifications,
+} from './glance/schedule';
+import { nativeGlance, SnapshotWriter } from './glance/writer';
 import {
   clearPending,
   clearSession,
@@ -112,6 +119,9 @@ class EngineHub {
   }
 }
 
+/** C-x08 widget snapshot; a no-op until the DialedNative module ships (Flow 08 step 2). */
+const snapshotWriter = new SnapshotWriter(nativeGlance());
+
 const EMPTY_SYNC: SyncStatus = { pending: 0, syncing: false, problem: null, hasData: false };
 
 export function AppProvider({
@@ -169,11 +179,15 @@ export function AppProvider({
     if (p) setAiConfig(p.ai_mode ?? 'server', p.ai_provider ?? 'anthropic');
   }, [data?.profile?.ai_mode, data?.profile?.ai_provider]);
 
-  // Local reminders follow the data: next 48 h of explicit block alerts (D-32), quiet hours respected.
+  // Glance surfaces follow the data (C-x08): every local edit, sync pull, settings or category change reloads
+  // `data`, so this rewrites the widget snapshot (skipped when nothing shown changed) and the next 48 h of notes.
+  const glanceRef = useRef<{ data: LocalData; prefs: DevicePrefs } | null>(null);
   useEffect(() => {
     const p = data?.profile;
     if (!data || !p) return;
-    void rescheduleReminders(
+    glanceRef.current = { data, prefs };
+    void snapshotWriter.write(data.schedule, prefs, p.time_zone, new Date());
+    void scheduleNotifications(
       data.schedule,
       p.profile_json?.block_alerts ?? {},
       p.time_zone,
@@ -181,6 +195,18 @@ export function AppProvider({
       prefs,
     ).catch(() => {});
   }, [data, prefs]);
+
+  // Snooze 10 min / Open day on our notes (plan pushes are handled by usePlanNotifications).
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      void handleReminderResponse(response)
+        .then((r) => {
+          if (r === 'open_day') router.navigate('/day');
+        })
+        .catch(() => {});
+    });
+    return () => sub.remove();
+  }, []);
 
   const startEngine = useCallback(async () => {
     engineRef.current?.stop();
@@ -224,8 +250,15 @@ export function AppProvider({
       engineRef.current = null;
       hub.attach(null);
       tokens.session = null;
-      await Promise.allSettled([store.wipe(), clearSession(), clearPending(), cancelReminders()]);
-      // Live Activities, local notifications, widget snapshot and device unregister join here with Flow 08.
+      glanceRef.current = null; // a later foreground must not rewrite this account's snapshot
+      await Promise.allSettled([
+        store.wipe(),
+        clearSession(),
+        clearPending(),
+        cancelNotifications(),
+        snapshotWriter.clear(),
+      ]);
+      // Live Activities and device unregister join here with Flow 08 steps 7–8.
       setData(null);
       setSync(EMPTY_SYNC);
       setPrefsState(DEFAULT_DEVICE_PREFS);
@@ -265,6 +298,18 @@ export function AppProvider({
       if (st === 'active') {
         void engineRef.current?.sync();
         void prefStore.flush();
+        // Foreground always rewrites: the day may have rolled over or the time zone changed (C-x08).
+        const g = glanceRef.current;
+        if (g?.data.profile)
+          void snapshotWriter.write(
+            g.data.schedule,
+            g.prefs,
+            g.data.profile.time_zone,
+            new Date(),
+            {
+              force: true,
+            },
+          );
       }
     });
     const net = Network.addNetworkStateListener((st) => {

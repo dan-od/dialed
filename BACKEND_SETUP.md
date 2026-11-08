@@ -9,7 +9,7 @@ Read with `SECURITY.md`, `00_Flow_Contracts.md` and `PROJECT_BIBLE.md`. Secrets 
 | Mobile | Expo (latest stable SDK at scaffold) + React Native + TypeScript, Expo Router, dev build | One codebase for iOS now and Android later; owner builds with Claude Code on a Mac with Xcode |
 | Local data | `expo-sqlite` + Drizzle (sqlite driver) | Offline-first read model, same query language as server |
 | Native extension | WidgetKit + ActivityKit target in SwiftUI, added with the `@bacons/apple-targets` config plugin; shared data via App Group | Live Activities and widgets can only be native; config plugin keeps `expo prebuild` reproducible |
-| Native bridge | Small Expo Module (`modules/dialed-native`) exposing: write widget snapshot, reload timelines, start/update/end Live Activity, get push-to-start token, get activity push tokens | Keeps Swift surface tiny and testable |
+| Native bridge | Small Expo Module (`modules/dialed-native`) exposing: write and clear widget snapshot, reload timelines, start/update/end Live Activity, get push-to-start token, get activity push tokens | Keeps Swift surface tiny and testable |
 | API | Node.js 22 LTS, Fastify, Zod, `@fastify/rate-limit`, pino | Fast, typed, small; same language as the app |
 | DB | PostgreSQL 16, Drizzle ORM, SQL migrations committed under `backend/migrations` (drizzle-kit generate, reviewed, then frozen) | Deterministic replay; boring and reliable |
 | Worker | Same codebase, separate process (`apps/api/src/worker.ts`), Postgres-backed job table with `FOR UPDATE SKIP LOCKED` leases | No Redis needed on the home lab |
