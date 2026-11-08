@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActionSheetIOS, AppState, Pressable, View } from 'react-native';
+import { ActionSheetIOS, AppState, Linking, Pressable, View } from 'react-native';
 import type { Perm } from '../../blocks/form';
 import { aiName } from '../../config';
+import { nativeActivities } from '../../glance/activity';
 import { notificationPermission } from '../../notifications/reminders';
 import { clampCap, notifCount, notifParts, quietHoursText } from '../../settings/model';
 import { SetCap, SetGroup, SetRow, SetSwitch, Stepper } from '../../settings/ui';
@@ -27,11 +28,14 @@ export default function NotificationsScreen() {
   const { c, data, prefs, setPrefs, now } = useSchedule();
   const router = useRouter();
   const [perm, setPerm] = useState<Perm>('granted');
+  const [laOn, setLaOn] = useState(true);
   useEffect(() => {
-    const check = () =>
+    const check = () => {
+      setLaOn(nativeActivities()?.activitiesEnabled() ?? true);
       void notificationPermission()
         .then(setPerm)
         .catch(() => {});
+    };
     check();
     const sub = AppState.addEventListener('change', (s) => s === 'active' && check());
     return () => sub.remove();
@@ -128,6 +132,30 @@ export default function NotificationsScreen() {
             }
           />
         </SetGroup>
+
+        <SetGroup>
+          <SetRow
+            testID="ns-customize"
+            label="Lock screen and widgets"
+            small="Live Activity or line only, and how to add Dialed widgets."
+            chevron
+            last
+            onPress={() => router.push('/customize')}
+          />
+        </SetGroup>
+        {prefs.lock_mode === 'live' && !laOn ? (
+          <InlineMessage
+            parts={[
+              { hot: 'Live Activities are off in iPhone Settings.' },
+              ' ',
+              {
+                link: 'Open Settings',
+                onPress: () => void Linking.openSettings(),
+                testID: 'ns-la-settings',
+              },
+            ]}
+          />
+        ) : null}
 
         <SetCap>Meals and breaks</SetCap>
         <SetGroup>

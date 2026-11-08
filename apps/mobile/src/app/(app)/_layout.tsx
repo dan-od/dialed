@@ -49,6 +49,8 @@ export default function AppLayout() {
           <Stack.Screen name="settings" options={page} />
           <Stack.Screen name="categories" options={page} />
           <Stack.Screen name="notifications" options={page} />
+          {/* Flow 08: Customize (lock-screen mode, line, widget guide) is a page, not a sheet (D-81). */}
+          <Stack.Screen name="customize" options={page} />
           <Stack.Screen name="category-edit" options={form} />
           <Stack.Screen name="category-merge" options={form} />
           {/* Flow 06: Plan with AI (pushed pages, deep-linkable). */}
