@@ -22,7 +22,7 @@ import { AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { ApiClient, type TokenSource } from './api/client';
-import { API_BASE_URL, setAiConfig } from './config';
+import { API_BASE_URL, APPLE_TEAM_TIER, setAiConfig } from './config';
 import { Blocks } from './blocks/service';
 import { PlanApi } from './plan/api';
 import { SQLiteStore } from './data/sqliteStore';
@@ -33,6 +33,7 @@ import {
   handleReminderResponse,
   scheduleNotifications,
 } from './glance/schedule';
+import { LiveActivityClient, nativeActivities } from './glance/activity';
 import { nativeGlance, SnapshotWriter } from './glance/writer';
 import {
   clearPending,
@@ -122,6 +123,20 @@ class EngineHub {
 /** C-x08 widget snapshot; a no-op until the DialedNative module ships (Flow 08 step 2). */
 const snapshotWriter = new SnapshotWriter(nativeGlance());
 
+/**
+ * Flow 08 Live Activities: started here when the app is foreground in a work block with none showing (the only
+ * way on the Personal Team, D-80); tokens go to the server so its pushes can end them (paid account, step 7).
+ */
+const activityClient = new LiveActivityClient(
+  nativeActivities(),
+  {
+    putDevice: (body) => api.request('PUT', '/v1/devices/current', body),
+    putActivity: (blockKey, body) =>
+      api.request('PUT', `/v1/devices/current/activities/${encodeURIComponent(blockKey)}`, body),
+  },
+  APPLE_TEAM_TIER !== 'paid',
+);
+
 const EMPTY_SYNC: SyncStatus = { pending: 0, syncing: false, problem: null, hasData: false };
 
 export function AppProvider({
@@ -187,6 +202,7 @@ export function AppProvider({
     if (!data || !p) return;
     glanceRef.current = { data, prefs };
     void snapshotWriter.write(data.schedule, prefs, p.time_zone, new Date());
+    void activityClient.sync(data.schedule, prefs, p.time_zone, new Date());
     void scheduleNotifications(
       data.schedule,
       p.profile_json?.block_alerts ?? {},
@@ -238,6 +254,7 @@ export function AppProvider({
     engineRef.current = engine;
     hub.attach(engine);
     await engine.start();
+    activityClient.listen();
     await reload();
     void engine.sync();
     void loadPrefs();
@@ -251,14 +268,15 @@ export function AppProvider({
       hub.attach(null);
       tokens.session = null;
       glanceRef.current = null; // a later foreground must not rewrite this account's snapshot
+      activityClient.stopListening();
       await Promise.allSettled([
         store.wipe(),
         clearSession(),
         clearPending(),
         cancelNotifications(),
         snapshotWriter.clear(),
+        activityClient.endAll(),
       ]);
-      // Live Activities and device unregister join here with Flow 08 steps 7–8.
       setData(null);
       setSync(EMPTY_SYNC);
       setPrefsState(DEFAULT_DEVICE_PREFS);
@@ -301,6 +319,8 @@ export function AppProvider({
         // Foreground always rewrites: the day may have rolled over or the time zone changed (C-x08).
         const g = glanceRef.current;
         if (g?.data.profile)
+          void activityClient.sync(g.data.schedule, g.prefs, g.data.profile.time_zone, new Date());
+        if (g?.data.profile)
           void snapshotWriter.write(
             g.data.schedule,
             g.prefs,
@@ -325,6 +345,16 @@ export function AppProvider({
       net.remove();
     };
   }, [prefStore]);
+
+  // While the app stays open across a block boundary: end the finished block's activity, start the next.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const g = glanceRef.current;
+      if (AppState.currentState === 'active' && g?.data.profile)
+        void activityClient.sync(g.data.schedule, g.prefs, g.data.profile.time_zone, new Date());
+    }, 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const signIn = useCallback(
     async (t: TokensOut) => {

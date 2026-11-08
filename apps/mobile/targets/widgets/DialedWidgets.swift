@@ -2,7 +2,7 @@ import SwiftUI
 import WidgetKit
 
 /// Flow 08 widget bundle: the line under the date (step 4), the lock widgets (step 5) and the home widgets
-/// (step 6); the Live Activity UI joins in step 8.
+/// (step 6) and the work block's Live Activity (step 8).
 @main
 struct DialedWidgets: WidgetBundle {
   var body: some Widget {
@@ -16,6 +16,7 @@ struct DialedWidgets: WidgetBundle {
     UpNextHomeWidget()
     RundownWidget()
     TimelineWidget()
+    BlockActivityWidget()
   }
 }
 

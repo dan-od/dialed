@@ -6,14 +6,12 @@
 import { sql } from 'drizzle-orm';
 import { DEFAULT_DEVICE_PREFS, type DevicePrefs } from '@dialed/contracts';
 import {
+  activitiesForDay,
   addDays,
+  type BlockActivity,
   formatClock,
-  instantAt,
   localNow,
-  resolveDay,
   type IsoDate,
-  type ResolvedBlock,
-  type ScheduleData,
 } from '@dialed/schedule';
 import type { Config } from '../config';
 import type { Db } from '../db/pool';
@@ -30,51 +28,9 @@ export const END_GRACE_MS = 5 * 60_000;
 export const NIGHTLY_MIN = 180;
 const NIGHTLY_WINDOW = 15;
 
-/** One planned activity: the static attributes plus the content state (packages/contracts liveActivity.ts). */
-export interface PlannedActivity {
-  blockKey: string;
-  title: string;
-  categoryColorHex: string;
-  startsAt: Date;
-  endsAt: Date;
-  next: { title: string; startsAt: Date; durationMin: number }[];
-}
-
-/** Work blocks of `date` as activities; the next two blocks of any kind fill the segment bar. */
-export function planActivities(
-  data: ScheduleData,
-  date: IsoDate,
-  timeZone: string,
-): PlannedActivity[] {
-  const blocks = resolveDay(date, data).blocks;
-  return blocks
-    .filter((b) => !b.quiet && b.end_min > b.start_min)
-    .map((b) => toActivity(b, blocks, date, timeZone));
-}
-
-function toActivity(
-  b: ResolvedBlock,
-  day: ResolvedBlock[],
-  date: IsoDate,
-  tz: string,
-): PlannedActivity {
-  const next = day
-    .filter((n) => n.key !== b.key && n.start_min >= b.end_min)
-    .slice(0, 2)
-    .map((n) => ({
-      title: n.title,
-      startsAt: instantAt(date, n.start_min, tz),
-      durationMin: n.end_min - n.start_min,
-    }));
-  return {
-    blockKey: b.key,
-    title: b.title,
-    categoryColorHex: b.category?.color_dark ?? '#FF5A1F',
-    startsAt: instantAt(date, b.start_min, tz),
-    endsAt: instantAt(date, b.end_min, tz),
-    next,
-  };
-}
+/** One planned activity (the shared rule lives in @dialed/schedule, so the app starts the same one). */
+export type PlannedActivity = BlockActivity;
+export const planActivities = activitiesForDay;
 
 /**
  * ActivityKit decodes `Date` with Swift's default strategy: seconds since 2001-01-01 UTC, not Unix time

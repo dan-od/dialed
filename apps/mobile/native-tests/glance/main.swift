@@ -165,5 +165,20 @@ check(HomeModel.isoWeek("2038-01-04") == 1 && HomeModel.dayLabel("2037-10-20") =
 let ntl = LockModel.timeline(snap, from: t1315) { HomeModel.now($0) }
 check(ntl.count < 20, "Now timeline only at boundaries (\(ntl.count))")
 
+// Live Activity card (step 8): Sermon Sync 12:40–2:30 pm, then Break 2:30 (15 min), Cryptography prep 2:45 (90 min).
+let toronto = TimeZone(identifier: "America/Toronto")!
+let lac = ActivityModel.card(
+  title: "Sermon Sync", startsAt: iso.date(from: "2037-10-19T16:40:00.000Z")!, endsAt: iso.date(from: "2037-10-19T18:30:00.000Z")!,
+  next: [.init(title: "Break", startsAt: iso.date(from: "2037-10-19T18:30:00.000Z")!, durationMin: 15),
+         .init(title: "Cryptography prep", startsAt: iso.date(from: "2037-10-19T18:45:00.000Z")!, durationMin: 90)],
+  timeZone: toronto)
+check(lac.headline == "Now · until 2:30 pm", "LA headline: \(lac.headline)")
+check(lac.segments.map(\.label) == ["Sermon Sync", nil, "Cryptography prep"], "LA labels hidden under 30 min: \(lac.segments.map(\.label))")
+check(abs(lac.segments[0].fraction - 110.0 / 215.0) < 0.001 && lac.segments[0].current, "LA current segment share")
+check(lac.then == "Then Break at 2:30" && lac.thenShort == "Then Break 2:30", "LA then: \(lac.then)")
+let laLast = ActivityModel.card(title: "WellServices", startsAt: iso.date(from: "2037-10-20T00:30:00.000Z")!,
+  endsAt: iso.date(from: "2037-10-20T02:00:00.000Z")!, next: [], timeZone: toronto)
+check(laLast.then == "Last block today" && laLast.segments.count == 1 && laLast.headline == "Now · until 10:00 pm", "LA last block")
+
 print(failures == 0 ? "PASS" : "\(failures) FAILED")
 exit(failures == 0 ? 0 : 1)

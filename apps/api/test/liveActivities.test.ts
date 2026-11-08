@@ -42,7 +42,7 @@ async function activity(blockKey: string) {
     from live_activities where device_id = ${deviceId} and block_key = ${blockKey}`);
   return rows[0];
 }
-const put = (url: string, payload: unknown) =>
+const put = (url: string, payload: Record<string, unknown>) =>
   t.app.inject({ method: 'PUT', url, headers, payload });
 
 beforeAll(async () => {
