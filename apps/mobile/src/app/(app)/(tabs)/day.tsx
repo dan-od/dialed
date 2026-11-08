@@ -11,6 +11,7 @@ import { dayModel } from '../../../day/model';
 import { useNavState } from '../../../day/navState';
 import { RestOfToday } from '../../../day/RestOfToday';
 import { SetupChooser } from '../../../day/SetupChooser';
+import { NO_CALENDAR_ACCESS, requestCalendarAccess } from '../../../import/calendarImport';
 import { openSettings } from '../../../import/pickTimetable';
 import { useTimetableStart } from '../../../import/useTimetableStart';
 import { useTheme } from '../../../theme/theme';
@@ -20,6 +21,7 @@ import { Button } from '../../../ui/Button';
 import { Spinner } from '../../../ui/Spinner';
 import { Stamp } from '../../../ui/Stamp';
 import { T } from '../../../ui/Text';
+import { useToast } from '../../../ui/Toast';
 
 export default function DayScreen() {
   const { c, isLight } = useTheme();
@@ -28,6 +30,7 @@ export default function DayScreen() {
   const { data, sync, online, session, syncNow, toggleTheme } = useApp();
   const { setMini } = useNavState();
   const ui = useBlocksUi();
+  const toast = useToast();
   const profile = data?.profile ?? null;
   const tz = profile?.time_zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const clock = useClock(tz);
@@ -120,7 +123,14 @@ export default function DayScreen() {
                   router.push('/plan');
                   break;
                 case 'calendar':
-                  router.push('/import/calendars');
+                  // Ask here so a deny stays on Set up as a toast (D-73).
+                  requestCalendarAccess().then(
+                    (access) => {
+                      if (access === 'granted') router.push('/import/calendars');
+                      else toast(NO_CALENDAR_ACCESS);
+                    },
+                    () => toast('Couldn’t open your calendars. Try again.'),
+                  );
                   break;
                 case 'build':
                   router.push('/routines');

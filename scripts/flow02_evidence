@@ -25,10 +25,11 @@ sql() { compose exec -T postgres psql -qtAU dialed -d dialed -c "$1"; }
 collect() { find "$RAW" -path "*takeScreenshot*" -name "*.png" -print0 | xargs -0 ls -tr 2>/dev/null | while read -r f; do cp "$f" "$EV/screens/"; done; }
 trap collect EXIT
 
-FROM="${FROM:-signup}"   # resume: FROM=camera|nothing|limit|partial|happy
-step=0; order=(signup camera nothing limit partial happy)
-for i in "${!order[@]}"; do [[ "${order[$i]}" == "$FROM" ]] && step=$i; done
-at() { local i; for i in "${!order[@]}"; do [[ "${order[$i]}" == "$1" ]] && { (( i >= step )); return; }; done; return 1; }
+FROM="${FROM:-signup}"   # resume: FROM=camera|calendar|nothing|limit|partial|happy; UNTIL=<step> stops after it
+order=(signup camera calendar nothing limit partial happy)
+step=0; until=$(( ${#order[@]} - 1 ))
+for i in "${!order[@]}"; do [[ "${order[$i]}" == "$FROM" ]] && step=$i; [[ "${order[$i]}" == "${UNTIL:-}" ]] && until=$i; done
+at() { local i; for i in "${!order[@]}"; do [[ "${order[$i]}" == "$1" ]] && { (( i >= step && i <= until )); return; }; done; return 1; }
 
 if at signup; then
 log "Sign up $EMAIL (dev-only invite account, reset first)"
@@ -56,6 +57,11 @@ log "Camera denied"
 retry run camera -e THEME=dark e2e/flow02_camera_denied.yaml
 fi
 
+if at calendar; then
+log "Calendar denied (toast, D-73)"
+retry run calendar -e THEME=dark e2e/flow02_calendar_denied.yaml
+fi
+
 if at nothing; then
 log "No classes found"
 retry run nothing -e THEME=dark -e LINK="$(link empty-timetable.png)" e2e/flow02_nothing_found.yaml
@@ -80,6 +86,8 @@ xcrun simctl ui "$DEVICE" appearance dark
 sql "update usage_counters set imports = 0 where user_id = '$UID_';" >/dev/null
 fi
 
+if at happy; then
 log "Happy path: Found 6 → Add 5 → Day + toast"
 retry run happy -e THEME=dark -e LINK="$(link timetable.png)" e2e/flow02_happy.yaml
+fi
 log "Done. Screens in $EV/screens"

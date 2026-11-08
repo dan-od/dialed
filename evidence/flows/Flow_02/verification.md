@@ -20,6 +20,7 @@ Driver: `API_LOG=/tmp/f02-api.log ./scripts/flow02_evidence` (signs up the dev-o
 | 4 | After-Approve toasts | Found → `dismissAll` + toast w/ Describe; Review (calendar) → Day + toast | copy in `foundClasses.test.ts` | timetable: `after-approve-dark`; calendar: **not runtime** |
 | 5 | Calendar split stamp | `summarizeDeviceEvents`, `previewStamp` | `importFlow.test.ts` | **not runtime** (no seeded Simulator calendar) |
 | 6 | Camera denied stamp + Open Settings | `day.tsx` notice, Found/Reading too | — | `camera-denied-dark` |
+| D-73 | Calendar denied → toast on Set up (owner approved) | access asked on the chooser tap (`day.tsx`); Pick calendars goes back with the same toast if revoked | `importFlow.test.ts` (copy) | `calendar-denied-dark` |
 
 Approve outcome (DB, newplanner): term `Fall term` 2037-10-20 → 2038-01-20 with 5 Class routine blocks (Capstone switched
 off, so not added). Day shows "Free day" in the screenshot only because the device date is the real 2026-11-07 (a
@@ -31,10 +32,11 @@ Saturday, before the 2037 term); the server runs on the dev clock.
 - **A stale term hint created a past term** (e.g. a 2026 file read in 2037): a hint whose term is already over is ignored (`newTermDates`, D-75).
 - **Reanimated warning from Found cards** (opacity on the entering view), whose dev LogBox bar covered the pinned button: dimming moved to an inner view.
 - **AX1 pinned-button label clipped** ("Add 4 classes to Fal…"): primary `Button` labels now shrink to fit (`adjustsFontSizeToFit`, min 0.5). Re-captured `partial-ax1.png`; not opened (one-look rule).
+- **Calendar import could never have worked on device:** `expo-calendar` 58 throws on the old top-level functions (`requestCalendarPermissionsAsync`, `getCalendarsAsync`, `getEventsAsync`). Now imported from `expo-calendar/legacy`; a failed permission call shows a toast instead of an unhandled error. Found by the D-73 Simulator run.
 - Reading accepts only files inside the app sandbox (deep links can't name others); Retake/Pick another back link reads its own label to VoiceOver.
 
 ## Automated
-API 164/164 (imports 13), planning timetable 20/20, mobile jest 175/175; tsc, eslint, expo lint (0 errors), prettier clean.
+API 164/164 (imports 13), planning timetable 20/20, mobile jest 176/176; tsc, eslint, expo lint (0 errors), prettier clean.
 
 ## Static
 Security: upload allowlist, size, DOCX bomb unchanged; sandbox-only upload URIs (`isUploadableUri`); fixture variants
@@ -43,7 +45,7 @@ steps announced, disabled chooser options expose `disabled` and the offline reas
 
 ## Unverified
 - Offline chooser at runtime (component test only).
-- Calendar Pick calendars split stamp and calendar post-Approve toast at runtime (no seeded Simulator calendar; unit tests only).
+- Calendar Pick calendars split stamp and calendar post-Approve toast at runtime (no seeded Simulator calendar; unit tests only). The granted path now reaches the native calendar API, but reading real events is unproven.
 - Reading page screenshot (the fixture returns too fast to capture; captured only if still visible).
 - Term date wheel edit on device (server PATCH + repeat carry proven by API test).
 - iPhone SE size; live REF-002 read with the owner's key (stop point); camera capture itself (Simulator has no camera).

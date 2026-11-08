@@ -1,0 +1,14 @@
+# Flow 02: calendar permission denied → Import from calendar → toast on Set up (D-73), no page.
+# launchApp grants permissions by default, so this flow launches with calendar access denied.
+appId: me.okoro.dialed
+---
+- launchApp:
+    stopApp: true
+    permissions: { calendar: deny }
+- runFlow: _open.yaml
+- extendedWaitUntil: { visible: 'Set up your week', timeout: 90000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- tapOn: 'Import from Apple Calendar.*'
+- extendedWaitUntil: { visible: 'No calendar access.*', timeout: 10000 }
+- assertVisible: 'Set up your week'
+- takeScreenshot: calendar-denied-${THEME}

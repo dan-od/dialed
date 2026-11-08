@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Switch, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { termFor } from '@dialed/schedule';
@@ -8,6 +8,7 @@ import {
   loadCalendars,
   readEvents,
   previewStamp,
+  NO_CALENDAR_ACCESS,
   type DeviceCalendar,
 } from '../../../import/calendarImport';
 import { importCalendar } from '../../../import/api';
@@ -41,23 +42,26 @@ export default function Calendars() {
   const termName = term?.name ?? 'term';
 
   const [cals, setCals] = useState<DeviceCalendar[] | null>(null);
-  const [denied, setDenied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const asked = useRef(false);
 
   useEffect(() => {
+    if (asked.current) return;
+    asked.current = true;
     (async () => {
-      const access = await requestCalendarAccess();
+      const access = await requestCalendarAccess().catch(() => 'denied' as const);
       if (access === 'denied') {
-        setDenied(true);
-        setLoading(false);
+        // Normally asked on Set up; if access was revoked since, go back with the same toast (D-73).
+        router.back();
+        toast(NO_CALENDAR_ACCESS);
         return;
       }
-      const list = await loadCalendars(termStart, termEnd);
+      const list = await loadCalendars(termStart, termEnd).catch(() => []);
       setCals(list);
       setLoading(false);
     })();
-  }, [termStart, termEnd]);
+  }, [termStart, termEnd, router, toast]);
 
   const toggle = useCallback((id: string, value: boolean) => {
     setCals((prev) => prev?.map((c) => (c.id === id ? { ...c, checked: value } : c)) ?? null);
@@ -89,33 +93,6 @@ export default function Calendars() {
   const repeating = selected.reduce((n, c) => n + c.repeating, 0);
   const oneOff = selected.reduce((n, c) => n + c.oneOff, 0);
   const totalEvents = repeating + oneOff;
-
-  if (denied) {
-    return (
-      <Page>
-        <Header left={<BackLink label="Back" onPress={() => router.back()} />} />
-        <View
-          style={{
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingHorizontal: 20,
-            gap: 12,
-          }}
-        >
-          <T size={20} weight="700" style={{ textAlign: 'center' }}>
-            No calendar access
-          </T>
-          <T size={15} weight="500" color={c.muted} style={{ textAlign: 'center', maxWidth: 280 }}>
-            You can still add your timetable or describe your week.
-          </T>
-        </View>
-        <View style={{ paddingHorizontal: 20, paddingBottom: 40 }}>
-          <Button kind="secondary" label="Go back" onPress={() => router.back()} />
-        </View>
-      </Page>
-    );
-  }
 
   if (loading) {
     return (

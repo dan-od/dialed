@@ -3,7 +3,7 @@ import {
   getCalendarsAsync,
   getEventsAsync,
   Frequency,
-} from 'expo-calendar';
+} from 'expo-calendar/legacy';
 import type { CalendarEvent } from './api';
 
 export interface DeviceCalendar {
@@ -59,6 +59,10 @@ function shouldDefault(title: string, sourceName: string): boolean {
   if (SKIP_TITLES.some((t) => title.includes(t))) return false;
   return true;
 }
+
+/** Flow 02: calendar access denied is a toast on Set up, not a page (D-73). */
+export const NO_CALENDAR_ACCESS =
+  'No calendar access. You can still add your timetable or describe your week.';
 
 export async function requestCalendarAccess(): Promise<'granted' | 'denied'> {
   const { status } = await requestCalendarPermissionsAsync();

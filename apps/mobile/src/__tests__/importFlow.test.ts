@@ -1,7 +1,7 @@
 import { importSummary } from '../import/calendarImport';
 import type { CalendarEvent } from '../import/api';
 
-jest.mock('expo-calendar', () => ({
+jest.mock('expo-calendar/legacy', () => ({
   requestCalendarPermissionsAsync: jest.fn(),
   getCalendarsAsync: jest.fn(),
   getEventsAsync: jest.fn(),
@@ -131,5 +131,14 @@ describe('isUploadableUri', () => {
     expect(isUploadableUri('file:///data/Caches/../../etc/passwd', roots)).toBe(false);
     expect(isUploadableUri('https://evil.test/a.png', roots)).toBe(false);
     expect(isUploadableUri('file:///data/Caches/a.png', ['', ''])).toBe(false);
+  });
+});
+
+describe('calendar access denied (D-73)', () => {
+  it('uses the flow file toast copy', () => {
+    const { NO_CALENDAR_ACCESS } = require('../import/calendarImport');
+    expect(NO_CALENDAR_ACCESS).toBe(
+      'No calendar access. You can still add your timetable or describe your week.',
+    );
   });
 });

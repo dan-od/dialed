@@ -12,4 +12,4 @@ Keep this under 15 lines. Update at the end of every session.
 
 **CI:** epoch 2037/2038; audit ignores GHSA-mrhx-c7xc-m3w5 (zod in @expo/cli).
 
-**Next:** owner review of the Flow 02 sheet and D-73 (calendar deny page vs toast); consent page prototype review (D-35). Then Flow 08 Glance (physical iPhone). Evidence script: `API_LOG=/tmp/f02-api.log ./scripts/flow02_evidence`.
+**Next:** owner review of the Flow 02 sheet (D-73 approved: calendar deny is a toast); consent page prototype review (D-35). Then Flow 08 Glance (physical iPhone). Evidence script: `API_LOG=/tmp/f02-api.log ./scripts/flow02_evidence`.
