@@ -1,6 +1,6 @@
 # Flow 08 — Glance without opening: build plan
 
-**Progress (2026-11-08):** steps 1–4 done (`apps/mobile/src/glance/`, `modules/dialed-native`, `targets/widgets`, D-77…D-95). Simulator: the app writes `snapshot.json` to the App Group; Swift tests pass (`scripts/swift_glance_test`: snapshot decode + `LineText` parity over 1,184 cases). Personal Team App Group on device not tested (needs `APPLE_TEAM_ID`). Next: step 5.
+**Progress (2026-11-08):** steps 1–5 done (`apps/mobile/src/glance/`, `modules/dialed-native`, `targets/widgets`, D-77…D-98). Simulator: the app writes `snapshot.json` to the App Group; `scripts/swift_glance_test` passes (decode, `LineText` parity over 1,184 cases, `LockModel` at 1:15 pm / 5:30 pm / 8:20 pm / 10:30 pm). Personal Team App Group on device not tested (needs `APPLE_TEAM_ID`). Next: step 6.
 
 Sources:
 - `flows/Flow_08_Glance.md`, `Sub_Interactions/Flow_08_sub_interactions.md`

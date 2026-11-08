@@ -76,5 +76,53 @@ check(tl.contains { $0.date == iso.date(from: "2037-10-19T21:30:00.000Z")! && $0
 check(tl.contains { $0.date == iso.date(from: "2037-10-19T22:15:00.000Z")! && $0.text == "Then WellServices at 8:30" },
       "6:15 pm entry: Then WellServices at 8:30")
 
+// Lock widgets (step 5): models at the flow's clock points on Monday 2037-10-19 (EDT = UTC-4).
+let snap = try! SnapshotReader.decode(data)  // made Mon 1:15 pm
+func ctx(_ isoString: String) -> LockModel.Context { LockModel.context(snap, now: iso.date(from: isoString)!)! }
+let at1315 = ctx("2037-10-19T17:15:00.000Z"), at1730 = ctx("2037-10-19T21:30:00.000Z")
+let at2020 = ctx("2037-10-20T00:20:00.000Z"), at2230 = ctx("2037-10-20T02:30:00.000Z")
+
+let cd = LockModel.countdown(at1315)
+check(cd.live && cd.label == "1:15" && cd.caption == "LEFT", "Countdown 1:15 pm: 1:15 LEFT (\(cd.label) \(cd.caption))")
+check(abs(cd.progress - 35.0 / 110.0) < 0.001, "Countdown progress 32%")
+check(cd.accessibility == "Sermon Sync, 1 hour 15 minutes left", "Countdown label: \(cd.accessibility)")
+let cdGap = LockModel.countdown(at2020)
+check(!cdGap.live && cdGap.label == "8:30" && cdGap.caption == "NEXT", "Countdown in a gap: 8:30 NEXT")
+check(cdGap.accessibility == "Next: WellServices at 8:30 pm", "Countdown gap label: \(cdGap.accessibility)")
+let cdQuiet = LockModel.countdown(at1730)
+check(!cdQuiet.live && cdQuiet.label == "6:15", "Countdown in a quiet block shows the next work block")
+
+let ring = LockModel.dayRing(at1315)
+check(ring.left == 5, "Day ring: 5 LEFT (\(ring.left))")
+check(ring.segments.count == 7 && ring.segments.filter(\.past).count == 2, "Day ring: 7 work segments, 2 past")
+check(abs(ring.now - (795.0 - 540.0) / 900.0) < 0.001, "Day ring now dot on a 9 am–12 am axis")
+check(ring.accessibility == "5 work blocks left today", "Day ring label")
+
+let up = LockModel.upNext(at1315)
+check(up.kicker == "Next · in 1h 30m", "Up next kicker: \(up.kicker)")
+check(up.title == "Cryptography prep" && up.detail == "2:45–4:15 · 1h 30m", "Up next: \(up.title) / \(up.detail)")
+check(LockModel.upNext(at2020).kicker == "Next · in 10 min", "Up next under an hour: in 10 min")
+let none = LockModel.upNext(at2230)
+check(none.kicker == "Up next" && none.title == "Nothing else today" && none.detail == "Tomorrow 8:10 · Cryptography lecture",
+      "Up next after the last block: \(none.title) / \(none.detail)")
+
+let today = LockModel.today(at1315)
+check(today.kicker == "Today · 7h 30m of work left", "Today kicker: \(today.kicker)")
+check(today.startLabel == "9a" && today.endLabel == "12a" && today.middle == "5 blocks left", "Today footer: \(today.startLabel) · \(today.middle) · \(today.endLabel)")
+check(today.bars.count == 7, "Today: 7 work bars")
+check(LockModel.today(at2230).middle == "0 blocks left", "Today after the last block")
+
+let wk = LockModel.week(at1315)!
+// Done this week by 1:15 pm Monday: 80 + 60 + 35 = 175 min → 2.9 h.
+check(wk.kicker.hasPrefix("Week · 2.9 / ") && wk.kicker.hasSuffix("h"), "Week kicker: \(wk.kicker)")
+check(wk.todayIndex == 0 && wk.bars.count == 7 && wk.bars.allSatisfy { $0 >= 0.12 && $0 <= 1 }, "Week bars")
+check(wk.detail == "Today: 10.4h planned", "Week detail: \(wk.detail)")
+
+// Fallbacks: past both days → no context (widgets say "Open Dialed to refresh").
+check(LockModel.context(snap, now: iso.date(from: "2037-10-21T12:00:00.000Z")!) == nil, "no context past both days")
+// Timeline: entries only when a model changes; at most one a minute.
+let ctl = LockModel.timeline(snap, from: iso.date(from: "2037-10-19T17:15:30.000Z")!) { LockModel.upNext($0) }
+check(ctl.count > 1 && ctl.count <= 361, "Up next timeline entries (\(ctl.count))")
+
 print(failures == 0 ? "PASS" : "\(failures) FAILED")
 exit(failures == 0 ? 0 : 1)

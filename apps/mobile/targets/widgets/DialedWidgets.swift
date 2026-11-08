@@ -1,12 +1,17 @@
 import SwiftUI
 import WidgetKit
 
-/// Flow 08 widget bundle: the line under the date (step 4) and a scaffold home widget that steps 5–6 replace
-/// with the lock and home widgets; the Live Activity UI joins in step 8.
+/// Flow 08 widget bundle: the line under the date (step 4), the lock widgets (step 5) and a scaffold home widget
+/// that step 6 replaces; the Live Activity UI joins in step 8.
 @main
 struct DialedWidgets: WidgetBundle {
   var body: some Widget {
     LineWidget()
+    CountdownWidget()
+    DayRingWidget()
+    UpNextWidget()
+    TodayWidget()
+    WeekWidget()
     StatusWidget()
   }
 }
