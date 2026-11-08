@@ -33,7 +33,8 @@
   },
   "pnpm": {
     "overrides": {
-      "node-forge": "1.4.3"
+      "node-forge": "1.4.3",
+      "@xmldom/xmldom": "0.8.15"
     },
     "auditConfig": {
       "ignoreGhsas": [

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Flow 08: compile the widget's Foundation-only Swift (snapshot reader) with its tests on the Mac and run them
+# against fixtures written by the TS side (jest keeps the fixtures equal to buildSnapshot). No Simulator.
+source "$(dirname "$0")/lib/common.sh"
+ensure_xcode_env
+M="$ROOT/apps/mobile"
+OUT="$(mktemp -d)/glance-tests"
+xcrun swiftc -O -o "$OUT" "$M/targets/widgets/Snapshot.swift" "$M/native-tests/glance/main.swift" 2>&1 | tail -20
+[[ -x "$OUT" ]] || die "swiftc failed"
+"$OUT" "$M/native-tests/glance/fixtures"

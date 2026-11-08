@@ -1,10 +1,11 @@
 import type { ExpoConfig } from 'expo/config';
 
 // APP_NAME is the single source for the product name (D-11). Bundle ID chosen by the owner on 2026-10-21
-// (CLIENT_QUESTIONS #7); App Group for widgets will be group.me.okoro.dialed.
+// (CLIENT_QUESTIONS #7). The App Group is fixed (D-77): the widget's Info.plist names the same group.
 const APP_NAME = process.env.APP_NAME ?? 'Dialed';
 const BUNDLE_ID = process.env.DIALED_BUNDLE_ID ?? 'me.okoro.dialed';
 const TEAM_TIER = process.env.APPLE_TEAM_TIER ?? 'personal';
+const APP_GROUP = 'group.me.okoro.dialed';
 
 const config: ExpoConfig = {
   name: APP_NAME,
@@ -17,7 +18,16 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: BUNDLE_ID,
     supportsTablet: false,
-    infoPlist: { ITSAppUsesNonExemptEncryption: false },
+    ...(process.env.APPLE_TEAM_ID ? { appleTeamId: process.env.APPLE_TEAM_ID } : {}),
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+      // Flow 08: the snapshot file the widgets read (modules/dialed-native SnapshotStore).
+      DialedAppGroup: APP_GROUP,
+      // Live Activities for work blocks (D-07); updates come at block boundaries only.
+      NSSupportsLiveActivities: true,
+      NSSupportsLiveActivitiesFrequentUpdates: false,
+    },
+    entitlements: { 'com.apple.security.application-groups': [APP_GROUP] },
   },
   plugins: [
     'expo-router',
@@ -33,6 +43,8 @@ const config: ExpoConfig = {
     // Local reminders (Flow 04 per-block alerts). A Personal Team has no APNs entitlement (D-39, §13), so the
     // aps-environment entitlement is only added on the paid tier.
     ['expo-notifications', { enableRemoteNotifications: TEAM_TIER === 'paid' }],
+    // Flow 08 widget extension (targets/widgets): WidgetKit + ActivityKit, App Group shared with the app.
+    '@bacons/apple-targets',
   ],
   experiments: { typedRoutes: true, reactCompiler: true },
   extra: {
