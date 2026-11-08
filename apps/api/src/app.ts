@@ -12,6 +12,7 @@ import { AppError, appError } from './lib/errors';
 import { syncRoutes } from './sync/routes';
 import { accountRoutes } from './account/routes';
 import { AccountService } from './account/service';
+import { LiveActivityService } from './glance/activities';
 import { SyncService } from './sync/service';
 import { plansRoutes } from './plans/routes';
 import { importsRoutes } from './imports/routes';
@@ -130,6 +131,9 @@ export async function buildApp(config: Config, deps: Deps) {
   const auth = new AuthService(deps.db, jwt, deps.email, config);
   const sync = new SyncService(deps.db, deps.now);
   const account = new AccountService(deps.db, deps.now);
+  const activities = new LiveActivityService(deps.db, config, deps.now ?? (() => new Date()), (o) =>
+    app.log.info(o),
+  );
 
   app.get('/healthz', async () => ({ ok: true }));
   app.get('/readyz', async (_req, reply) => {
@@ -143,7 +147,7 @@ export async function buildApp(config: Config, deps: Deps) {
 
   authRoutes(app, auth, jwt, config.RATE_LIMIT_MULTIPLIER);
   syncRoutes(app, sync, jwt, auth);
-  accountRoutes(app, account, jwt, auth);
+  accountRoutes(app, account, jwt, auth, activities);
   plansRoutes(app, deps.db, config, jwt, auth, deps.now ?? (() => new Date()));
   importsRoutes(app, deps.db, config, jwt, auth, deps.now ?? (() => new Date()));
   testKeyRoute(app, config, jwt, auth);

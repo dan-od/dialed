@@ -1,6 +1,7 @@
 // Worker process (BACKEND_SETUP §8): Postgres job table with FOR UPDATE SKIP LOCKED leases.
 import { loadConfig } from './config';
 import { createDb } from './db/pool';
+import { enqueueNightly } from './glance/activities';
 import { createHandlers } from './jobs/handlers';
 
 const config = loadConfig();
@@ -17,7 +18,15 @@ const logger = (obj: Record<string, unknown>) => console.log(JSON.stringify(obj)
 const handlers = createHandlers({ db, config, now: () => new Date(), log: logger });
 const HANDLERS: Record<string, (payload: unknown) => Promise<void>> = { ...handlers };
 
+let lastNightlyCheck = 0;
 while (!stopping) {
+  // Flow 08: nightly la.schedule at 03:00 local, checked once a minute (deduped per user per night).
+  if (Date.now() - lastNightlyCheck >= 60_000) {
+    lastNightlyCheck = Date.now();
+    await enqueueNightly(db, new Date()).catch((e: Error) =>
+      logger({ kind: 'la.nightly', msg: 'failed', error: e.message.slice(0, 200) }),
+    );
+  }
   const { rows } = await pool.query<{
     id: number;
     kind: string;

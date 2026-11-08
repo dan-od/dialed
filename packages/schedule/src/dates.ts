@@ -63,3 +63,23 @@ export function localNow(instant: Date, timeZone: string): { date: IsoDate; minu
   const p = Object.fromEntries(fmt.formatToParts(instant).map((x) => [x.type, x.value]));
   return { date: `${p.year}-${p.month}-${p.day}`, minute: Number(p.hour) * 60 + Number(p.minute) };
 }
+
+/** A local wall-clock time in `timeZone` as an instant (two passes settle DST edges). */
+export function instantAt(date: IsoDate, minute: number, timeZone: string): Date {
+  const target = Date.UTC(
+    Number(date.slice(0, 4)),
+    Number(date.slice(5, 7)) - 1,
+    Number(date.slice(8, 10)),
+  );
+  let t = target + minute * 60_000;
+  for (let i = 0; i < 2; i++) {
+    const l = localNow(new Date(t), timeZone);
+    const seen = Date.UTC(
+      Number(l.date.slice(0, 4)),
+      Number(l.date.slice(5, 7)) - 1,
+      Number(l.date.slice(8, 10)),
+    );
+    t += target + minute * 60_000 - (seen + l.minute * 60_000);
+  }
+  return new Date(t);
+}

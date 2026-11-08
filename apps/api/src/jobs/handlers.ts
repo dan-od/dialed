@@ -4,6 +4,7 @@ import type { Db } from '../db/pool';
 import type { Config } from '../config';
 import { PlanService } from '../plans/service';
 import { startPlanRun, initRunner } from '../plans/runner';
+import { LiveActivityService, type PushSender } from '../glance/activities';
 import { enqueue } from './enqueue';
 
 type Row = Record<string, unknown>;
@@ -13,13 +14,31 @@ export interface HandlerDeps {
   config: Config;
   now: () => Date;
   log: (obj: Record<string, unknown>) => void;
+  /** Tests capture pushes here; defaults to the APNS_MODE sender. */
+  push?: PushSender;
 }
+
+type LaPayload = { device_id: string; user_id: string; block_key: string };
 
 export function createHandlers(deps: HandlerDeps) {
   const { db, config, now, log } = deps;
   const planService = new PlanService(db, config, now);
+  const activities = new LiveActivityService(db, config, now, log, deps.push);
 
   return {
+    // Flow 08 Live Activities (src/glance/activities.ts).
+    'la.schedule': async (payload: unknown) => {
+      const p = payload as { user_id: string; device_id?: string };
+      await activities.schedule(p.user_id, p.device_id);
+    },
+    'la.start': async (payload: unknown) => activities.start(payload as LaPayload),
+    'la.update': async (payload: unknown) => activities.update(payload as LaPayload),
+    'la.end': async (payload: unknown) => {
+      await activities.end(
+        payload as LaPayload & { attempt?: number; now?: boolean; reason?: string },
+      );
+    },
+
     'plan.retry': async (payload: unknown) => {
       const p = payload as {
         plan_id: string;

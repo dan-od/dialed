@@ -29,6 +29,7 @@ export function testConfig(over: Partial<Config> = {}): Config {
     EMAIL_TRANSPORT: 'console',
     EMAIL_FROM: 'Dialed <no-reply@okoro.me>',
     APNS_MODE: 'log',
+    APNS_TOPIC: 'me.okoro.dialed',
     AI_MODE: 'fixture',
     MCP_ENABLED: false,
     ANTHROPIC_API_KEY: undefined,

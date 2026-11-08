@@ -21,11 +21,31 @@ export const DEFAULT_DEVICE_PREFS: DevicePrefs = {
   daily_cap: 6,
 };
 
+/** APNs device and Live Activity tokens are hex; null clears one (notifications or Live Activities turned off). */
+const ApnsToken = z
+  .string()
+  .regex(/^[0-9a-fA-F]{32,400}$/)
+  .nullable();
+
 export const DevicePut = z.strictObject({
   prefs: DevicePrefs.partial().optional(),
   app_version: z.string().max(40).optional(),
+  platform: z.enum(['ios', 'android']).optional(),
+  apns_token: ApnsToken.optional(),
+  /** ActivityKit push-to-start token (iOS 17.2+). */
+  live_activity_start_token: ApnsToken.optional(),
 });
-export const DeviceResponse = z.object({ prefs: DevicePrefs });
+export const DeviceResponse = z.object({ device_id: z.uuid().optional(), prefs: DevicePrefs });
+
+/** `<routine_block_id|override_id>:<YYYY-MM-DD>` (ResolvedBlock.key, live_activities.block_key). */
+export const BLOCK_KEY = /^[0-9a-f-]{36}:\d{4}-\d{2}-\d{2}$/;
+
+/** PUT /v1/devices/current/activities/:blockKey — the phone reports an activity it started or the Planner dismissed. */
+export const ActivityPut = z.strictObject({
+  /** Per-activity update/end token. */
+  push_token: ApnsToken.optional(),
+  state: z.enum(['started', 'dismissed']),
+});
 
 export const EXPORT_SCHEMA = 'dialed-export/v1';
 /** Exports per user per day (Flow 09). */

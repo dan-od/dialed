@@ -37,7 +37,7 @@ export function initRunner(config: Config) {
   }
 }
 
-async function loadScheduleData(db: Db, userId: string): Promise<ScheduleData> {
+export async function loadScheduleData(db: Db, userId: string): Promise<ScheduleData> {
   const q = async (query: ReturnType<typeof sql>) => (await db.execute<Row>(query)).rows;
   return {
     categories: (await q(sql`select * from categories where user_id = ${userId}`)).map((c) => ({

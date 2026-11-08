@@ -19,6 +19,8 @@ const Env = z.object({
   EMAIL_TRANSPORT: z.enum(['console', 'smtp']).default('console'),
   EMAIL_FROM: z.string().default('Dialed <no-reply@okoro.me>'),
   APNS_MODE: z.enum(['log', 'apns']).default('log'),
+  /** App bundle ID; Live Activity pushes go to <topic>.push-type.liveactivity. */
+  APNS_TOPIC: z.string().default('me.okoro.dialed'),
   AI_MODE: z.enum(['fixture', 'live']).default('fixture'),
   MCP_ENABLED: bool.default(false),
   TRUST_PROXY_IP: z.string().optional(),

@@ -1,6 +1,6 @@
 # Flow 08 — Glance without opening: build plan
 
-**Progress (2026-11-08):** steps 1–6 done (`apps/mobile/src/glance/`, `modules/dialed-native`, `targets/widgets`, D-77…D-101). Simulator: the app writes `snapshot.json` to the App Group; `scripts/swift_glance_test` passes (decode, `LineText` parity over 1,184 cases, `LockModel` and `HomeModel` at 1:15 pm / 5:30 pm / 8:20 pm / 10:30 pm). Home widgets: Now, Up next, Rundown (AppIntent on iOS 17+), Today timeline. Personal Team App Group on device not tested (needs `APPLE_TEAM_ID`). Next: step 7.
+**Progress (2026-11-08):** steps 1–7 done (`apps/mobile/src/glance/`, `modules/dialed-native`, `targets/widgets`, `apps/api/src/glance/activities.ts`, D-77…D-106). Simulator: the app writes `snapshot.json` to the App Group; `scripts/swift_glance_test` passes (decode, `LineText` parity over 1,184 cases, `LockModel` and `HomeModel` at 1:15 pm / 5:30 pm / 8:20 pm / 10:30 pm). Home widgets: Now, Up next, Rundown (AppIntent on iOS 17+), Today timeline. Server LA jobs: `apps/api/test/liveActivities.test.ts` (APNS_MODE=log). Personal Team App Group on device not tested (needs `APPLE_TEAM_ID`). Next: step 8.
 
 Sources:
 - `flows/Flow_08_Glance.md`, `Sub_Interactions/Flow_08_sub_interactions.md`

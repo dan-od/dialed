@@ -8,6 +8,7 @@ import {
 } from '@dialed/contracts';
 import { addDays, localNow, resolveDay, type ScheduleData } from '@dialed/schedule';
 import type { Db } from '../db/pool';
+import { enqueue } from '../jobs/enqueue';
 import { appError } from '../lib/errors';
 
 type Row = Record<string, unknown>;
@@ -21,7 +22,7 @@ export class AccountService {
   ) {}
 
   /** The session's device row (created at sign-in); a session without one gets one. */
-  private async deviceId(userId: string, sid: string): Promise<string> {
+  async deviceId(userId: string, sid: string): Promise<string> {
     const { rows } = await this.db.execute<{ device_id: string | null }>(
       sql`select device_id from sessions where id = ${sid} and user_id = ${userId}`,
     );
@@ -44,19 +45,36 @@ export class AccountService {
     return { ...DEFAULT_DEVICE_PREFS, ...(rows[0]?.prefs_json ?? {}) };
   }
 
+  /**
+   * PUT /v1/devices/current (Flow 08): prefs, app version, platform and the APNs / push-to-start tokens. A null
+   * token clears it. Then Live Activities for this phone are re-planned (Line only ends them).
+   */
   async putPrefs(
     userId: string,
     sid: string,
-    body: { prefs?: Partial<DevicePrefs>; app_version?: string },
-  ): Promise<DevicePrefs> {
+    body: {
+      prefs?: Partial<DevicePrefs>;
+      app_version?: string;
+      platform?: 'ios' | 'android';
+      apns_token?: string | null;
+      live_activity_start_token?: string | null;
+    },
+  ): Promise<{ device_id: string; prefs: DevicePrefs }> {
     const id = await this.deviceId(userId, sid);
     const merged = { ...(await this.getPrefs(userId, sid)), ...(body.prefs ?? {}) };
     // Line only keeps the line on (D-07).
     if (merged.lock_mode === 'line') merged.line_on = true;
+    const has = (k: keyof typeof body) => Object.prototype.hasOwnProperty.call(body, k);
     await this.db.execute(sql`update devices set prefs_json = ${JSON.stringify(merged)}::jsonb,
-      app_version = coalesce(${body.app_version ?? null}, app_version), last_seen_at = now()
+      app_version = coalesce(${body.app_version ?? null}, app_version),
+      platform = coalesce(${body.platform ?? null}, platform),
+      apns_token = case when ${has('apns_token')} then ${body.apns_token ?? null} else apns_token end,
+      live_activity_start_token = case when ${has('live_activity_start_token')}
+        then ${body.live_activity_start_token ?? null} else live_activity_start_token end,
+      last_seen_at = now()
       where id = ${id} and user_id = ${userId}`);
-    return merged;
+    await enqueue(this.db, 'la.schedule', { user_id: userId, device_id: id });
+    return { device_id: id, prefs: merged };
   }
 
   /** `dialed-export.zip`: dialed-export.json (own rows, no secrets) + dialed.ics (next 120 days). 3 a day. */

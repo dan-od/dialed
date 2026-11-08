@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { SyncEntity } from '@dialed/contracts';
 import type { Tx } from '../db/pool';
+import { enqueue } from '../jobs/enqueue';
 import { syncRow } from './rows';
 
 /**
@@ -10,6 +11,7 @@ import { syncRow } from './rows';
  */
 export class ChangeRecorder {
   private revision: number | null = null;
+  private laQueued = false;
   constructor(
     private readonly tx: Tx,
     private readonly userId: string,
@@ -36,6 +38,19 @@ export class ChangeRecorder {
     await this.tx.execute(sql`
       INSERT INTO change_log(user_id, revision, entity, entity_id, op, row_json)
       VALUES (${this.userId}, ${revision}, ${entity}, ${entityId}, ${op}, ${json}::jsonb)`);
+    // Flow 08: any schedule change (or a time zone change) re-plans Live Activities once per revision; the job
+    // only reads, and is idempotent (src/glance/activities.ts). Plans don't touch the schedule until Approve.
+    if (entity !== 'plan' && !this.laQueued) {
+      this.laQueued = true;
+      await enqueue(
+        this.tx,
+        'la.schedule',
+        { user_id: this.userId },
+        {
+          dedupeKey: `la.schedule:${this.userId}:${revision}`,
+        },
+      );
+    }
     return revision;
   }
 }
