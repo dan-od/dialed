@@ -1,11 +1,12 @@
 import SwiftUI
 import WidgetKit
 
-/// Flow 08 widget bundle. Step 2 ships one scaffold widget that proves the App Group read end to end; the
-/// line, lock and home widgets (steps 4–6) and the Live Activity UI (step 8) replace it.
+/// Flow 08 widget bundle: the line under the date (step 4) and a scaffold home widget that steps 5–6 replace
+/// with the lock and home widgets; the Live Activity UI joins in step 8.
 @main
 struct DialedWidgets: WidgetBundle {
   var body: some Widget {
+    LineWidget()
     StatusWidget()
   }
 }

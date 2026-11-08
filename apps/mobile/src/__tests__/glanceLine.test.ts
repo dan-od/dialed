@@ -34,8 +34,8 @@ describe('lineText: the line under the date (Flow 08, prototype scrLock)', () =>
     expect(lineText(done, { lock_mode: 'live', line_on: true })).toBe('Day done');
   });
 
-  it("day done after 10 pm: tomorrow's first block", () => {
-    expect(line(1330, 'live')).toBe('Tomorrow: Breakfast at 7:30');
+  it("day done after 10 pm: tomorrow's first work block", () => {
+    expect(line(1330, 'live')).toBe('Tomorrow: Cryptography lecture at 8:10');
   });
 
   it('last work block with a Live Activity and nothing after: "Last block today"', () => {
@@ -49,5 +49,48 @@ describe('lineText: the line under the date (Flow 08, prototype scrLock)', () =>
 
   it('no blocks today or tomorrow: "Day done"', () => {
     expect(lineText(lineState([], [], 600), { lock_mode: 'live', line_on: true })).toBe('Day done');
+  });
+});
+
+describe('lineAt: the line from the widget snapshot at an instant (what the inline widget shows)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { buildSnapshot } = require('../glance/snapshot');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { lineAt } = require('../glance/lineText');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { DEFAULT_DEVICE_PREFS } = require('@dialed/contracts');
+  const TZ = 'America/Toronto';
+  const made = new Date('2037-10-19T04:00:00.000Z'); // Mon 12:00 am EDT
+  const snap = buildSnapshot(data, DEFAULT_DEVICE_PREFS, TZ, made);
+  const lineOnly = buildSnapshot(data, { ...DEFAULT_DEVICE_PREFS, lock_mode: 'line' }, TZ, made);
+  const at = (s: unknown, iso: string) => lineAt(s, new Date(iso));
+
+  it('reads the snapshot settings and the local minute in its time zone', () => {
+    expect(at(snap, '2037-10-19T17:15:00Z')).toBe('Then Cryptography prep at 2:45');
+    expect(at(lineOnly, '2037-10-19T17:15:00Z')).toBe('Sermon Sync · 1h 15m left');
+    expect(at(snap, '2037-10-19T21:30:00Z')).toBe('Dinner · 45m left, then Sermon Sync');
+    expect(at(snap, '2037-10-20T00:20:00Z')).toBe('Next: WellServices at 8:30');
+    expect(at(snap, '2037-10-20T01:40:00Z')).toBe('Last block today');
+    expect(at(snap, '2037-10-20T02:10:00Z')).toBe('Tomorrow: Cryptography lecture at 8:10');
+  });
+
+  it('after midnight it uses tomorrow from the same snapshot', () => {
+    expect(at(snap, '2037-10-20T04:30:00Z')).toBe('Next: Cryptography lecture at 8:10');
+  });
+
+  it('past both days, or older than 26 h: "Open Dialed to refresh"', () => {
+    expect(at(snap, '2037-10-21T04:30:00Z')).toBe('Open Dialed to refresh');
+  });
+
+  it('no routine: "Set up your week in Dialed"; line off in Live Activity mode: empty', () => {
+    const empty = buildSnapshot(
+      { ...data, routineBlocks: [], overrides: [] },
+      DEFAULT_DEVICE_PREFS,
+      TZ,
+      made,
+    );
+    expect(at(empty, '2037-10-19T17:15:00Z')).toBe('Set up your week in Dialed');
+    const off = buildSnapshot(data, { ...DEFAULT_DEVICE_PREFS, line_on: false }, TZ, made);
+    expect(at(off, '2037-10-19T17:15:00Z')).toBe('');
   });
 });

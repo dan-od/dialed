@@ -42,5 +42,39 @@ var v2 = String(decoding: data, as: UTF8.self)
 v2 = v2.replacingOccurrences(of: "\"version\":1", with: "\"version\":2")
 check(SnapshotReader.load(from: Data(v2.utf8)) == .unreadable, "newer schema → unreadable")
 
+// LineText parity: the TS side's answers (lineAt) for every case in line-cases.json.
+struct LineCases: Decodable {
+  struct Case: Decodable { let snapshot: String; let now: String; let expected: String }
+  let snapshots: [String: SnapshotV1]
+  let cases: [Case]
+}
+let iso = ISO8601DateFormatter()
+iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+let lineDecoder = JSONDecoder()
+lineDecoder.keyDecodingStrategy = .convertFromSnakeCase
+let lc = try! lineDecoder.decode(
+  LineCases.self, from: Data(contentsOf: dir.appendingPathComponent("line-cases.json")))
+var mismatches = 0
+for c in lc.cases {
+  let got = LineText.at(c.snapshot == "none" ? nil : lc.snapshots[c.snapshot], now: iso.date(from: c.now)!)
+  if got != c.expected {
+    mismatches += 1
+    if mismatches <= 10 { print("  \(c.snapshot) \(c.now): Swift \"\(got)\" vs TS \"\(c.expected)\"") }
+  }
+}
+check(mismatches == 0, "LineText matches lineAt in all \(lc.cases.count) cases (\(mismatches) differ)")
+
+// Timeline: an entry at now, then only where the text changes; the 5:30 pm Dinner line is an entry.
+let live = lc.snapshots["live"]!
+let from = iso.date(from: "2037-10-19T21:28:30.000Z")!  // Mon 5:28:30 pm EDT
+let tl = LineText.timeline(live, from: from)
+check(tl.first?.date == from, "first entry at now")
+check(tl.count <= 361, "at most one entry a minute (\(tl.count))")
+check(zip(tl, tl.dropFirst()).allSatisfy { $0.text != $1.text && $0.date < $1.date }, "entries change text, in order")
+check(tl.contains { $0.date == iso.date(from: "2037-10-19T21:30:00.000Z")! && $0.text == "Dinner · 45m left, then Sermon Sync" },
+      "5:30 pm entry: Dinner · 45m left, then Sermon Sync")
+check(tl.contains { $0.date == iso.date(from: "2037-10-19T22:15:00.000Z")! && $0.text == "Then WellServices at 8:30" },
+      "6:15 pm entry: Then WellServices at 8:30")
+
 print(failures == 0 ? "PASS" : "\(failures) FAILED")
 exit(failures == 0 ? 0 : 1)

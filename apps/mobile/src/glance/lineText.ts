@@ -1,10 +1,12 @@
-import { formatDuration, type Minutes, type ResolvedBlock } from '@dialed/schedule';
-import type { DevicePrefs } from '@dialed/contracts';
+import { formatDuration, localNow, type Minutes } from '@dialed/schedule';
+import { SNAPSHOT_STALE_HOURS, type DevicePrefs, type SnapshotV1 } from '@dialed/contracts';
 
 /** After this minute a finished day shows tomorrow's first block instead of "Day done" (Flow 08). */
 export const TOMORROW_FROM_MIN = 22 * 60;
 
 type Brief = { title: string; start_min: Minutes };
+/** A resolved block or a snapshot block: all the line needs. */
+type Span = Brief & { end_min: Minutes; quiet: boolean };
 
 /** What the line under the date describes at one minute (mirrored in Swift for the inline widget, D-82). */
 export type LineState =
@@ -13,18 +15,14 @@ export type LineState =
   | { kind: 'gap'; next: Brief }
   | { kind: 'done'; tomorrow: Brief | null; lateEvening: boolean };
 
-const brief = (b: ResolvedBlock | undefined): Brief | null =>
+const brief = (b: Span | undefined): Brief | null =>
   b ? { title: b.title, start_min: b.start_min } : null;
 
 /**
  * Prototype `nowNext`: the current block is the earliest active work block, else any active block; "next" is
  * the next work block that starts after now, else the next block of any kind.
  */
-export function lineState(
-  today: ResolvedBlock[],
-  tomorrow: ResolvedBlock[],
-  minute: Minutes,
-): LineState {
+export function lineState(today: Span[], tomorrow: Span[], minute: Minutes): LineState {
   const active = today.filter((b) => b.start_min <= minute && minute < b.end_min);
   const cur = active.find((b) => !b.quiet) ?? active[0];
   const later = today.filter((b) => b.start_min > minute);
@@ -38,7 +36,12 @@ export function lineState(
     };
   }
   if (next) return { kind: 'gap', next };
-  return { kind: 'done', tomorrow: brief(tomorrow[0]), lateEvening: minute >= TOMORROW_FROM_MIN };
+  return {
+    kind: 'done',
+    // Like the Day hero's "Tomorrow starts at 8:10 am with…": the first work block, else the first block.
+    tomorrow: brief(tomorrow.find((b) => !b.quiet) ?? tomorrow[0]),
+    lateEvening: minute >= TOMORROW_FROM_MIN,
+  };
 }
 
 /** "2:45": the line has no room for am/pm (prototype `hs`). */
@@ -70,4 +73,26 @@ export function lineText(s: LineState, prefs: Pick<DevicePrefs, 'lock_mode' | 'l
         ? `Tomorrow: ${s.tomorrow.title} at ${bareClock(s.tomorrow.start_min)}`
         : 'Day done';
   }
+}
+
+export const LINE_SIGN_IN = 'Sign in to Dialed';
+export const LINE_SET_UP = 'Set up your week in Dialed';
+export const LINE_REFRESH = 'Open Dialed to refresh';
+
+/**
+ * The inline widget's text at `now` from the snapshot alone (mirrored by LineText.swift; a fixture keeps them
+ * equal). After midnight it reads tomorrow from the same snapshot; past both days, or older than 26 h, it asks
+ * for a refresh.
+ */
+export function lineAt(s: SnapshotV1 | null, now: Date): string {
+  if (!s) return LINE_SIGN_IN;
+  if (s.setup_needed) return LINE_SET_UP;
+  if (now.getTime() - Date.parse(s.generated_at) > SNAPSHOT_STALE_HOURS * 3600_000)
+    return LINE_REFRESH;
+  const { date, minute } = localNow(now, s.time_zone);
+  const i = s.days.findIndex((d) => d.date === date);
+  if (i < 0) return LINE_REFRESH;
+  const today = s.days[i]!.blocks;
+  const tomorrow = i === 0 ? s.days[1].blocks : [];
+  return lineText(lineState(today, tomorrow, minute), s.settings);
 }
