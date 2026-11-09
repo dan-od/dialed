@@ -1,0 +1,27 @@
+# Flow 08 Customize: Settings → Notifications → Lock screen and widgets; mode, line switch, guide previews.
+appId: me.okoro.dialed
+---
+- runFlow: _settings.yaml
+- tapOn: { id: 'set-notif' }
+- extendedWaitUntil: { visible: { id: 'ns-customize' }, timeout: 10000 }
+- tapOn: { id: 'ns-customize' }
+- extendedWaitUntil: { visible: 'Lock screen and widgets', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: f08-customize-${THEME}
+- swipe: { start: '50%,80%', end: '50%,25%', duration: 500 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: f08-customize-lock-${THEME}
+- swipe: { start: '50%,80%', end: '50%,15%', duration: 500 }
+- swipe: { start: '50%,80%', end: '50%,15%', duration: 500 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: f08-customize-home-${THEME}
+- swipe: { start: '50%,25%', end: '50%,90%', duration: 300 }
+- swipe: { start: '50%,25%', end: '50%,90%', duration: 300 }
+- swipe: { start: '50%,25%', end: '50%,90%', duration: 300 }
+- tapOn: { id: 'cz-mode-line' }
+- waitForAnimationToEnd: { timeout: 2000 }
+- assertNotVisible: { id: 'cz-line' }
+- assertVisible: 'Everything shows in the line.*'
+- takeScreenshot: f08-customize-lineonly-${THEME}
+- tapOn: { id: 'cz-mode-live' }
+- assertVisible: { id: 'cz-line' }

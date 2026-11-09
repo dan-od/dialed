@@ -410,13 +410,18 @@ private struct TimelineCard: View {
         let h = g.size.height
         ZStack(alignment: .topLeading) {
           ForEach(Array(m.blocks.enumerated()), id: \.offset) { _, b in
+            // A block's row never grows past its slot: a short one (a 15-minute break) keeps only its colour bar,
+            // so its label can't sit on the next block's (step 10 contact sheet).
+            let slot = max(3, b.height * h - 3)
             HStack(alignment: .top, spacing: 8) {
-              Swatch(dark: b.colorDark, light: b.colorLight, width: 4, height: max(14, b.height * h - 3))
-              Text(b.time).font(.custom(anton, size: 14)).foregroundStyle(orange).frame(width: 40, alignment: .leading)
-              Text(b.title).font(.system(size: 13, weight: .bold)).lineLimit(1)
+              Swatch(dark: b.colorDark, light: b.colorLight, width: 4, height: slot)
+              if slot >= 16 {
+                Text(b.time).font(.custom(anton, size: 14)).foregroundStyle(orange).frame(width: 40, alignment: .leading)
+                Text(b.title).font(.system(size: 13, weight: .bold)).lineLimit(1)
+              }
               Spacer(minLength: 0)
             }
-            .frame(height: max(18, b.height * h - 3), alignment: .top)
+            .frame(height: slot, alignment: .top)
             .clipped()
             .background(b.current ? orange.opacity(0.16) : .clear, in: RoundedRectangle(cornerRadius: 8))
             .opacity(b.past ? 0.45 : 1)

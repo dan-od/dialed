@@ -1,6 +1,7 @@
 import type { DevicePrefs } from '@dialed/contracts';
 import { currentActivity, localNow, type BlockActivity, type ScheduleData } from '@dialed/schedule';
 import { requireOptionalNativeModule } from 'expo';
+import { devGlancePinned } from './devGlance';
 
 // Flow 08 step 8: the app's side of Live Activities (BACKEND_SETUP §8). The server starts and ends them by push
 // on the paid account (step 7); the app starts one itself when it is in the foreground during a work block
@@ -104,7 +105,7 @@ export class LiveActivityClient {
     now: Date,
   ): Promise<SyncResult> {
     const n = this.native;
-    if (!n) return 'unavailable';
+    if (!n || devGlancePinned()) return 'unavailable';
     try {
       if (prefs.lock_mode === 'line') {
         if (n.runningActivities().some((r) => r.state === 'active' || r.state === 'stale'))

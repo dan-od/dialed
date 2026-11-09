@@ -1,0 +1,13 @@
+appId: com.apple.springboard
+# SpringBoard: home edit mode → Add Widget → Dialed (page 1 of 4 = Now).
+---
+- pressKey: home
+- longPressOn:
+    point: "50%,85%"
+- extendedWaitUntil: { visible: "Edit", timeout: 10000 }
+- tapOn: "Edit"
+- extendedWaitUntil: { visible: "Add Widget", timeout: 10000 }
+- tapOn: "Add Widget"
+- extendedWaitUntil: { visible: "Search Widgets", timeout: 10000 }
+- tapOn: { text: "Dialed", index: 0 }
+- extendedWaitUntil: { visible: "page 1 of 4", timeout: 10000 }

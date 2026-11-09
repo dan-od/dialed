@@ -29,6 +29,8 @@ export interface GlancePreview {
   timeline: {
     kicker: string;
     rows: { time: string; title: string; current: boolean; past: boolean; color: string }[];
+    /** "Day done" (after 10 pm, tomorrow's first block) when nothing is left, like HomeModel. */
+    empty: string | null;
   };
 }
 
@@ -164,6 +166,7 @@ export function glancePreview(
     },
     timeline: {
       kicker: `${weekday} ${d} · ${blocksLeft}`,
+      empty: rail.every((b) => b.end_min <= c) ? doneLine : null,
       rows: rail.map((b) => ({
         time: bareClock(b.start_min),
         title: b.title,

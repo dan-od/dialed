@@ -1,6 +1,7 @@
 import type { DevicePrefs } from '@dialed/contracts';
 import type { ScheduleData } from '@dialed/schedule';
 import { requireOptionalNativeModule } from 'expo';
+import { devGlancePinned, setDevGlancePinned } from './devGlance';
 import { buildSnapshot } from './snapshot';
 
 /**
@@ -43,6 +44,7 @@ export class SnapshotWriter {
     opts: { force?: boolean } = {},
   ): Promise<WriteResult> {
     if (!this.native) return 'unavailable';
+    if (devGlancePinned()) return 'unchanged'; // dev proof run owns the snapshot
     const snapshot = buildSnapshot(data, prefs, timeZone, now);
     const key = JSON.stringify({ ...snapshot, generated_at: null });
     if (!opts.force && key === this.last) return 'unchanged';
@@ -61,6 +63,7 @@ export class SnapshotWriter {
   /** Sign-out: widgets fall back to "Sign in to Dialed". */
   async clear(): Promise<void> {
     this.last = null;
+    setDevGlancePinned(false);
     if (!this.native) return;
     try {
       await this.native.clearSnapshot();

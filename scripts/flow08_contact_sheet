@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Builds one downscaled contact sheet from Flow 08 evidence screens.
+# Usage: ./scripts/flow06_contact_sheet [N] where N is appended to the filename.
+source "$(dirname "$0")/lib/common.sh"
+EV="$ROOT/evidence/flows/Flow_08"
+N="${1:-1}"
+OUT="$ROOT/evidence/flows/flow08-sheet-${N}.png"
+SCREENS="$EV/screens"
+[[ -d "$SCREENS" ]] || die "No screens directory at $SCREENS — run flow08_evidence first."
+COUNT=$(find "$SCREENS" -name "*.png" | wc -l | tr -d ' ')
+[[ "$COUNT" -gt 0 ]] || die "No screenshots found in $SCREENS."
+# 4 columns, each image downscaled to 293px wide (half a 586 Simulator capture).
+# Labels from filenames (sans extension and theme suffix).
+montage "$SCREENS"/*.png \
+  -geometry 240x+4+4 \
+  -tile 6x \
+  -background '#1a1a1a' \
+  -fill white -pointsize 12 \
+  -font /System/Library/Fonts/Helvetica.ttc \
+  -label '%t' \
+  "$OUT"
+log "Contact sheet ($COUNT screens): $OUT"

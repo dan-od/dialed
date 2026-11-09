@@ -1,0 +1,10 @@
+# Flow 08: the lock screen during a work block, with the Live Activity the app started locally.
+appId: com.apple.springboard
+---
+- pressKey: lock
+- waitForAnimationToEnd: { timeout: 3000 }
+- tapOn: { point: "50%,50%" }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: f08-lock-${STATE}
+- swipe: { start: "50%,95%", end: "50%,40%", duration: 300 }
+- pressKey: home

@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Flow 08 runtime evidence on the iOS Simulator (Maestro + simctl). Needs a *signed* dev build installed
+# (scripts/ios_dev; a CODE_SIGNING_ALLOWED=NO build has no App Group or Keychain), Metro on :8081 and the API.
+# Widgets run on the device's real clock, so the dev-only dialed://dev-glance link writes the seed Monday at
+# each clock point (D-113). Run with ADD=1 once per Simulator to put Now and Up next on the home screen.
+# Usage: ./scripts/flow08_evidence [udid]   (FROM=signin|add|states|links|customize|signout)
+source "$(dirname "$0")/lib/common.sh"
+ensure_xcode_env
+DEVICE="${1:-$(xcrun simctl list devices booted | grep -oE '[0-9A-F-]{36}' | head -1)}"
+export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}" MAESTRO_DRIVER_STARTUP_TIMEOUT=180000 MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
+EV="$ROOT/evidence/flows/Flow_08"
+RAW="$EV/e2e-evidence"
+mkdir -p "$EV/screens" "$RAW"
+reset_driver() { pkill -f "xcodebuild test-without-building -xctestrun" 2>/dev/null || true; }
+run() { reset_driver; (cd "$ROOT/apps/mobile" && maestro --device "$DEVICE" test --test-output-dir "$RAW/$1" "${@:2}"); }
+retry() { local n; for n in 1 2 3; do "$@" && return 0; log "attempt $n failed; retrying"; done; return 1; }
+shot() { xcrun simctl io "$DEVICE" screenshot --type=png "$EV/screens/$1.png" >/dev/null 2>&1; }
+collect() { find "$RAW" -path "*takeScreenshot*" -name "*.png" -o -name "f08-*.png" | grep -v "/screens/" | while read -r f; do cp "$f" "$EV/screens/"; done; }
+trap collect EXIT
+
+FROM="${FROM:-signin}"
+order=(signin add states links customize signout)
+step=0; for i in "${!order[@]}"; do [[ "${order[$i]}" == "$FROM" ]] && step=$i; done
+at() { local i; for i in "${!order[@]}"; do [[ "${order[$i]}" == "$1" ]] && { (( i >= step )); return; }; done; return 1; }
+
+xcrun simctl ui "$DEVICE" appearance dark
+at signin && { log "Sign in owner"; retry run signin e2e/signin_owner.yaml || die "sign-in failed"; }
+if at add && [[ "${ADD:-}" == 1 ]]; then log "Add Now + Up next"; run add e2e/flow08_add_home.yaml; fi
+
+if at states; then
+  for s in 795:work 1050:quiet 1220:gap; do
+    m=${s%%:*}; name=${s##*:}
+    log "Glance at minute $m ($name)"
+    retry run "pin-$name" -e MINUTE="$m" e2e/flow08_pin.yaml
+    retry run "home-$name" -e STATE="$name" e2e/flow08_home.yaml
+    [[ "$name" == work ]] && retry run "lock-$name" -e STATE="$name" e2e/flow08_lock.yaml
+  done
+fi
+
+if at links; then
+  log "Deep links"
+  for u in day week; do xcrun simctl openurl "$DEVICE" "dialed://$u"; sleep 4; shot "f08-link-$u"; done
+fi
+
+if at customize; then
+  log "Customize (dark, light)"
+  retry run customize-dark -e THEME=dark e2e/flow08_customize.yaml
+  xcrun simctl ui "$DEVICE" appearance light
+  retry run customize-light -e THEME=light e2e/flow08_customize.yaml
+  xcrun simctl ui "$DEVICE" appearance dark
+fi
+
+if at signout; then
+  log "Sign out: snapshot cleared, widgets say Sign in to Dialed"
+  retry run signout e2e/account_signout.yaml
+  retry run home-signedout -e STATE=signedout e2e/flow08_home.yaml
+  log "Sign back in"
+  retry run signin-again e2e/signin_owner.yaml
+fi
+log "Done. Screens in $EV/screens"

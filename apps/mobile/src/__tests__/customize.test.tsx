@@ -81,6 +81,7 @@ describe('glancePreview (same text as the widgets)', () => {
     expect(p.rundown.rows).toHaveLength(4);
     expect(p.timeline.kicker).toBe('Mon 19 · 5 blocks left');
     expect(p.timeline.rows).toHaveLength(7);
+    expect(p.timeline.empty).toBeNull();
   });
 
   it('at 10:30 pm: nothing else today, tomorrow’s first work block', () => {
@@ -92,6 +93,7 @@ describe('glancePreview (same text as the widgets)', () => {
       detail: 'Tomorrow 8:10 · Cryptography lecture',
     });
     expect(p.rundown.rows[0]!.title).toBe('Tomorrow 8:10 · Cryptography lecture');
+    expect(p.timeline.empty).toBe('Tomorrow 8:10 · Cryptography lecture');
     expect(p.now).toBeNull();
   });
 

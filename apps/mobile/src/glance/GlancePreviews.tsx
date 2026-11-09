@@ -402,6 +402,11 @@ export function TimelinePreview({ p }: { p: GlancePreview }) {
   return (
     <HomeCard wide tall>
       <HomeKicker text={p.timeline.kicker} color={CREAM} />
+      {p.timeline.empty ? (
+        <T size={15} weight="800" color={CREAM} style={{ marginTop: 10 }}>
+          {p.timeline.empty}
+        </T>
+      ) : null}
       <View style={{ marginTop: 10, gap: 4 }}>
         {p.timeline.rows.map((r, i) => (
           <View

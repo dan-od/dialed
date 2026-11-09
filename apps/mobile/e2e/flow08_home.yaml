@@ -1,0 +1,19 @@
+# Flow 08: the home screen with the Now and Up next widgets (added once by flow08_add_home.yaml), and the
+# Rundown / Today timeline from iOS's widget gallery, which draws the real widget from the snapshot.
+appId: com.apple.springboard
+---
+- pressKey: home
+- waitForAnimationToEnd: { timeout: 4000 }
+- takeScreenshot: f08-home-${STATE}
+- runFlow: _flow08_gallery.yaml
+- swipe: { start: "85%,58%", end: "15%,58%", duration: 300 }
+- swipe: { start: "85%,58%", end: "15%,58%", duration: 300 }
+- extendedWaitUntil: { visible: "Dialed, Rundown", timeout: 5000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: f08-rundown-${STATE}
+- swipe: { start: "85%,58%", end: "15%,58%", duration: 300 }
+- extendedWaitUntil: { visible: "Dialed, Today timeline", timeout: 5000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: f08-timeline-${STATE}
+- tapOn: "close"
+- pressKey: home
