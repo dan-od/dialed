@@ -103,11 +103,12 @@ No Cloudflare Access on this hostname: the iPhone app and MCP clients must reach
    cat /root/.ssh/dialed_deploy      # paste into DEPLOY_SSH_KEY, then:
    rm /root/.ssh/dialed_deploy
    ```
-   `DEPLOY_KNOWN_HOSTS`: run `ssh-keyscan -t ed25519 100.76.5.106` from proxmox2.
+   `DEPLOY_KNOWN_HOST`: run `ssh-keyscan -t ed25519 100.76.5.106` from proxmox2.
 2. **Repo secrets** (Settings → Secrets and variables → Actions), the list at the top of
    `.github/workflows/deploy.yml`: `TS_OAUTH_CLIENT_ID`, `TS_OAUTH_SECRET`, `DEPLOY_HOST` (100.76.5.106),
-   `DEPLOY_USER` (root), `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`, `POSTGRES_PASSWORD`, `CODE_PEPPER`, `ADMIN_TOKEN`,
-   `JWT_KEY_ID`, `SMTP_URL`, `EMAIL_FROM`, `ANTHROPIC_API_KEY`, `BACKUP_DIR`.
+   `DEPLOY_USER` (root), `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOST`, `DIALED_POSTGRES_PASSWORD`, `DIALED_CODE_PEPPER`,
+   `DIALED_ADMIN_TOKEN`, `DIALED_JWT_KEY_ID`, `DIALED_SMTP_URL`, `DIALED_EMAIL_FROM`, `DIALED_ANTHROPIC_API_KEY`,
+   and optionally `DIALED_BACKUP_DIR` (unset → dumps go to `sites/dialed/infra/backups`).
    Copy the first four app values **from the host's `.env`** (the workflow rewrites `.env` on every deploy, and the
    database password and pepper must never change after first start).
 3. **Turn deploys on:** Variables tab → New repository variable `DEPLOY_ENABLED` = `true`. Until then the workflow

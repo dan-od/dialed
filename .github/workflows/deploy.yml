@@ -8,15 +8,16 @@
 #   DEPLOY_HOST                          100.76.5.106
 #   DEPLOY_USER                          root
 #   DEPLOY_SSH_KEY                       dedicated ed25519 private key for this repo (playbook §6.4, from= tailnet)
-#   DEPLOY_KNOWN_HOSTS                   output of `ssh-keyscan -t ed25519 100.76.5.106`, run from proxmox2
-#   POSTGRES_PASSWORD                    from the host's .env (scripts/homelab-init); hex, no $
-#   CODE_PEPPER                          from the host's .env (64 hex chars)
-#   ADMIN_TOKEN                          from the host's .env
-#   JWT_KEY_ID                           from the host's .env; must match .secrets/jwt-ed25519.pem on the host
-#   SMTP_URL                             Resend SMTP URL, smtps://resend:<api key>@smtp.resend.com:465
-#   EMAIL_FROM                           Dialed <no-reply@okoro.me>
-#   ANTHROPIC_API_KEY                    server key (owner pays; set a monthly spend limit in the console)
-#   BACKUP_DIR                           backup folder on the 2 TB drive, e.g. /mnt/backup/dialed
+#   DEPLOY_KNOWN_HOST                    output of `ssh-keyscan -t ed25519 100.76.5.106`, run from proxmox2
+#   DIALED_POSTGRES_PASSWORD             from the host's .env (scripts/homelab-init); hex, no $
+#   DIALED_CODE_PEPPER                   from the host's .env (64 hex chars)
+#   DIALED_ADMIN_TOKEN                   from the host's .env
+#   DIALED_JWT_KEY_ID                    from the host's .env; must match .secrets/jwt-ed25519.pem on the host
+#   DIALED_SMTP_URL                      Resend SMTP URL, smtps://resend:<api key>@smtp.resend.com:465
+#   DIALED_EMAIL_FROM                    Dialed <no-reply@okoro.me>
+#   DIALED_ANTHROPIC_API_KEY             server key (owner pays; set a monthly spend limit in the console)
+#   DIALED_BACKUP_DIR                    optional: backup folder on the 2 TB drive, e.g. /mnt/backup/dialed;
+#                                        unset → dumps go to sites/dialed/infra/backups (kept by rsync)
 #
 # The JWT signing key never leaves the host: .secrets/ is excluded from rsync, like .env.
 name: Deploy dialed
@@ -47,7 +48,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          echo "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          echo "${{ secrets.DEPLOY_KNOWN_HOST }}" > ~/.ssh/known_hosts
 
       - name: Sync code
         run: |
@@ -68,22 +69,22 @@ jobs:
           LOG_LEVEL=info
           SIGNUP_MODE=invite
           APPLE_TEAM_TIER=personal
-          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-          JWT_KEY_ID=${{ secrets.JWT_KEY_ID }}
-          CODE_PEPPER=${{ secrets.CODE_PEPPER }}
+          POSTGRES_PASSWORD=${{ secrets.DIALED_POSTGRES_PASSWORD }}
+          JWT_KEY_ID=${{ secrets.DIALED_JWT_KEY_ID }}
+          CODE_PEPPER=${{ secrets.DIALED_CODE_PEPPER }}
           EMAIL_TRANSPORT=smtp
-          SMTP_URL=${{ secrets.SMTP_URL }}
-          EMAIL_FROM=${{ secrets.EMAIL_FROM }}
+          SMTP_URL=${{ secrets.DIALED_SMTP_URL }}
+          EMAIL_FROM=${{ secrets.DIALED_EMAIL_FROM }}
           APNS_MODE=log
           AI_MODE=live
-          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.DIALED_ANTHROPIC_API_KEY }}
           PLAN_MODEL_ANTHROPIC=claude-sonnet-5-5
           PLAN_DAILY_LIMIT=30
           IMPORT_DAILY_LIMIT=6
           MCP_ENABLED=true
           TRUST_PROXY_IP=172.16.0.0/12
-          ADMIN_TOKEN=${{ secrets.ADMIN_TOKEN }}
-          BACKUP_DIR=${{ secrets.BACKUP_DIR }}
+          ADMIN_TOKEN=${{ secrets.DIALED_ADMIN_TOKEN }}
+          BACKUP_DIR=${{ secrets.DIALED_BACKUP_DIR }}
           EOF
 
       - name: Build and restart
