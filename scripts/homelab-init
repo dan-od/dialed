@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+# One-time setup on the Docker host (root@debian), run from /opt/docker-homelab/sites/dialed:
+#   ./scripts/homelab-init
+# Writes .env (0600) from .env.example with production values and fresh random secrets, and the JWT signing key
+# .secrets/jwt-ed25519.pem (0600, readable by the container's node user). Never overwrites a file that exists.
+# Needs only bash and openssl (no Node on the host). Values the owner must fill in are marked TODO(owner).
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+log() { printf '[homelab-init] %s\n' "$*" >&2; }
+die() { printf '[homelab-init] %s\n' "$*" >&2; exit 1; }
+
+command -v openssl >/dev/null || die "openssl is required (apt-get install -y openssl)."
+[[ -f .env.example ]] || die ".env.example missing; run this from the Dialed repo root."
+umask 077
+
+KEY=.secrets/jwt-ed25519.pem
+CONTAINER_UID=1000 # the node user in node:22-bookworm-slim (infra/api.Dockerfile)
+
+# --- JWT signing key ---
+if [[ -f "$KEY" ]]; then
+  log "$KEY exists; keeping it."
+else
+  mkdir -p .secrets
+  chmod 700 .secrets
+  openssl genpkey -algorithm ed25519 -out "$KEY"
+  chmod 600 "$KEY"
+  log "Wrote $KEY (0600)."
+fi
+# Compose bind-mounts the key file with its host owner and mode; the API runs as uid 1000.
+if [[ "$(id -u)" == 0 ]]; then chown "$CONTAINER_UID:$CONTAINER_UID" "$KEY"; fi
+# kid = short hash of the public key, so a new key always gets a new id.
+KEY_ID="ed25519-$(openssl pkey -in "$KEY" -pubout -outform DER | openssl dgst -sha256 -r | cut -c1-16)"
+
+# --- .env ---
+if [[ -f .env ]]; then
+  log ".env exists; keeping it. Make sure it has JWT_KEY_ID=$KEY_ID (the key on disk)."
+  exit 0
+fi
+
+hex() { openssl rand -hex "$1"; }
+POSTGRES_PASSWORD="$(hex 24)" # hex: safe inside DATABASE_URL and needs no $$ escaping
+CODE_PEPPER="$(hex 32)"
+ADMIN_TOKEN="$(hex 32)"
+SET_KEYS="NODE_ENV APP_NAME PUBLIC_BASE_URL PORT LOG_LEVEL SIGNUP_MODE APPLE_TEAM_TIER POSTGRES_PASSWORD JWT_KEY_ID
+  CODE_PEPPER EMAIL_TRANSPORT APNS_MODE AI_MODE PLAN_MODEL_ANTHROPIC MCP_ENABLED ADMIN_TOKEN TRUST_PROXY_IP"
+TODO_KEYS="SMTP_URL EMAIL_FROM BACKUP_DIR ANTHROPIC_API_KEY"
+# Prints the value for a key we set; returns 1 for keys we leave alone.
+value_for() {
+  case "$1" in
+    NODE_ENV) echo production ;;
+    APP_NAME) echo Dialed ;;
+    PUBLIC_BASE_URL) echo https://api.okoro.me ;;
+    PORT) echo 8080 ;;
+    LOG_LEVEL) echo info ;;
+    SIGNUP_MODE) echo invite ;;
+    APPLE_TEAM_TIER) echo personal ;;
+    POSTGRES_PASSWORD) echo "$POSTGRES_PASSWORD" ;;
+    JWT_KEY_ID) echo "$KEY_ID" ;;
+    CODE_PEPPER) echo "$CODE_PEPPER" ;;
+    EMAIL_TRANSPORT) echo smtp ;;
+    APNS_MODE) echo log ;;
+    AI_MODE) echo live ;;
+    PLAN_MODEL_ANTHROPIC) echo claude-sonnet-5-5 ;;
+    MCP_ENABLED) echo true ;;
+    ADMIN_TOKEN) echo "$ADMIN_TOKEN" ;;
+    TRUST_PROXY_IP) echo 172.16.0.0/12 ;;
+    *) return 1 ;;
+  esac
+}
+# Prints the hint for a key the owner must fill in; returns 1 otherwise.
+todo_for() {
+  case "$1" in
+    SMTP_URL) echo 'Resend SMTP URL, e.g. smtps://resend:<api key>@smtp.resend.com:465 (write any $ as $$)' ;;
+    EMAIL_FROM) echo 'e.g. "Dialed <no-reply@okoro.me>" (a sender on the domain verified in Resend)' ;;
+    BACKUP_DIR) echo 'folder on the 2 TB backup drive, e.g. /mnt/backup/dialed' ;;
+    ANTHROPIC_API_KEY) echo 'server key from console.anthropic.com (set a monthly spend limit there)' ;;
+    *) return 1 ;;
+  esac
+}
+
+tmp="$(mktemp .env.XXXXXX)"
+trap 'rm -f "$tmp"' EXIT
+{
+  echo "# Dialed production env — written by scripts/homelab-init on $(date +%F). Never commit. 0600."
+  echo "# Fill in every TODO(owner) below, then: docker compose up -d --build"
+  echo
+  echo "# Lets the playbook's plain 'docker compose ...' commands run from this folder."
+  echo "COMPOSE_FILE=infra/docker-compose.yml"
+  echo "COMPOSE_PROFILES=prod"
+  echo
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" =~ ^([A-Z][A-Z0-9_]*)= ]]; then
+      k="${BASH_REMATCH[1]}"
+      comment=""
+      [[ "$line" =~ [[:space:]](#.*)$ ]] && comment="${BASH_REMATCH[1]}"
+      if hint="$(todo_for "$k")"; then
+        echo "# TODO(owner): $hint"
+        echo "$k="
+      elif v="$(value_for "$k")"; then
+        echo "$k=$v"
+      else
+        # Not needed on the home lab yet (blank = unset; the app uses its default). Keep the hint.
+        echo "$k=${comment:+  $comment}"
+      fi
+    elif [[ "$line" == "# Dialed — environment keys."* || "$line" == "# Copy to .env"* ]]; then
+      continue
+    else
+      echo "$line"
+    fi
+  done < .env.example
+} > "$tmp"
+
+for k in $SET_KEYS $TODO_KEYS; do
+  grep -q "^$k=" "$tmp" || die "$k is not in .env.example; update this script."
+done
+chmod 600 "$tmp"
+mv "$tmp" .env
+trap - EXIT
+log "Wrote .env (0600) with fresh POSTGRES_PASSWORD, CODE_PEPPER, ADMIN_TOKEN and JWT_KEY_ID=$KEY_ID."
+log "Still to fill in (see TODO(owner) lines): $TODO_KEYS"
+log "Copy JWT_KEY_ID and the generated secrets into the GitHub repo secrets too (infra/homelab/README.md)."
