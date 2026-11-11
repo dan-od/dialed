@@ -16,7 +16,6 @@ x-logging: &logging
   options: { max-size: '10m', max-file: '3' }
 
 x-app: &app
-  build: { context: .., dockerfile: infra/api.Dockerfile }
   image: dialed-api:latest
   profiles: [prod]
   env_file: ../.env
@@ -69,6 +68,7 @@ services:
 
   api:
     <<: *app
+    build: { context: .., dockerfile: infra/api.Dockerfile }
     container_name: dialed-api
     restart: unless-stopped
     command: ['node', 'dist/server.js']
