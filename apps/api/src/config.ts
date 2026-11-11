@@ -18,6 +18,11 @@ const Env = z.object({
   JWT_KEY_ID: z.string().min(1).default('dev-1'),
   CODE_PEPPER: z.string().regex(/^[0-9a-f]{64}$/, 'CODE_PEPPER must be 32 bytes hex'),
   EMAIL_TRANSPORT: z.enum(['console', 'smtp']).default('console'),
+  /** smtp(s)://user:pass@host:port, e.g. Resend SMTP. Required with EMAIL_TRANSPORT=smtp in production. */
+  SMTP_URL: z
+    .string()
+    .refine((v) => /^smtps?:\/\/[^\s]+$/.test(v), 'SMTP_URL must start with smtp:// or smtps://')
+    .optional(),
   EMAIL_FROM: z.string().default('Dialed <no-reply@okoro.me>'),
   APNS_MODE: z.enum(['log', 'apns']).default('log'),
   /** App bundle ID; Live Activity pushes go to <topic>.push-type.liveactivity. */
@@ -31,7 +36,7 @@ const Env = z.object({
     .optional(),
   RATE_LIMIT_MULTIPLIER: z.coerce.number().min(1).default(1),
   ANTHROPIC_API_KEY: z.string().optional(),
-  PLAN_MODEL_ANTHROPIC: z.string().default('claude-sonnet-4-20250514'),
+  PLAN_MODEL_ANTHROPIC: z.string().default('claude-sonnet-5-5'),
   PLAN_MODEL_OPENAI: z.string().default('gpt-4o'),
   PLAN_MODEL_GEMINI: z.string().default('gemini-2.5-flash'),
   PLAN_MAX_TOKENS: z.coerce.number().int().min(256).default(8192),
@@ -44,7 +49,9 @@ const Env = z.object({
 export type Config = z.infer<typeof Env> & { jwtPrivateKeyPem: string };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const parsed = Env.safeParse(env);
+  // A blank key (KEY= in a filled-in .env.example) means unset, so defaults and optionals apply.
+  const present = Object.fromEntries(Object.entries(env).filter(([, v]) => v !== ''));
+  const parsed = Env.safeParse(present);
   if (!parsed.success) {
     // Names only — never echo values.
     const keys = parsed.error.issues.map((i) => i.path.join('.')).join(', ');
@@ -54,10 +61,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (c.NODE_ENV === 'production' && c.EMAIL_TRANSPORT === 'console') {
     throw new Error('EMAIL_TRANSPORT=console is not allowed in production');
   }
-  if (c.EMAIL_TRANSPORT === 'smtp') {
-    throw new Error(
-      'EMAIL_TRANSPORT=smtp is not activated yet (BUILD_AGENT "Backend activation"); use console',
-    );
+  if (c.NODE_ENV === 'production' && c.EMAIL_TRANSPORT === 'smtp' && !c.SMTP_URL) {
+    throw new Error('EMAIL_TRANSPORT=smtp needs SMTP_URL in production');
+  }
+  if (c.AI_MODE === 'live' && !c.ANTHROPIC_API_KEY) {
+    throw new Error('AI_MODE=live needs ANTHROPIC_API_KEY');
   }
   if (c.APNS_MODE === 'apns') {
     throw new Error('APNS_MODE=apns is not activated yet; use log');

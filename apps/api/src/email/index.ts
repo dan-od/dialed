@@ -1,3 +1,6 @@
+import { createTransport, type Transporter } from 'nodemailer';
+import type { Config } from '../config';
+
 export interface EmailMessage {
   to: string;
   subject: string;
@@ -27,4 +30,29 @@ export class MemoryTransport implements EmailTransport {
   lastTo(email: string) {
     return [...this.sent].reverse().find((m) => m.to === email);
   }
+}
+
+/** EMAIL_TRANSPORT=smtp: sends through SMTP_URL (e.g. Resend's SMTP relay). Only subject and text go out. */
+export class SmtpTransport implements EmailTransport {
+  private readonly mailer: Transporter;
+  constructor(
+    url: string,
+    private readonly from: string,
+  ) {
+    this.mailer = createTransport(url);
+  }
+  async send(msg: EmailMessage) {
+    await this.mailer.sendMail({
+      from: this.from,
+      to: msg.to,
+      subject: msg.subject,
+      text: msg.text,
+    });
+  }
+}
+
+export function createEmailTransport(config: Config): EmailTransport {
+  if (config.EMAIL_TRANSPORT === 'console') return new ConsoleTransport();
+  if (!config.SMTP_URL) throw new Error('EMAIL_TRANSPORT=smtp needs SMTP_URL');
+  return new SmtpTransport(config.SMTP_URL, config.EMAIL_FROM);
 }

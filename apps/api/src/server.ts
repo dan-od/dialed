@@ -1,13 +1,13 @@
 import { loadConfig } from './config';
 import { buildApp } from './app';
 import { createDb } from './db/pool';
-import { ConsoleTransport } from './email';
+import { createEmailTransport } from './email';
 
 const config = loadConfig();
 const { pool, db } = createDb(config.DATABASE_URL);
 const devClock = process.env.DEV_CLOCK;
 const now = devClock ? () => new Date(devClock) : undefined;
-const app = await buildApp(config, { pool, db, email: new ConsoleTransport(), now });
+const app = await buildApp(config, { pool, db, email: createEmailTransport(config), now });
 
 const shutdown = async () => {
   await app.close();

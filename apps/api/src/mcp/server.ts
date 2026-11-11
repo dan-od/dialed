@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { assetRoot } from '../lib/assets';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -621,12 +622,7 @@ async function enqueueChatDraft(
 }
 
 function loadGuideTemplate(): string {
-  const root = join(import.meta.dirname ?? __dirname, '..', '..', '..', '..');
-  try {
-    return readFileSync(join(root, 'mcp', 'planning-guide.md'), 'utf8');
-  } catch {
-    return 'You are a schedule planning assistant.';
-  }
+  return readFileSync(join(assetRoot(), 'mcp', 'planning-guide.md'), 'utf8');
 }
 
 function termStatus(startsOn: IsoDate, endsOn: IsoDate, today: IsoDate): string {

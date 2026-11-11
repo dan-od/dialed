@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { assetRoot } from '../lib/assets';
 import { sql } from 'drizzle-orm';
 import { localNow, type ScheduleData } from '@dialed/schedule';
 import { runPlan, loadFixtures, createFixtureProvider, type ToolContext } from '@dialed/planning';
@@ -22,12 +23,8 @@ export function cancelRun(planId: string) {
 let guideTemplate = '';
 
 export function initRunner(config: Config) {
-  const root = join(import.meta.dirname ?? __dirname, '..', '..', '..', '..');
-  try {
-    guideTemplate = readFileSync(join(root, 'mcp', 'planning-guide.md'), 'utf8');
-  } catch {
-    guideTemplate = 'You are a schedule planning assistant.';
-  }
+  const root = assetRoot();
+  guideTemplate = readFileSync(join(root, 'mcp', 'planning-guide.md'), 'utf8');
   if (config.AI_MODE === 'fixture') {
     try {
       loadFixtures(join(root, 'backend', 'seed', 'fixtures', 'plans'));

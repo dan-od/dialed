@@ -14,9 +14,7 @@ export function renderGuide(template: string, user: Row): string {
   const profile: GuideProfile = {
     first_name: String(user.display_name).split(' ')[0] ?? 'there',
     about: String(profileJson.about ?? ''),
-    priorities: Array.isArray(profileJson.priorities)
-      ? (profileJson.priorities as string[])
-      : [],
+    priorities: Array.isArray(profileJson.priorities) ? (profileJson.priorities as string[]) : [],
     day_start: minutesToClock(Number(user.day_start_min)),
     day_end: minutesToClock(Number(user.day_end_min)),
     quiet_hours: `${minutesToClock(Number(user.quiet_start_min))} to ${minutesToClock(Number(user.quiet_end_min))}`,

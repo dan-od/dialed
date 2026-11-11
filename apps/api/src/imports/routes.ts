@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, unlink, writeFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import { assetRoot } from '../lib/assets';
 import type { FastifyInstance } from 'fastify';
 import multipart from '@fastify/multipart';
 import { sql } from 'drizzle-orm';
@@ -137,17 +138,7 @@ export function importsRoutes(
       let provider;
       if (config.AI_MODE === 'fixture') {
         const { readFileSync } = await import('node:fs');
-        const fixtureDir = join(
-          import.meta.dirname ?? __dirname,
-          '..',
-          '..',
-          '..',
-          '..',
-          'backend',
-          'seed',
-          'fixtures',
-          'timetable',
-        );
+        const fixtureDir = join(assetRoot(), 'backend', 'seed', 'fixtures', 'timetable');
         // Fixture variants are picked by file name so tests and Maestro can reach the
         // nothing-found and partial-read states (fixture mode only, never with a real provider).
         const variant = /empty/i.test(filePart.filename ?? '')
