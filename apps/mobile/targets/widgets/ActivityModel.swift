@@ -28,6 +28,8 @@ enum ActivityModel {
     let then: String
     /// Dynamic Island expanded: "Then Break 2:30".
     let thenShort: String
+    /// Segment bar right: "2:45 Cryptography p…" or nil when last block.
+    let nextShort: String?
     let accessibility: String
   }
 
@@ -44,9 +46,15 @@ enum ActivityModel {
     let n = next.first
     let then = n.map { "Then \($0.title) at \(bare($0.startsAt, timeZone))" } ?? "Last block today"
     let thenShort = n.map { "Then \($0.title) \(bare($0.startsAt, timeZone))" } ?? "Last block today"
+    let nextShort: String? = n.map { next in
+      let t = bare(next.startsAt, timeZone)
+      let maxTitle = 16
+      let name = next.title.count > maxTitle ? next.title.prefix(maxTitle - 1) + "…" : next.title
+      return "\(t) \(name)"
+    }
     return Card(
       headline: "Now · until \(until)", title: title, segments: segments, then: then, thenShort: thenShort,
-      accessibility: "\(title), until \(until). \(then)")
+      nextShort: nextShort, accessibility: "\(title), until \(until). \(then)")
   }
 
   /// "2:30 pm" in `timeZone`.

@@ -18,17 +18,51 @@ private func card(_ a: BlockActivityAttributes, _ s: BlockActivityAttributes.Con
   ActivityModel.card(title: a.title, startsAt: a.startsAt, endsAt: s.endsAt, next: s.model, timeZone: .current)
 }
 
-/// The small-cut mark: an orange tile with a dial notch (stand-in for the brand mark in the widget target).
-private struct Mark: View {
-  var size: CGFloat = 22
+/// The Dialed "d" brand mark — the real symbol drawn from the SVG path, cream on an orange tile.
+private struct BrandMark: View {
+  var size: CGFloat = 40
+  private let viewBox: CGFloat = 256
   var body: some View {
     ZStack {
-      RoundedRectangle(cornerRadius: size * 0.28).fill(orange)
-      Circle().trim(from: 0.1, to: 0.9).stroke(ink, style: StrokeStyle(lineWidth: size * 0.12, lineCap: .round))
-        .rotationEffect(.degrees(90)).frame(width: size * 0.5, height: size * 0.5)
+      RoundedRectangle(cornerRadius: size * 0.22, style: .continuous).fill(orange)
+      // Path from dialed-symbol-reversed.svg (viewBox 0 0 256 256), scaled to fit.
+      DialedDPath()
+        .fill(cream)
+        .frame(width: size * 0.72, height: size * 0.72)
     }
     .frame(width: size, height: size)
     .accessibilityHidden(true)
+  }
+}
+
+/// The "d" glyph from assets/brand/dialed-symbol-reversed.svg (even-odd fill, viewBox 256×256).
+private struct DialedDPath: Shape {
+  func path(in rect: CGRect) -> Path {
+    let s = min(rect.width, rect.height) / 256
+    var p = Path()
+    // Outer: vertical bar + arc
+    p.move(to: CGPoint(x: 161 * s, y: 30 * s))
+    p.addLine(to: CGPoint(x: 197 * s, y: 30 * s))
+    p.addLine(to: CGPoint(x: 197 * s, y: 216 * s))
+    p.addLine(to: CGPoint(x: 161 * s, y: 216 * s))
+    p.addLine(to: CGPoint(x: 161 * s, y: 205.24 * s))
+    // Arc: 69-radius circle centered roughly at (161, 147)
+    let cx: CGFloat = 124; let cy: CGFloat = 147; let r: CGFloat = 69
+    p.addArc(center: CGPoint(x: cx * s, y: cy * s), radius: r * s,
+             startAngle: .degrees(-30), endAngle: .degrees(-330), clockwise: true)
+    p.addLine(to: CGPoint(x: 161 * s, y: 88.76 * s))
+    p.closeSubpath()
+    // Inner diamond/notch
+    p.move(to: CGPoint(x: 133.9 * s, y: 159.73 * s))
+    p.addLine(to: CGPoint(x: 159.36 * s, y: 134.27 * s))
+    let nr: CGFloat = 16 * 0.707
+    p.addArc(center: CGPoint(x: 148.045 * s, y: 122.955 * s), radius: nr * s,
+             startAngle: .degrees(45), endAngle: .degrees(225), clockwise: true)
+    p.addLine(to: CGPoint(x: 111.27 * s, y: 137.10 * s))
+    p.addArc(center: CGPoint(x: 122.585 * s, y: 148.415 * s), radius: nr * s,
+             startAngle: .degrees(225), endAngle: .degrees(45), clockwise: true)
+    p.closeSubpath()
+    return p.offsetBy(dx: rect.minX, dy: rect.minY)
   }
 }
 
@@ -40,6 +74,7 @@ private struct Countdown: View {
     Text(timerInterval: start...end, countsDown: true)
       .font(.custom(anton, size: size, relativeTo: .largeTitle))
       .monospacedDigit()
+      .multilineTextAlignment(.trailing)
       .lineLimit(1)
       .minimumScaleFactor(0.6)
   }
@@ -50,23 +85,26 @@ private struct SegmentBar: View {
   let start: Date
   let end: Date
   var body: some View {
-    GeometryReader { g in
-      HStack(alignment: .top, spacing: 4) {
-        ForEach(Array(m.segments.enumerated()), id: \.offset) { _, s in
-          VStack(alignment: .leading, spacing: 3) {
+    VStack(spacing: 4) {
+      GeometryReader { g in
+        HStack(spacing: 3) {
+          ForEach(Array(m.segments.enumerated()), id: \.offset) { _, s in
             if s.current {
               ProgressView(timerInterval: start...end, countsDown: false) { EmptyView() } currentValueLabel: { EmptyView() }
                 .progressViewStyle(.linear).tint(orange)
             } else {
               Capsule().fill(cream.opacity(0.22)).frame(height: 4)
             }
-            Text(s.label ?? " ").font(.system(size: 10, weight: .bold)).lineLimit(1).opacity(s.current ? 0.9 : 0.6)
           }
-          .frame(width: max(8, (g.size.width - 8) * s.fraction))
         }
       }
+      .frame(height: 4)
+      HStack {
+        // Next block info on the right; no percent (LA can't tick text without a push).
+        Spacer()
+        Text(m.nextShort ?? "").font(.system(size: 11, weight: .semibold)).opacity(0.65).lineLimit(1)
+      }
     }
-    .frame(height: 22)
   }
 }
 
@@ -74,25 +112,32 @@ struct BlockActivityLockView: View {
   let context: ActivityViewContext<BlockActivityAttributes>
   var body: some View {
     let m = card(context.attributes, context.state)
-    VStack(alignment: .leading, spacing: 6) {
-      HStack(spacing: 8) {
-        Mark()
-        Circle().fill(Color(hex: context.attributes.categoryColorHex)).frame(width: 7, height: 7)
-        Text(m.headline).font(.system(size: 13, weight: .semibold)).opacity(0.8)
-        Spacer()
-      }
-      HStack(alignment: .lastTextBaseline) {
+    HStack(alignment: .top, spacing: 10) {
+      BrandMark(size: 40)
+        .padding(.top, 2)
+      VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 6) {
+          Circle().fill(Color(hex: context.attributes.categoryColorHex)).frame(width: 7, height: 7)
+          Text(m.headline).font(.system(size: 13, weight: .semibold)).opacity(0.8)
+        }
         Text(m.title).font(.system(size: 17, weight: .heavy)).lineLimit(1)
-        Spacer(minLength: 8)
-        Countdown(start: context.attributes.startsAt, end: context.state.endsAt, size: 34)
-          .frame(maxWidth: 130, alignment: .trailing)
-        Text("left").font(.system(size: 13, weight: .bold)).opacity(0.7)
       }
-      SegmentBar(m: m, start: context.attributes.startsAt, end: context.state.endsAt)
+      Spacer(minLength: 4)
+      VStack(alignment: .trailing, spacing: 0) {
+        Countdown(start: context.attributes.startsAt, end: context.state.endsAt, size: 32)
+          .foregroundStyle(orange)
+          .frame(width: 80, alignment: .trailing)
+        Text("left").font(.system(size: 12, weight: .bold)).opacity(0.7)
+      }
     }
+    .overlay(alignment: .bottom) {
+      SegmentBar(m: m, start: context.attributes.startsAt, end: context.state.endsAt)
+        .padding(.top, 4)
+    }
+    .padding(.bottom, 26)
     .foregroundStyle(cream)
     .padding(16)
-    .activityBackgroundTint(Color(hex: "#140A05").opacity(0.92))
+    .activityBackgroundTint(ink.opacity(0.92))
     .activitySystemActionForegroundColor(cream)
     .widgetURL(URL(string: "dialed://day"))
     .accessibilityElement(children: .ignore)
@@ -109,29 +154,26 @@ struct BlockActivityWidget: Widget {
       return DynamicIsland {
         DynamicIslandExpandedRegion(.leading) {
           HStack(spacing: 6) {
-            Mark(size: 20)
+            BrandMark(size: 22)
             Text(m.title).font(.system(size: 15, weight: .heavy)).lineLimit(1)
           }
         }
         DynamicIslandExpandedRegion(.trailing) {
-          Countdown(start: context.attributes.startsAt, end: context.state.endsAt, size: 24)
-            .foregroundStyle(orange).frame(maxWidth: 90, alignment: .trailing)
+          Countdown(start: context.attributes.startsAt, end: context.state.endsAt, size: 22)
+            .foregroundStyle(orange).frame(width: 72, alignment: .trailing)
         }
         DynamicIslandExpandedRegion(.bottom) {
-          VStack(alignment: .leading, spacing: 6) {
-            SegmentBar(m: m, start: context.attributes.startsAt, end: context.state.endsAt)
-            Text(m.thenShort).font(.system(size: 12, weight: .semibold)).opacity(0.75).lineLimit(1)
-          }
-          .accessibilityElement(children: .ignore)
-          .accessibilityLabel(m.accessibility)
+          SegmentBar(m: m, start: context.attributes.startsAt, end: context.state.endsAt)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(m.accessibility)
         }
       } compactLeading: {
-        Mark(size: 18)
+        BrandMark(size: 18)
       } compactTrailing: {
-        Countdown(start: context.attributes.startsAt, end: context.state.endsAt, size: 15)
+        Countdown(start: context.attributes.startsAt, end: context.state.endsAt, size: 14)
           .foregroundStyle(orange).frame(maxWidth: 52)
       } minimal: {
-        Mark(size: 18)
+        BrandMark(size: 18)
       }
       .widgetURL(URL(string: "dialed://day"))
     }
