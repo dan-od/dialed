@@ -2,14 +2,14 @@
 
 Keep this under 15 lines. Update at the end of every session.
 
-**Done (evidence in `evidence/flows/`):** scaffold + shared foundation, Flow 01 Account, 03 See schedule, 04 Block changes, 05 Routines & terms, 09 Settings, 06 Plan with AI, **07 Plan from an AI app** (2026-11-07: `Flow_07/verification.md`, `flow07-sheet-1.png`; fixed an OAuth open redirect, `list_categories`, read audit, 500-on-rate-limit, connector UI flag/feedback/confirms; D-64…D-69). Design v11 applied.
+**Done (evidence in `evidence/flows/`):** scaffold + shared foundation, Flows 01, 03, 04, 05, 09, 06, 07, 02, 08 (see each `Flow_XX/verification.md`). Design v11 applied.
 
-**Flow 07 unverified by design:** OAuth sign-in/consent pages and the Disconnect-all dialog (D-35 stop point, need prototype review + owner approval); real Claude connector (needs public HTTPS, CQ #3); push banner + haptics (device). Visual deltas listed in its verification.md.
+**Home-lab prep: done in the repo** (2026-11-11, D-114…D-122): compose per Homelab Playbook (no cloudflared; `web` + `dialed-internal`), `infra/homelab/dialed.conf`, `deploy.yml` (off until repo var `DEPLOY_ENABLED=true`), `scripts/homelab-init`, `dist/invite.js`, `dist/test-owner.js`, SMTP transport + startup refusals, `TRUST_PROXY_IP` CIDR, planning guide now ships in the image, iOS Release → `https://api.okoro.me` (`scripts/ios_release`). Local run of the prod stack behind a temp nginx passed (healthz, login, sync, invite, test-owner create/delete); fixed the image build (pnpm 9 `deploy --legacy`) and `.env` inline-comment parsing.
 
-**Flow 02 First-week setup: gaps closed** (2026-11-07, `Flow_02/verification.md`, `flow02-sheet-1.png`, D-70…D-76): Found N classes, No classes found / Partial / Limit / Can't read, offline + camera-denied stamps, after-Approve toasts, calendar split preview. Fixed: legacy upload API that threw on device, timetable limit counting AI plan runs, stale term hint, AX1 button clipping. Unverified at runtime: offline chooser, calendar page/toast (no seeded calendar), SE size, live REF-002 read.
+**Owner, on the home lab (checklist `infra/homelab/README.md`):** run `homelab-init`, fill SMTP_URL / EMAIL_FROM / BACKUP_DIR / ANTHROPIC_API_KEY, Resend + DNS, nginx conf, tunnel hostname `api.okoro.me`, repo secrets + deploy key + `DEPLOY_ENABLED`, first start, go-live sequence, Uptime Kuma.
 
-**Flow 08 Glance: done** (2026-11-08, `Flow_08/verification.md`, `flow08-sheet-1.png`, D-77…D-113): snapshot + line, 5 lock and 4 home widgets, LA server jobs + client + card, Customize. Simulator proof via dev-only `dialed://dev-glance` (D-113); fixed timeline label overlap. **Unverified:** lock widgets/line on the Simulator (lock editor not drivable), LA look (capture black), App Group on device (`APPLE_TEAM_ID`), push-to-start/end + back-to-back + haptics (paid account + iPhone).
+**Unverified:** real SMTP send, live Anthropic plan on the server key, tunnel/Cloudflare path, Release build on the iPhone (Personal Team signing, App Group, 7-day renewal), `chown` of the JWT key on Linux.
 
-**Local dev:** migration 0003 now applied to the dev DB; dev client rebuilt with `expo-clipboard`. Dev API run via `/tmp/f07-api.sh` (MCP_ENABLED=true, DEV_CLOCK 2037-10-20). `dev_evidence_cleanup` also removes plan/import rows and connector clients/tokens. **CI:** epoch 2037/2038; audit ignores GHSA-mrhx-c7xc-m3w5 (zod in @expo/cli).
+**Still open from flows:** owner reviews of Flow 08/02 sheets and the consent page (D-35); `APPLE_TEAM_ID` (D-77); paid account + iPhone for push/LA proof.
 
-**Next:** all flows built; owner reviews: Flow 08 sheet (D-108 LA deltas, D-100 seconds), Flow 02 sheet, consent page (D-35). Owner: `APPLE_TEAM_ID` (D-77); Apple Developer + iPhone for push/LA proof. Evidence: `./scripts/flow08_evidence` (signed build only).
+**Local dev:** dev Postgres keeps volume `dialed_pgdata` via the dev override. Dev API: `/tmp/f07-api.sh`. CI epoch 2037/2038.

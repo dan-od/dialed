@@ -60,7 +60,8 @@ Every query is scoped by `user_id` from the token (`WHERE user_id = $auth`), enf
 - **Key leakage**: BYO key only in header for that request; redacted from logs, errors and traces; never echoed back.
 
 ## Abuse, rate limits, replay, idempotency, concurrency
-- Client IP for limits = `CF-Connecting-IP`, trusted only from the cloudflared container (see BACKEND_SETUP §11); never raw `X-Forwarded-For`.
+- Client IP for limits = `CF-Connecting-IP`, trusted only from `TRUST_PROXY_IP` (nginx-proxy; IP or CIDR, see BACKEND_SETUP §11); never raw `X-Forwarded-For` from anyone else.
+- The repo's `DEV_PASSWORD` is public: sign-in refuses it in production, and the only seed user allowed there is the smoke-test owner with a random password (D-118).
 - Global: 120 req/min/user, 30 req/min/IP unauthenticated. Auth endpoints stricter (above). Plans: 10/min/user. MCP: 60 calls/min/token, 20 drafts/day/client.
 - Sync push idempotent by `client_mutation_id` (receipts 30 days). Approve idempotent by plan state (approved plan returns 200 with same result). Double-tap Approve guarded client-side and by row lock (`SELECT … FOR UPDATE` on plan).
 - Optimistic concurrency with `version` on every mutable row; plan approval checks `base_revision` for touched entities inside one transaction.

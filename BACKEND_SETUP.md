@@ -18,7 +18,7 @@ Read with `SECURITY.md`, `00_Flow_Contracts.md` and `PROJECT_BIBLE.md`. Secrets 
 | Files | PDF text: `pdfjs-dist`; DOCX: `mammoth`; images and scanned PDFs: provider vision input | Covers photo, screenshot, PDF, Word (D-27) |
 | Email | Nodemailer over SMTP (`SMTP_URL`) | Any provider (D-18) |
 | Push | APNs HTTP/2 with token auth (`.p8`), `apns2`-style client or `@parse/node-apn` | Plan notifications, Live Activity push-to-start/update/end, silent sync |
-| Infra | Docker Compose: `api`, `worker`, `postgres`, `cloudflared`, `backup` | Runs on the home lab; no inbound ports |
+| Infra | Docker Compose: `api`, `worker`, `postgres`, `migrate`, `backup` behind the home lab's shared Cloudflare Tunnel + `nginx-proxy` (D-114) | Runs on the home lab; no inbound ports |
 
 ### Versions
 Pin exact versions at scaffold time in lockfiles. Record Expo SDK, React Native, Node, Postgres and Xcode versions here in a table during the first build task. Never upgrade majors inside a feature flow.
@@ -66,7 +66,7 @@ dialed/
   mcp/planning-guide.md     The guide every AI receives (template)
   scripts/                  bootstrap, migrate, migration_replay, auth_smoke, runtime_proof, backup, restore_test
   verification/commands.json
-  infra/docker-compose.yml, infra/cloudflared/config.yml
+  infra/docker-compose.yml, infra/homelab/ (nginx conf + owner checklist), .github/workflows/deploy.yml
   evidence/
 ```
 
@@ -238,16 +238,34 @@ Jobs: lease 60s, max 5 attempts with exponential backoff + jitter; APNs 410 → 
 `expo-calendar` with full-access permission → read events from selected calendars for the term range → group recurring weekly events into routine blocks (weekday + time + title), one-offs into overrides → `POST /v1/imports/calendar` with normalized events (no raw notes/attendees) → plan `ready` → normal review. Never writes to calendars (D-28).
 
 ## 10. Environment keys (`.env.example` has names only)
-See `.env.example`. Groups: database, auth/JWT, Apple, APNs, SMTP, AI providers + models + limits, MCP/OAuth, Cloudflare, admin, upload dir, signup mode.
+See `.env.example`. Groups: database, auth/JWT, Apple, APNs, SMTP, AI providers + models + limits, MCP/OAuth, admin, upload dir, signup mode. A blank key means unset (the default applies).
+
+Home lab (`scripts/homelab-init` writes `.env` 0600 once; the deploy workflow rewrites it from repo secrets on every deploy):
+
+| Key | Prod value | Notes |
+|---|---|---|
+| `COMPOSE_FILE`, `COMPOSE_PROFILES` | `infra/docker-compose.yml`, `prod` | read by `docker compose` itself (D-114) |
+| `NODE_ENV` / `PUBLIC_BASE_URL` / `PORT` | `production` / `https://api.okoro.me` / `8080` | compose sets `HOST=0.0.0.0`, `DATABASE_URL`, `JWT_PRIVATE_KEY_FILE=/run/secrets/jwt_private_key`, `UPLOAD_DIR=/app/uploads` |
+| `SIGNUP_MODE` / `APPLE_TEAM_TIER` | `invite` / `personal` | invites via `dist/invite.js` |
+| `POSTGRES_PASSWORD`, `CODE_PEPPER`, `ADMIN_TOKEN` | random hex | never change after first start |
+| `JWT_KEY_ID` | `ed25519-<sha256(pubkey)[:16]>` | matches `.secrets/jwt-ed25519.pem` on the host (uid 1000, 0600) |
+| `EMAIL_TRANSPORT` / `SMTP_URL` / `EMAIL_FROM` | `smtp` / Resend relay / `Dialed <no-reply@okoro.me>` | startup refuses prod `smtp` without `SMTP_URL` |
+| `AI_MODE` / `ANTHROPIC_API_KEY` / `PLAN_MODEL_ANTHROPIC` | `live` / owner key / `claude-sonnet-5-5` | startup refuses `live` without a key; `PLAN_DAILY_LIMIT` 30, `IMPORT_DAILY_LIMIT` 6 per user per day |
+| `APNS_MODE` | `log` | free account: no APNs (D-39) |
+| `MCP_ENABLED` | `true` | |
+| `TRUST_PROXY_IP` | `172.16.0.0/12` | IP or CIDR (D-115) |
+| `BACKUP_DIR` | folder on the 2 TB drive | bind-mounted into `dialed-backup` |
 
 ## 11. Observability, cost and operations
-- Rate limits and logs use the client IP from `CF-Connecting-IP`, trusted only when the request comes from the cloudflared container's address (Fastify `trustProxy` = that IP); direct requests use the socket address.
+- Rate limits and logs use the client IP from `CF-Connecting-IP`, trusted only when the request comes from `TRUST_PROXY_IP` (nginx-proxy; an IP or CIDR, D-115; Fastify `trustProxy` uses the same value); direct requests use the socket address.
 - pino JSON logs with `request_id`, `user_id` (hashed), route **without query string**, latency; redact `authorization`, `x-provider-key`, `password`, `code`, `token`, `refresh_token`, file contents, request_text (log length only).
 - Metrics endpoint `/metrics` (Prometheus text, internal only): request latency, plan durations, provider errors, validator rejections, job queue depth, APNs results, usage counters.
 - Cost: `usage_counters` checked before each plan/import on the server key; 429 `daily_limit` with reset time. Provider spend alerts set in vendor consoles (owner action).
-- Deploy: `docker compose up -d` from a tagged image; migrations run by a one-shot `migrate` service before `api`/`worker` start. Rollback: previous image tag; migrations are forward-only, every migration must be backward compatible with the previous app release (expand → migrate → contract over two releases).
-- Backups: nightly `pg_dump -Fc` to the home-lab NAS + weekly restore test into a scratch container (`scripts/restore_test`) that runs `migration_replay` checks against the restored DB. A backup without a passing restore test is unverified.
-- Health: Cloudflare Tunnel health + `/readyz`; owner gets an email alert (Uptime Kuma or similar on the home lab — ASSUMED).
+- Deploy (D-114, D-121; owner checklist `infra/homelab/README.md`): GitHub Actions joins the tailnet as `tag:ci`, rsyncs the repo to `/opt/docker-homelab/sites/dialed` (excluding `.env`, `.secrets`, `backups`), writes `.env` from repo secrets and runs `docker compose up -d --build`; gated on the repo variable `DEPLOY_ENABLED`. Ingress: tunnel `homelab01` → `nginx-proxy` (`infra/homelab/dialed.conf`) → `dialed-api:8080`. Migrations run by the one-shot `migrate` service before `api`/`worker` start. Rollback: previous image tag; migrations are forward-only, every migration must be backward compatible with the previous app release (expand → migrate → contract over two releases).
+- Backups: nightly `pg_dump -Fc` (0600, 14 days) to `BACKUP_DIR` on the 2 TB drive (D-122); restore with `pg_restore --clean --if-exists` (README §8); planned weekly restore test into a scratch container (`scripts/restore_test`) that runs `migration_replay` checks against the restored DB. A backup without a passing restore test is unverified.
+- Health: container healthchecks (api `GET /healthz` on 127.0.0.1, worker liveness file, backup freshness); Uptime Kuma HTTP monitor on `https://api.okoro.me/healthz` with SSL-expiry warnings → Telegram “Osiris Alerts”.
+- Ops commands: `docker compose run --rm api node dist/invite.js <email>`; `… dist/test-owner.js create|delete` (prod smoke-test account, D-118).
+- iPhone: `scripts/ios_release simulator|device` (Release, JS embedded, `https://api.okoro.me`, D-120); free-account profiles last 7 days, renew by running again from Xcode.
 
 ## 12. Local development
 - `scripts/bootstrap`: checks Node/pnpm/Docker, installs deps, starts Postgres via compose, runs migrations, seeds the owner's routine and test users (idempotent: upserts by fixed UUIDs).
