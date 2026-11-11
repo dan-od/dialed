@@ -1,0 +1,23 @@
+# Playbook §6.1, plus this repo's secrets, native build output and evidence.
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.git/
+.github/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+.secrets/
+*.pem
+*.key
+*.p8
+.DS_Store
+apps/mobile/ios/
+apps/mobile/android/
+apps/mobile/.expo/
+evidence/
+backups/
+infra/backups/

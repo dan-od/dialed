@@ -2,3 +2,8 @@
 services:
   postgres:
     ports: ['127.0.0.1:55432:5432']
+
+# Keep the local dev database on its pre-homelab volume (prod uses dialed-pgdata).
+volumes:
+  pgdata:
+    name: dialed_pgdata

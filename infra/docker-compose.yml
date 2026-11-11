@@ -1,104 +1,166 @@
-# Dialed — Docker Compose (BACKEND_SETUP §1, §11).
-# Dev:  docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml --env-file .env up -d postgres
-#       (the dev override publishes Postgres on 127.0.0.1:55432; prod publishes no ports)
-# Prod: docker compose -f infra/docker-compose.yml --profile prod up -d             (NOT run by the build agent: stop point)
+# Dialed — Docker Compose (BACKEND_SETUP §1, §11; Homelab Hosting Playbook §6.2).
+# Deployed to /opt/docker-homelab/sites/dialed/ (the repo root). Run from there with:
+#   docker compose up -d --build
+# The root .env sets COMPOSE_FILE=infra/docker-compose.yml and COMPOSE_PROFILES=prod (scripts/homelab-init and the
+# deploy workflow write both), so the playbook's plain `docker compose` commands work from the site folder.
+#
+# Ingress: Cloudflare Tunnel "homelab01" → cloudflared → nginx-proxy (infra/homelab/dialed.conf) → dialed-api:8080,
+# all on the external network `web`. Nothing publishes a port; only `expose:`.
+#
+# Dev:  docker compose -p dialed -f infra/docker-compose.yml -f infra/docker-compose.dev.yml --env-file .env up -d postgres
+#       (the dev override publishes Postgres on 127.0.0.1:55432; only postgres has no profile)
 name: dialed
 
-x-api-env: &api-env
-  NODE_ENV: ${NODE_ENV:-production}
-  APP_NAME: ${APP_NAME:-Dialed}
-  PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
-  PORT: 8080
-  LOG_LEVEL: ${LOG_LEVEL:-info}
-  SIGNUP_MODE: ${SIGNUP_MODE:-invite}
-  APPLE_TEAM_TIER: ${APPLE_TEAM_TIER:-personal}
+x-logging: &logging
+  driver: json-file
+  options: { max-size: '10m', max-file: '3' }
+
+x-app: &app
+  build: { context: .., dockerfile: infra/api.Dockerfile }
+  image: dialed-api:latest
+  profiles: [prod]
+  env_file: ../.env
+  logging: *logging
+
+# Overrides for values .env must not decide (container paths, the compose-built DB URL).
+x-app-env: &app-env
+  PORT: '8080'
+  HOST: 0.0.0.0
   DATABASE_URL: postgres://dialed:${POSTGRES_PASSWORD}@postgres:5432/dialed
   JWT_PRIVATE_KEY_FILE: /run/secrets/jwt_private_key
-  JWT_KEY_ID: ${JWT_KEY_ID}
-  CODE_PEPPER: ${CODE_PEPPER}
-  EMAIL_TRANSPORT: ${EMAIL_TRANSPORT:-console}
-  EMAIL_FROM: ${EMAIL_FROM:-}
-  APNS_MODE: ${APNS_MODE:-log}
-  AI_MODE: ${AI_MODE:-fixture}
-  TRUST_PROXY_IP: ${TRUST_PROXY_IP:-}
+  UPLOAD_DIR: /app/uploads
 
 services:
   postgres:
     image: postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
+    container_name: dialed-db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: dialed
       POSTGRES_DB: dialed
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks: [internal]
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U dialed -d dialed']
-      interval: 2s
-      timeout: 3s
+      interval: 5s
+      timeout: 5s
       retries: 30
-    restart: unless-stopped
-    networks: [internal]
+    mem_limit: 512m
+    cpus: 1.0
+    logging: *logging
 
+  # One-shot: applies backend/migrations before api/worker start. No restart; api waits for it to exit 0.
   migrate:
-    build: { context: .., dockerfile: infra/api.Dockerfile }
-    profiles: [prod]
+    <<: *app
+    container_name: dialed-migrate
     command: ['node', 'dist/migrate.js']
     environment:
       DATABASE_URL: postgres://dialed:${POSTGRES_PASSWORD}@postgres:5432/dialed
     depends_on: { postgres: { condition: service_healthy } }
     networks: [internal]
+    restart: 'no'
+    # A one-shot has no steady state to probe; depends_on: service_completed_successfully is its health gate.
+    healthcheck:
+      disable: true
+    mem_limit: 256m
+    cpus: 0.5
 
   api:
-    build: { context: .., dockerfile: infra/api.Dockerfile }
-    profiles: [prod]
+    <<: *app
+    container_name: dialed-api
+    restart: unless-stopped
     command: ['node', 'dist/server.js']
-    environment: *api-env
+    expose: ['8080']
+    environment: *app-env
     secrets: [jwt_private_key]
+    volumes:
+      - uploads:/app/uploads
     depends_on:
       migrate: { condition: service_completed_successfully }
-    restart: unless-stopped
-    networks: [internal]
+    networks: [web, internal]
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 512m
+    cpus: 1.0
 
   worker:
-    build: { context: .., dockerfile: infra/api.Dockerfile }
-    profiles: [prod]
+    <<: *app
+    container_name: dialed-worker
+    restart: unless-stopped
     command: ['node', 'dist/worker.js']
-    environment: *api-env
+    environment: *app-env
     secrets: [jwt_private_key]
+    volumes:
+      - uploads:/app/uploads
     depends_on:
       migrate: { condition: service_completed_successfully }
-    restart: unless-stopped
     networks: [internal]
+    # The worker loop touches /tmp/dialed-worker.alive every pass (at most ~2 s apart when idle).
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "const s=require('fs').statSync('/tmp/dialed-worker.alive');process.exit(Date.now()-s.mtimeMs<120000?0:1)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    mem_limit: 384m
+    cpus: 0.5
 
-  cloudflared:
-    image: cloudflare/cloudflared:2026.10.0
-    profiles: [prod]
-    command: ['tunnel', '--no-autoupdate', 'run']
-    environment:
-      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-} # owner action: create the tunnel first
-    depends_on: [api]
-    restart: unless-stopped
-    networks: [internal]
-
+  # Nightly pg_dump -Fc into BACKUP_DIR (the 2 TB backup drive); keeps 14 days.
   backup:
     image: postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
+    container_name: dialed-backup
     profiles: [prod]
+    restart: unless-stopped
     entrypoint: ['/bin/sh', '-c']
     command:
-      - 'while true; do pg_dump -Fc -h postgres -U dialed dialed > /backups/dialed-$$(date +%F).dump; sleep 86400; done'
+      - >-
+        while true; do
+        f=/backups/dialed-$$(date +%F).dump;
+        pg_dump -Fc -h postgres -U dialed dialed > $$f.part && mv $$f.part $$f;
+        find /backups -name 'dialed-*.dump' -mtime +14 -delete;
+        sleep 86400; done
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - ${BACKUP_DIR:-./backups}:/backups
     depends_on: { postgres: { condition: service_healthy } }
     networks: [internal]
+    healthcheck:
+      test: ['CMD-SHELL', "pg_isready -h postgres -U dialed -d dialed && find /backups -name 'dialed-*.dump' -mmin -1560 | grep -q ."]
+      interval: 10m
+      timeout: 10s
+      retries: 3
+      start_period: 2m
+    mem_limit: 256m
+    cpus: 0.25
+    logging: *logging
 
 secrets:
   jwt_private_key:
-    file: ${JWT_PRIVATE_KEY_FILE:-../.secrets/jwt-ed25519.pem}
+    file: ../.secrets/jwt-ed25519.pem
 
 volumes:
   pgdata:
+    name: dialed-pgdata
+  uploads:
+    name: dialed-uploads
 
 networks:
+  web:
+    external: true
   internal:
+    name: dialed-internal

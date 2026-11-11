@@ -1,4 +1,5 @@
 // Worker process (BACKEND_SETUP §8): Postgres job table with FOR UPDATE SKIP LOCKED leases.
+import { writeFileSync } from 'node:fs';
 import { loadConfig } from './config';
 import { createDb } from './db/pool';
 import { enqueueNightly } from './glance/activities';
@@ -20,6 +21,12 @@ const HANDLERS: Record<string, (payload: unknown) => Promise<void>> = { ...handl
 
 let lastNightlyCheck = 0;
 while (!stopping) {
+  // Liveness for the compose healthcheck (infra/docker-compose.yml).
+  try {
+    writeFileSync('/tmp/dialed-worker.alive', String(Date.now()));
+  } catch {
+    // not fatal: only the healthcheck reads it
+  }
   // Flow 08: nightly la.schedule at 03:00 local, checked once a minute (deduped per user per night).
   if (Date.now() - lastNightlyCheck >= 60_000) {
     lastNightlyCheck = Date.now();
