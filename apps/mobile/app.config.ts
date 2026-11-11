@@ -6,6 +6,13 @@ const APP_NAME = process.env.APP_NAME ?? 'Dialed';
 const BUNDLE_ID = process.env.DIALED_BUNDLE_ID ?? 'me.okoro.dialed';
 const TEAM_TIER = process.env.APPLE_TEAM_TIER ?? 'personal';
 const APP_GROUP = 'group.me.okoro.dialed';
+// Baked in at build time: expo-constants evaluates this file in the Xcode build phase, where Xcode sets
+// CONFIGURATION. Release builds (standalone, JS embedded) default to the home lab, so an Xcode-GUI build that
+// doesn't inherit the shell's DIALED_API_URL still works on cellular. DIALED_API_URL overrides either default.
+const PROD_API_URL = 'https://api.okoro.me';
+const API_URL =
+  process.env.DIALED_API_URL ??
+  (process.env.CONFIGURATION === 'Release' ? PROD_API_URL : 'http://localhost:8080');
 
 const config: ExpoConfig = {
   name: APP_NAME,
@@ -49,8 +56,8 @@ const config: ExpoConfig = {
   experiments: { typedRoutes: true, reactCompiler: true },
   extra: {
     appName: APP_NAME,
-    // Simulator reaches the Mac's API at localhost (ATS allows local networking in dev builds).
-    apiBaseUrl: process.env.DIALED_API_URL ?? 'http://localhost:8080',
+    // Debug: the Simulator reaches the Mac's API at localhost (ATS allows local networking). Release: home lab.
+    apiBaseUrl: API_URL,
     // D-39: free Apple account → no Sign in with Apple, no APNs, no universal links.
     appleTeamTier: TEAM_TIER,
     // D-35 screens awaiting a flow-prototype approval stay behind this flag (off by default).

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Standalone iOS Release build: JS bundle embedded, API = DIALED_API_URL (default https://api.okoro.me), so the
+# app runs with no Metro and no Mac, on cellular. See infra/homelab/README.md "iPhone app".
+# Usage:
+#   ./scripts/ios_release simulator   # unsigned Simulator build + checks (no Apple account needed)
+#   ./scripts/ios_release device      # signed build installed on the connected iPhone (Personal Team, 7-day profile)
+# Build output goes to /tmp/dialed-ios-release.log; only the result is printed.
+source "$(dirname "$0")/lib/common.sh"
+ensure_node
+ensure_xcode_env
+export LANG=en_US.UTF-8
+export DIALED_API_URL="${DIALED_API_URL:-https://api.okoro.me}"
+[[ "$DIALED_API_URL" == https://* ]] || die "DIALED_API_URL must be https:// for a Release build (got $DIALED_API_URL)."
+TARGET="${1:-simulator}"
+LOG=/tmp/dialed-ios-release.log
+cd "$ROOT/apps/mobile"
+[[ -d ios ]] || CI=1 npx expo prebuild --platform ios >/dev/null
+
+case "$TARGET" in
+  simulator)
+    DD="$ROOT/apps/mobile/ios/build/release"
+    log "Building Release for the Simulator (log: $LOG)"
+    if ! xcodebuild -workspace ios/Dialed.xcworkspace -scheme Dialed -configuration Release \
+      -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$DD" \
+      CODE_SIGNING_ALLOWED=NO build >"$LOG" 2>&1; then
+      grep -E "error:|BUILD FAILED" "$LOG" | head -20 >&2
+      die "Release build failed."
+    fi
+    APP="$(find "$DD/Build/Products/Release-iphonesimulator" -maxdepth 1 -name '*.app' | head -1)"
+    ;;
+  device)
+    log "Building Release for the connected iPhone (log: $LOG). Signing uses the team set in Xcode."
+    npx expo run:ios --configuration Release --device --no-bundler >"$LOG" 2>&1 || {
+      tail -30 "$LOG" >&2
+      die "Device build failed (signing? open ios/Dialed.xcworkspace → Signing & Capabilities → Personal Team)."
+    }
+    APP="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*Release-iphoneos/Dialed.app' -maxdepth 6 -print 2>/dev/null | head -1)"
+    ;;
+  *) die "Usage: $0 simulator|device" ;;
+esac
+
+[[ -n "${APP:-}" && -d "$APP" ]] || die "Built .app not found."
+[[ -s "$APP/main.jsbundle" ]] || die "main.jsbundle is not embedded in $APP."
+CFG="$APP/EXConstants.bundle/app.config"
+[[ -f "$CFG" ]] || die "EXConstants app.config missing in $APP."
+grep -q "\"apiBaseUrl\":\"$DIALED_API_URL\"" "$CFG" || die "app.config does not point at $DIALED_API_URL."
+log "OK: $APP"
+log "  main.jsbundle embedded ($(du -h "$APP/main.jsbundle" | cut -f1)); apiBaseUrl=$DIALED_API_URL"
