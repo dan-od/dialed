@@ -25,6 +25,8 @@ export const ERROR_CODES = [
   'resync_required',
   'provider_error',
   'provider_key_invalid',
+  'byo_key_required',
+  'byo_key_unavailable',
   'vision_unavailable',
   'file_unsupported',
   'file_too_large',

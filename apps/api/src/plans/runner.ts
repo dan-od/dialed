@@ -3,10 +3,11 @@ import { join } from 'node:path';
 import { assetRoot } from '../lib/assets';
 import { sql } from 'drizzle-orm';
 import { localNow, type ScheduleData } from '@dialed/schedule';
-import { runPlan, loadFixtures, createFixtureProvider, type ToolContext } from '@dialed/planning';
+import { runPlan, loadFixtures, PLAN_TOOL_SCHEMAS, type ToolContext } from '@dialed/planning';
 import type { Db } from '../db/pool';
 import type { Config } from '../config';
 import { PlanService } from './service';
+import { createPlanProvider } from './provider-factory';
 
 type Row = Record<string, unknown>;
 
@@ -48,18 +49,27 @@ export async function loadScheduleData(db: Db, userId: string): Promise<Schedule
   } as unknown as ScheduleData;
 }
 
-export async function startPlanRun(
-  db: Db,
-  config: Config,
-  planService: PlanService,
-  planId: string,
-  userId: string,
-  requestText: string,
-  timeZone: string,
-  now: () => Date,
-): Promise<void> {
+export interface PlanRunOpts {
+  db: Db;
+  config: Config;
+  planService: PlanService;
+  planId: string;
+  userId: string;
+  requestText: string;
+  timeZone: string;
+  now: () => Date;
+  providerMode: 'server' | 'byo';
+  provider?: string;
+  byoKey?: string;
+  byoBaseUrl?: string;
+  log?: (obj: Record<string, unknown>) => void;
+}
+
+export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
+  const { db, config, planService, planId, userId, requestText, timeZone, now } = opts;
   const ctrl = new AbortController();
   activeRuns.set(planId, ctrl);
+  const runStart = Date.now();
 
   try {
     const data = await loadScheduleData(db, userId);
@@ -90,7 +100,14 @@ export async function startPlanRun(
         : undefined,
     };
 
-    const provider = createFixtureProvider(requestText);
+    const planProvider = createPlanProvider({
+      config,
+      providerMode: opts.providerMode,
+      provider: opts.provider,
+      byoKey: opts.byoKey,
+      byoBaseUrl: opts.byoBaseUrl,
+      requestText,
+    });
 
     const { rows: priorMsgs } = await db.execute<Row>(
       sql`select role, body from plan_messages where plan_id = ${planId} order by created_at`,
@@ -100,16 +117,31 @@ export async function startPlanRun(
       content: String(m.body),
     }));
 
+    const toolSchemas = config.AI_MODE === 'fixture' ? [] : PLAN_TOOL_SCHEMAS;
+
     const result = await runPlan({
-      provider,
+      provider: planProvider,
       guide: guideTemplate,
       request: requestText,
       history,
-      toolSchemas: [],
+      toolSchemas,
       ctx,
       skipValidation: config.AI_MODE === 'fixture' && !!process.env.DEV_CLOCK,
       signal: ctrl.signal,
       limits: { maxTokens: config.PLAN_MAX_TOKENS },
+    });
+
+    const durationMs = Date.now() - runStart;
+    opts.log?.({
+      kind: 'plan.run',
+      planId,
+      provider: planProvider.id,
+      providerMode: opts.providerMode,
+      tokensIn: result.tokensIn,
+      tokensOut: result.tokensOut,
+      durationMs,
+      status: result.status,
+      errorCode: result.status === 'failed' ? result.code : undefined,
     });
 
     switch (result.status) {
@@ -161,8 +193,22 @@ export async function startPlanRun(
         break;
     }
   } catch (err) {
+    const durationMs = Date.now() - runStart;
+    const errCode = (err as { code?: string }).code;
     const code =
-      err instanceof Error && err.message === 'provider_error' ? 'provider_error' : 'server_error';
+      errCode === 'byo_key_required'
+        ? 'byo_key_required'
+        : err instanceof Error && err.message === 'provider_error'
+          ? 'provider_error'
+          : 'server_error';
+    opts.log?.({
+      kind: 'plan.run',
+      planId,
+      providerMode: opts.providerMode,
+      durationMs,
+      status: 'failed',
+      errorCode: code,
+    });
     try {
       await planService.storeResult(planId, userId, 'failed', [], [], 0, 0, { errorCode: code });
     } catch {

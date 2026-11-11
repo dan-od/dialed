@@ -8,7 +8,9 @@ Keep this under 15 lines. Update at the end of every session.
 
 **Owner, on the home lab (checklist `infra/homelab/README.md`):** run `homelab-init`, fill SMTP_URL / EMAIL_FROM / BACKUP_DIR / ANTHROPIC_API_KEY, Resend + DNS, nginx conf, tunnel hostname `dialed.okoro.me`, repo secrets + deploy key + `DEPLOY_ENABLED`, first start, go-live sequence, Uptime Kuma.
 
-**Unverified:** real SMTP send, live Anthropic plan on the server key, tunnel/Cloudflare path, Release build on the iPhone (Personal Team signing, App Group, 7-day renewal), `chown` of the JWT key on Linux.
+**Live AI wiring (2026-11-11):** provider factory (`provider-factory.ts`) dispatches by AI_MODE × provider_mode; runner passes real tool schemas; BYO keys per-request only (D-13); retry job fails cleanly for BYO; timetable import uses live Anthropic; per-run logging (provider, tokens, duration).
+
+**Unverified:** real Anthropic plan call on the server key (needs homelab redeploy), real SMTP send, tunnel/Cloudflare path, Release build on the iPhone (Personal Team signing, App Group, 7-day renewal), `chown` of the JWT key on Linux.
 
 **Still open from flows:** owner reviews of Flow 08/02 sheets and the consent page (D-35); `APPLE_TEAM_ID` (D-77); paid account + iPhone for push/LA proof.
 

@@ -46,6 +46,31 @@ export function createHandlers(deps: HandlerDeps) {
         request_text: string;
         time_zone: string;
       };
+
+      const {
+        rows: [plan],
+      } = await db.execute<Row>(
+        sql`select status, attempts, provider_mode, provider from plans where id = ${p.plan_id}`,
+      );
+      if (!plan || String(plan.status) !== 'failed') return;
+      if (Number(plan.attempts) > 1) return;
+
+      const providerMode = String(plan.provider_mode ?? 'server') as 'server' | 'byo';
+
+      // BYO keys are never stored (D-13); background retry cannot proceed without one.
+      if (providerMode === 'byo') {
+        await db.execute(
+          sql`update plans set status = 'failed', error_code = 'byo_key_unavailable',
+            attempts = attempts + 1 where id = ${p.plan_id}`,
+        );
+        log({
+          kind: 'plan.retry',
+          msg: 'BYO key not available for background retry',
+          planId: p.plan_id,
+        });
+        return;
+      }
+
       if (!config.ANTHROPIC_API_KEY) {
         log({
           kind: 'plan.retry',
@@ -55,28 +80,25 @@ export function createHandlers(deps: HandlerDeps) {
         return;
       }
 
-      const {
-        rows: [plan],
-      } = await db.execute<Row>(sql`select status, attempts from plans where id = ${p.plan_id}`);
-      if (!plan || String(plan.status) !== 'failed') return;
-      if (Number(plan.attempts) > 1) return;
-
       await db.execute(
         sql`update plans set status = 'drafting', bg_retry_at = now() where id = ${p.plan_id}`,
       );
       initRunner(config);
 
       try {
-        await startPlanRun(
+        await startPlanRun({
           db,
           config,
           planService,
-          p.plan_id,
-          p.user_id,
-          p.request_text,
-          p.time_zone,
+          planId: p.plan_id,
+          userId: p.user_id,
+          requestText: p.request_text,
+          timeZone: p.time_zone,
           now,
-        );
+          providerMode,
+          provider: plan.provider ? String(plan.provider) : undefined,
+          log,
+        });
       } catch {
         // startPlanRun stores the failure itself
       }

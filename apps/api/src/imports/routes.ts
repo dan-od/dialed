@@ -14,7 +14,7 @@ import {
   validateDocxSafety,
   termNameFromDate,
   newTermDates,
-  createFixtureProvider,
+  createAnthropicProvider,
 } from '@dialed/planning';
 import { requireApp } from '../auth/guard';
 import type { JwtService } from '../auth/jwt';
@@ -169,7 +169,12 @@ export function importsRoutes(
           },
         };
       } else {
-        provider = createFixtureProvider('timetable');
+        const apiKey = config.ANTHROPIC_API_KEY;
+        if (!apiKey) throw new AppError('server_error', 'Server AI key is not configured.');
+        provider = createAnthropicProvider({
+          apiKey,
+          model: config.PLAN_MODEL_ANTHROPIC,
+        });
       }
 
       const result = await extractTimetable({
