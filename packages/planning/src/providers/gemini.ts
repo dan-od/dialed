@@ -10,6 +10,7 @@ export function createGeminiProvider(opts: GeminiProviderOpts): PlanProvider {
   return {
     id: 'gemini',
     displayName: 'Gemini',
+    model: opts.model,
     supportsVision: true,
 
     async run(runOpts: ProviderRunOpts): Promise<ProviderStepResult> {

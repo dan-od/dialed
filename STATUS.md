@@ -8,11 +8,11 @@ Keep this under 15 lines. Update at the end of every session.
 
 **Owner, on the home lab (checklist `infra/homelab/README.md`):** run `homelab-init`, fill SMTP_URL / EMAIL_FROM / BACKUP_DIR / ANTHROPIC_API_KEY, Resend + DNS, nginx conf, tunnel hostname `dialed.okoro.me`, repo secrets + deploy key + `DEPLOY_ENABLED`, first start, go-live sequence, Uptime Kuma.
 
-**Live AI wiring (2026-11-11):** provider factory (`provider-factory.ts`) dispatches by AI_MODE × provider_mode; runner passes real tool schemas; BYO keys per-request only (D-13); retry job fails cleanly for BYO; timetable import uses live Anthropic; per-run logging (provider, tokens, duration).
+**Live AI (2026-11-11):** provider factory by AI_MODE × provider_mode; BYO keys per request only (D-13). Planning context preloaded per run (D-123): today + 14 days, one line per block with refs (b/c/t) mapped back in the validator, cached per user + revision, in the first user message; guide is now rendered and cached as the system prompt; shared read tools with MCP; MCP `get_context`. Seed: ~660 tokens/week. Compare models: `./scripts/plan_compare claude-haiku-5-5 claude-sonnet-5-5`.
 
-**Live Activity UI (2026-11-11):** lock-screen card matches design — real "d" brand mark (SwiftUI path), layout with category dot + headline + title, Anton orange countdown, segment bar with next-block info (no percent — D-108). Dynamic Island updated. Simulator Release build passes.
+**Live Activity (2026-11-11):** brand symbol imageset, header/bottom row per owner review (D-108 approved); Release build installed on the iPhone via `scripts/ios_release device` (auto-detects UDID; run with `APPLE_TEAM_ID=AH3LD3CJ26`).
 
-**Unverified:** real Anthropic plan call on the server key (needs homelab redeploy), real SMTP send, tunnel/Cloudflare path, Release build on the iPhone (Personal Team signing, App Group, 7-day renewal — device build needs `appleTeamId` / D-77), `chown` of the JWT key on Linux.
+**Unverified:** real Anthropic plan call with the context (needs homelab redeploy), Anthropic prompt-cache hits, real SMTP send, tunnel/Cloudflare path, LA on the lock screen after round 2, `chown` of the JWT key on Linux.
 
 **Still open from flows:** owner reviews of Flow 08/02 sheets and the consent page (D-35); `APPLE_TEAM_ID` (D-77); paid account + iPhone for push/LA proof.
 

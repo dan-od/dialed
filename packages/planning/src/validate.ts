@@ -14,6 +14,7 @@ import {
   type ScheduleData,
 } from '@dialed/schedule';
 import { PROPOSE_CHANGES_LIMITS, type PlanCheck, type PlanSource } from '@dialed/contracts';
+import type { RefMap } from './context';
 
 export interface ValidateProfile {
   day_start_min: number;
@@ -35,6 +36,8 @@ export interface ValidateContext {
   today: IsoDate;
   source: PlanSource;
   profile?: ValidateProfile;
+  /** Short refs from the planning context (b1, c2, t1); real ids still pass through. */
+  refs?: RefMap;
 }
 
 export interface ValidateError {
@@ -49,6 +52,58 @@ export interface ValidateResult {
   checks: PlanCheck[];
   /** Compiled ops for `changes`, ready for `applyOps`/the approve transaction — empty when `errors` isn't empty. */
   ops: PlanOp[];
+  /** The changes with short refs replaced by real ids — what gets stored. */
+  changes: PlanChange[];
+}
+
+const SHORT_REF = /^[bct]\d+$/;
+
+/**
+ * Replaces context refs with real ids. A value that looks like a ref but isn't in the map is
+ * `unknown_ref`; a temp id from a `create_category` in the same draft wins over a category ref.
+ */
+function resolveRefs(changes: PlanChange[], refs: RefMap, errors: ValidateError[]): PlanChange[] {
+  const temps = new Set(
+    changes.filter((c) => c.kind === 'create_category').map((c) => c.new_category.temp_id),
+  );
+  return changes.map((change, index) => {
+    const map = (value: string, table: Record<string, string>, allowTemp = false) => {
+      if (allowTemp && temps.has(value)) return value;
+      const hit = table[value];
+      if (hit) return hit;
+      if (SHORT_REF.test(value)) {
+        errors.push({
+          change_index: index,
+          code: 'unknown_ref',
+          message: `${value} isn’t in the schedule context. Use a ref from it.`,
+        });
+      }
+      return value;
+    };
+    switch (change.kind) {
+      case 'update_term':
+        return { ...change, term_id: map(change.term_id, refs.terms) };
+      case 'new':
+        return { ...change, category_id: map(change.category_id, refs.categories, true) };
+      case 'changed':
+        return {
+          ...change,
+          block_ref: map(change.block_ref, refs.blocks),
+          fields: change.fields.category_id
+            ? {
+                ...change.fields,
+                category_id: map(change.fields.category_id, refs.categories, true),
+              }
+            : change.fields,
+        };
+      case 'moved':
+      case 'removed':
+      case 'skip':
+        return { ...change, block_ref: map(change.block_ref, refs.blocks) };
+      default:
+        return change;
+    }
+  });
 }
 
 const MAX_RANGE_DAYS = 120;
@@ -172,10 +227,12 @@ export function validate(
   input: { request_text: string; changes: PlanChange[] },
   ctx: ValidateContext,
 ): ValidateResult {
-  const { request_text, changes } = input;
+  const { request_text } = input;
   const profile = { ...DEFAULT_PROFILE, ...ctx.profile };
   const errors: ValidateError[] = [];
   const checks: PlanCheck[] = [];
+  const changes = ctx.refs ? resolveRefs(input.changes, ctx.refs, errors) : input.changes;
+  if (errors.length > 0) return { errors, checks, ops: [], changes };
 
   const maxChanges = PROPOSE_CHANGES_LIMITS[ctx.source];
   if (changes.length > maxChanges) {
@@ -333,7 +390,7 @@ export function validate(
     }
   });
 
-  if (errors.length > 0) return { errors, checks, ops: [] };
+  if (errors.length > 0) return { errors, checks, ops: [], changes };
 
   // From here, structural references all resolve, so planOps/applyOps won't throw.
   const ops = planOps(changes, ctx.data, ctx.today);
@@ -390,5 +447,5 @@ export function validate(
     });
   }
 
-  return { errors, checks, ops };
+  return { errors, checks, ops, changes };
 }

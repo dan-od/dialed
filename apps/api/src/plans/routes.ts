@@ -63,9 +63,18 @@ export function plansRoutes(
     if (!existing) {
       const byo = byoHeaders(req);
       startPlanRun({
-        db, config, planService: service, planId, userId, requestText: body.request_text,
-        timeZone: tz, now, providerMode: body.provider_mode, provider: body.provider,
-        ...byo, log: (o) => req.log.info(o),
+        db,
+        config,
+        planService: service,
+        planId,
+        userId,
+        requestText: body.request_text,
+        timeZone: tz,
+        now,
+        providerMode: body.provider_mode,
+        provider: body.provider,
+        ...byo,
+        log: (o) => req.log.info(o),
       }).catch((err) => {
         req.log.error({ err: { message: (err as Error).message } }, 'plan run error');
       });
@@ -96,15 +105,25 @@ export function plansRoutes(
     const tz = await userTz(userId);
     const {
       rows: [plan],
-    } = await db.execute(sql`select request_text, provider_mode, provider from plans where id = ${id}`);
+    } = await db.execute(
+      sql`select request_text, provider_mode, provider from plans where id = ${id}`,
+    );
     const planRow = plan as Record<string, unknown> | undefined;
     const requestText = String(planRow?.request_text ?? '');
     const byo = byoHeaders(req);
     startPlanRun({
-      db, config, planService: service, planId: id, userId, requestText, timeZone: tz, now,
-      providerMode: (String(planRow?.provider_mode ?? 'server')) as 'server' | 'byo',
+      db,
+      config,
+      planService: service,
+      planId: id,
+      userId,
+      requestText,
+      timeZone: tz,
+      now,
+      providerMode: String(planRow?.provider_mode ?? 'server') as 'server' | 'byo',
       provider: planRow?.provider ? String(planRow.provider) : undefined,
-      ...byo, log: (o) => req.log.info(o),
+      ...byo,
+      log: (o) => req.log.info(o),
     }).catch((err) => {
       req.log.error({ err: { message: (err as Error).message } }, 'plan run error');
     });
@@ -121,15 +140,25 @@ export function plansRoutes(
     const tz = await userTz(userId);
     const {
       rows: [plan],
-    } = await db.execute(sql`select request_text, provider_mode, provider from plans where id = ${id}`);
+    } = await db.execute(
+      sql`select request_text, provider_mode, provider from plans where id = ${id}`,
+    );
     const planRow = plan as Record<string, unknown> | undefined;
     const requestText = String(planRow?.request_text ?? '');
     const byo = byoHeaders(req);
     startPlanRun({
-      db, config, planService: service, planId: id, userId, requestText, timeZone: tz, now,
-      providerMode: (String(planRow?.provider_mode ?? 'server')) as 'server' | 'byo',
+      db,
+      config,
+      planService: service,
+      planId: id,
+      userId,
+      requestText,
+      timeZone: tz,
+      now,
+      providerMode: String(planRow?.provider_mode ?? 'server') as 'server' | 'byo',
       provider: planRow?.provider ? String(planRow.provider) : undefined,
-      ...byo, log: (o) => req.log.info(o),
+      ...byo,
+      log: (o) => req.log.info(o),
     }).catch((err) => {
       req.log.error({ err: { message: (err as Error).message } }, 'plan run error');
     });

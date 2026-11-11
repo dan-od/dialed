@@ -38,6 +38,8 @@ export interface ProviderStepResult {
 export interface PlanProvider {
   id: string;
   displayName: string;
+  /** Model id, for per-run logs. */
+  model?: string;
   supportsVision: boolean;
   run(opts: ProviderRunOpts): Promise<ProviderStepResult>;
 }

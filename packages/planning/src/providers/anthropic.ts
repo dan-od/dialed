@@ -14,6 +14,7 @@ export function createAnthropicProvider(opts: AnthropicProviderOpts): PlanProvid
   return {
     id: 'anthropic',
     displayName: 'Claude',
+    model: opts.model,
     supportsVision: true,
 
     async run(runOpts: ProviderRunOpts): Promise<ProviderStepResult> {
@@ -55,7 +56,13 @@ export function createAnthropicProvider(opts: AnthropicProviderOpts): PlanProvid
       const body = JSON.stringify({
         model: opts.model,
         max_tokens: runOpts.maxTokens,
-        system: runOpts.system,
+        ...(runOpts.system
+          ? {
+              system: [
+                { type: 'text', text: runOpts.system, cache_control: { type: 'ephemeral' } },
+              ],
+            }
+          : {}),
         messages,
         ...(tools.length > 0 ? { tools } : {}),
       });
@@ -94,7 +101,12 @@ export function createAnthropicProvider(opts: AnthropicProviderOpts): PlanProvid
           name?: string;
           input?: unknown;
         }>;
-        usage: { input_tokens: number; output_tokens: number };
+        usage: {
+          input_tokens: number;
+          output_tokens: number;
+          cache_read_input_tokens?: number;
+          cache_creation_input_tokens?: number;
+        };
       };
 
       let content = '';
@@ -114,7 +126,11 @@ export function createAnthropicProvider(opts: AnthropicProviderOpts): PlanProvid
       return {
         content,
         tool_calls: toolCalls,
-        tokens_in: data.usage.input_tokens,
+        // input_tokens excludes cached reads/writes; count them so limits and logs see the whole prompt.
+        tokens_in:
+          data.usage.input_tokens +
+          (data.usage.cache_read_input_tokens ?? 0) +
+          (data.usage.cache_creation_input_tokens ?? 0),
         tokens_out: data.usage.output_tokens,
       };
     },

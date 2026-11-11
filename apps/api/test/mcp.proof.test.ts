@@ -478,6 +478,7 @@ describe('propose_changes', () => {
     expect(names).not.toContain('ask_user');
     expect(names.sort()).toEqual(
       [
+        'get_context',
         'get_recent_plans',
         'get_schedule',
         'list_categories',
@@ -485,6 +486,66 @@ describe('propose_changes', () => {
         'propose_changes',
       ].sort(),
     );
+  });
+});
+
+describe('get_context and refs (D-123)', () => {
+  async function getContext(access: string) {
+    const r = await mcp(access, 'tools/call', { name: 'get_context', arguments: {} });
+    expect(r.status).toBe(200);
+    const text = r.json.result.content[0].text as string;
+    const id = /context_id (\S+)$/.exec(text)![1]!;
+    const studyRef = /^(c\d+) Study \(/m.exec(text)![1]!;
+    return { text, id, studyRef };
+  }
+
+  it('returns the plain-text planning context with refs and a context_id', async () => {
+    const { access } = await connect(ALICE.email, 'Context Reader');
+    const { text, id } = await getContext(access);
+    expect(text.startsWith('DIALED CONTEXT rev ')).toBe(true);
+    expect(text).toContain('\nCATEGORIES');
+    expect(text).toMatch(/\n {2}b\d+ \d\d:\d\d-\d\d:\d\d /);
+    expect(text).not.toContain(BOB_PROBE_BLOCK);
+    expect(id).toMatch(/^\d+\.\d{4}-\d\d-\d\d$/);
+  });
+
+  it('propose_changes maps context refs to real ids before storing', async () => {
+    const { access } = await connect(ALICE.email, 'Ref Mapper');
+    const { id, studyRef } = await getContext(access);
+    const r = await tool(access, 'propose_changes', {
+      request_text: 'add a ref block',
+      context_id: id,
+      changes: [{ ...validChange('Ref block'), category_id: studyRef }],
+    });
+    expect(r.status).toBe('ready');
+    const { rows } = await t.pool.query(
+      `select pc.payload_json from plan_changes pc join plans p on p.id = pc.plan_id
+       where p.user_id = $1 and pc.title = 'Ref block'`,
+      [ALICE.id],
+    );
+    expect(rows[0].payload_json.category_id).toBe(ALICE_STUDY);
+  });
+
+  it('refs from an older context are refused with context_stale', async () => {
+    const { access } = await connect(ALICE.email, 'Stale Client');
+    const { studyRef } = await getContext(access);
+    const r = await tool(access, 'propose_changes', {
+      request_text: 'stale refs',
+      context_id: '0.2000-01-01',
+      changes: [{ ...validChange('Stale'), category_id: studyRef }],
+    });
+    expect(r.status).toBe('invalid');
+    expect((r.errors as { code: string }[])[0]!.code).toBe('context_stale');
+  });
+
+  it('an unknown ref is rejected by the validator', async () => {
+    const { access } = await connect(ALICE.email, 'Unknown Ref');
+    const r = await tool(access, 'propose_changes', {
+      request_text: 'unknown ref',
+      changes: [{ ...validChange('Ghost'), category_id: 'c99' }],
+    });
+    expect(r.status).toBe('invalid');
+    expect((r.errors as { code: string }[])[0]!.code).toBe('unknown_ref');
   });
 });
 

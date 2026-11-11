@@ -8,6 +8,15 @@ function minutesToClock(min: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+/** `{"max_work_hours_per_day":12}` -> "- max work hours per day: 12"; strings pass through. */
+function formatLimits(limits: unknown): string {
+  if (limits == null) return '';
+  if (typeof limits !== 'object') return String(limits);
+  return Object.entries(limits as Record<string, unknown>)
+    .map(([k, v]) => `- ${k.replace(/_/g, ' ')}: ${String(v)}`)
+    .join('\n');
+}
+
 export function renderGuide(template: string, user: Row): string {
   const profileJson = (user.profile_json ?? {}) as Record<string, unknown>;
 
@@ -20,7 +29,7 @@ export function renderGuide(template: string, user: Row): string {
     quiet_hours: `${minutesToClock(Number(user.quiet_start_min))} to ${minutesToClock(Number(user.quiet_end_min))}`,
     parts_of_day: String(profileJson.parts_of_day ?? ''),
     custom_phrases: String(profileJson.custom_phrases ?? ''),
-    limits: String(profileJson.limits ?? ''),
+    limits: formatLimits(profileJson.limits),
   };
 
   return baseRender(template, profile);

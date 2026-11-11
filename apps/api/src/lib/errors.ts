@@ -57,7 +57,8 @@ const MESSAGES: Partial<Record<ErrorCode, string>> = {
   provider_error: 'Couldn’t reach the AI provider. Try again.',
   provider_key_invalid: 'That AI key was refused. Check it in Settings.',
   byo_key_required: 'Add your own AI key in Settings to plan this way.',
-  byo_key_unavailable: 'Your AI key is needed for this plan but was not sent. Open the plan in the app to retry.',
+  byo_key_unavailable:
+    'Your AI key is needed for this plan but was not sent. Open the plan in the app to retry.',
   vision_unavailable:
     'Your AI provider can’t read images. Use a text PDF or Word file, or set up a vision-capable provider.',
   file_unsupported: 'Use a photo, screenshot, PDF or Word file under 15 MB.',

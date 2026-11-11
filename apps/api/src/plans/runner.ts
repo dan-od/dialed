@@ -3,11 +3,19 @@ import { join } from 'node:path';
 import { assetRoot } from '../lib/assets';
 import { sql } from 'drizzle-orm';
 import { localNow, type ScheduleData } from '@dialed/schedule';
-import { runPlan, loadFixtures, PLAN_TOOL_SCHEMAS, type ToolContext } from '@dialed/planning';
+import {
+  runPlan,
+  loadFixtures,
+  PLAN_TOOL_SCHEMAS,
+  READ_TOOL_SCHEMAS,
+  type ToolContext,
+} from '@dialed/planning';
 import type { Db } from '../db/pool';
 import type { Config } from '../config';
 import { PlanService } from './service';
 import { createPlanProvider } from './provider-factory';
+import { contextFor } from './context-cache';
+import { renderGuide } from '../mcp/guide';
 
 type Row = Record<string, unknown>;
 
@@ -81,7 +89,8 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
     const {
       rows: [user],
     } = await db.execute<Row>(
-      sql`select day_start_min, day_end_min, quiet_start_min, quiet_end_min from users where id = ${userId}`,
+      sql`select display_name, profile_json, day_start_min, day_end_min, quiet_start_min, quiet_end_min
+        from users where id = ${userId}`,
     );
 
     const ctx: ToolContext = {
@@ -117,15 +126,22 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
       content: String(m.body),
     }));
 
-    const toolSchemas = config.AI_MODE === 'fixture' ? [] : PLAN_TOOL_SCHEMAS;
+    const toolSchemas =
+      config.AI_MODE === 'fixture' ? [] : [...PLAN_TOOL_SCHEMAS, ...READ_TOOL_SCHEMAS];
+    const context = contextFor(userId, ctx);
+    let turns = 0;
 
     const result = await runPlan({
       provider: planProvider,
-      guide: guideTemplate,
+      guide: user ? renderGuide(guideTemplate, user) : guideTemplate,
       request: requestText,
       history,
       toolSchemas,
       ctx,
+      context,
+      onStep: (step) => {
+        if (step.kind === 'call') turns++;
+      },
       skipValidation: config.AI_MODE === 'fixture' && !!process.env.DEV_CLOCK,
       signal: ctrl.signal,
       limits: { maxTokens: config.PLAN_MAX_TOKENS },
@@ -136,7 +152,10 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
       kind: 'plan.run',
       planId,
       provider: planProvider.id,
+      model: planProvider.model,
       providerMode: opts.providerMode,
+      contextTokens: context.tokens,
+      turns,
       tokensIn: result.tokensIn,
       tokensOut: result.tokensOut,
       durationMs,

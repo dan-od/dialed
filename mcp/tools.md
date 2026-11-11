@@ -18,6 +18,9 @@ Server name `dialed`, version from package. Transport: Streamable HTTP at `${PUB
 ## Tools
 All times are local wall-clock `HH:MM` 24h on a 5-minute grid; dates `YYYY-MM-DD` in the user's time zone. Read tools are annotated `readOnlyHint: true`.
 
+### `get_context` → plain text (D-123)
+The same schedule context the in-app engine puts in its first message: today and the next 14 days resolved, one line per block (`ref start-end title category flags`, `P` protected, `Q` quiet, `-` = one-off with no ref), then terms (`t1…`), categories (`c1…`) and the day limits. Ends with `context_id <revision>.<first date>`. Refs are stable for one revision and day. In `propose_changes`, `block_ref`, `category_id`, `term_id` and `fields.category_id` accept these refs or real ids; pass `context_id` so stale refs are refused (`context_stale`) instead of guessed. A typical week is well under 2k tokens.
+
 ### `list_terms` → `{ terms: [{ id, name, starts_on, ends_on, status }] }`
 
 ### `get_schedule`
@@ -34,6 +37,7 @@ Input:
 {
   "proposal_id": "optional uuid — same id revises an earlier draft",
   "request_text": "the person's words, verbatim",
+  "context_id": "optional — from get_context; required for refs to be checked against the right revision",
   "changes": [
     {
       "kind": "new | moved | changed | removed | skip | create_category | create_term | update_term",
@@ -59,13 +63,13 @@ Output: `{ proposal_id, status: "ready" | "invalid", errors: [{ change_index, co
 
 `palette` is one of the Design_Identity palette names (Orange, Amber, Wheat, Coral, Blue, Teal, Lime, Mint, Sky, Rose, Sand); the server maps it to the dark/light colour pair. `proposal_id` and the plan `version` are stored on `plans`.
 
-Validator error codes: `bad_time`, `overlap`, `protected_block`, `unknown_block`, `unknown_category`, `too_many_changes`, `range_too_long`, `duplicate_change`. Soft checks (reported in `checks`, never errors): `outside_term` (uncovered dates dropped), `day_bounds`, `quiet_hours`, profile limits.
+Validator error codes: `bad_time`, `overlap`, `protected_block`, `unknown_block`, `unknown_category`, `unknown_ref` (a ref that isn't in the context), `context_stale` (refs from an older `get_context`), `too_many_changes`, `range_too_long`, `duplicate_change`. Soft checks (reported in `checks`, never errors): `outside_term` (uncovered dates dropped), `day_bounds`, `quiet_hours`, profile limits.
 
 ### `ask_user` (in-app engine only; not exposed over MCP)
 Input `{ question, options: [string, string, string?] }` → plan status `question`; the app shows "One quick question".
 
 ## Limits
-60 tool calls/min per token; 20 `ready` drafts/day per client per user; 25 changes per draft; `get_schedule` ≤ 120 days.
+60 tool calls/min per token; 20 `ready` drafts/day per client per user; 25 changes per draft; `get_schedule` ≤ 120 days. In-app, `get_schedule` only answers dates outside the context window.
 
 ## On `ready` from MCP
 Server stores the plan (`source: mcp`, `client_name` from OAuth client), enqueues `push.chat_draft` → notification "<Client> sent a plan from chat · 3 changes to Fall term. Review and approve here." → opens Review (Flow 06).

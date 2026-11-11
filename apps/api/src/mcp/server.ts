@@ -6,20 +6,29 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { localNow, resolveRange, type IsoDate, type ScheduleData } from '@dialed/schedule';
-import { validate, type ValidateProfile } from '@dialed/planning';
+import { localNow, type IsoDate, type ScheduleData } from '@dialed/schedule';
+import {
+  getSchedule,
+  listCategories,
+  listTerms,
+  scheduleRangeError,
+  validate,
+  type PlanningContext,
+  type ToolContext,
+  type ValidateProfile,
+} from '@dialed/planning';
 import type { PlanChange, PlanCheck } from '@dialed/contracts';
 import type { Db } from '../db/pool';
 import type { Config } from '../config';
 import type { OAuthService } from '../oauth/service';
 import { enqueue } from '../jobs/enqueue';
 import { renderGuide } from './guide';
+import { contextFor } from '../plans/context-cache';
 
 type Row = Record<string, unknown>;
 
 const MCP_CALL_LIMIT = 60;
 const MCP_DRAFT_DAILY_LIMIT = 20;
-const MAX_SCHEDULE_DAYS = 120;
 
 // Per-token rate counter (in-process)
 const tokenCalls = new Map<string, number[]>();
@@ -70,6 +79,26 @@ export function mountMcp(
       rows: [r],
     } = await db.execute<Row>(sql`select revision from revisions where user_id = ${userId}`);
     return r ? Number(r.revision) : 0;
+  }
+
+  async function planningCtx(userId: string): Promise<{ ctx: ToolContext }> {
+    const [data, user, revision] = await Promise.all([
+      loadScheduleData(userId),
+      getUserProfile(userId),
+      getRevision(userId),
+    ]);
+    const timeZone = user ? String(user.time_zone) : 'America/Toronto';
+    const profile: ValidateProfile | undefined = user
+      ? {
+          day_start_min: Number(user.day_start_min),
+          day_end_min: Number(user.day_end_min),
+          quiet_start_min: Number(user.quiet_start_min),
+          quiet_end_min: Number(user.quiet_end_min),
+        }
+      : undefined;
+    return {
+      ctx: { data, today: localNow(now(), timeZone).date, source: 'mcp', revision, timeZone, profile },
+    };
   }
 
   // One MCP server per request, bound to the verified caller. A shared server reconnected per request
@@ -132,37 +161,33 @@ export function mountMcp(
       },
     );
 
+    // Tool: get_context — the same planning context the in-app engine preloads (D-123)
+    mcpServer.registerTool(
+      'get_context',
+      {
+        description:
+          'Your schedule for today and the next 14 days, one line per block, plus terms, categories and ' +
+          'limits. Use its short refs (b1, c2, t1) in propose_changes and pass its context_id. Call this first.',
+        inputSchema: {},
+      },
+      async () => {
+        await auditRead('get_context');
+        const { ctx } = await planningCtx(caller.userId);
+        const context = contextFor(caller.userId, ctx);
+        return {
+          content: [{ type: 'text' as const, text: `${context.text}\n\ncontext_id ${contextId(context)}` }],
+        };
+      },
+    );
+
     // Tool: list_terms
     mcpServer.registerTool(
       'list_terms',
       { description: 'All terms with dates and status.', inputSchema: {} },
       async () => {
-        const userId = caller.userId;
         await auditRead('list_terms');
-        const today = localNow(now(), 'UTC').date;
-        const { rows } = await db.execute<Row>(
-          sql`select id, name, starts_on, ends_on from terms where user_id = ${userId} order by starts_on`,
-        );
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify({
-                terms: rows.map((t) => ({
-                  id: String(t.id),
-                  name: String(t.name),
-                  starts_on: String(t.starts_on),
-                  ends_on: String(t.ends_on),
-                  status: termStatus(
-                    String(t.starts_on) as IsoDate,
-                    String(t.ends_on) as IsoDate,
-                    today as IsoDate,
-                  ),
-                })),
-              }),
-            },
-          ],
-        };
+        const { ctx } = await planningCtx(caller.userId);
+        return jsonText(listTerms(ctx.data, ctx.today));
       },
     );
 
@@ -171,65 +196,16 @@ export function mountMcp(
       'get_schedule',
       {
         description:
-          "Routines, blocks, and per-day totals for a date range. Times are in the user's time zone.",
+          "Resolved days (routine + one-off changes) for an inclusive date range, in the user's time zone. " +
+          'get_context already covers today and the next 14 days.',
         inputSchema: { from: z.string(), to: z.string() },
       },
       async (args) => {
-        const userId = caller.userId;
         await auditRead('get_schedule');
-        const from = args.from as IsoDate;
-        const to = args.to as IsoDate;
-
-        const dayCount = daysBetweenDates(from, to);
-        if (dayCount > MAX_SCHEDULE_DAYS) {
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: JSON.stringify({
-                  error: 'range_too_long',
-                  message: `Maximum ${MAX_SCHEDULE_DAYS} days.`,
-                }),
-              },
-            ],
-            isError: true,
-          };
-        }
-
-        const data = await loadScheduleData(userId);
-        const user = await getUserProfile(userId);
-        const tz = user ? String(user.time_zone) : 'America/Toronto';
-        const revision = await getRevision(userId);
-
-        const days = resolveRange(from, dayCount, data);
-
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify({
-                time_zone: tz,
-                revision,
-                days: days.map((d) => ({
-                  date: d.date,
-                  weekday: d.weekday,
-                  term_id: d.term_id,
-                  blocks: d.blocks.map((b) => ({
-                    key: b.key,
-                    routine_block_id: b.routine_block_id ?? null,
-                    title: b.title,
-                    category_id: b.category_id,
-                    start: minutesToClock(b.start_min),
-                    end: minutesToClock(b.end_min),
-                    quiet: b.quiet,
-                    protected: b.protected,
-                    source: b.source,
-                  })),
-                })),
-              }),
-            },
-          ],
-        };
+        const bad = scheduleRangeError(String(args.from), String(args.to));
+        if (bad) return { ...jsonText(bad), isError: true };
+        const { ctx } = await planningCtx(caller.userId);
+        return jsonText(getSchedule(ctx.data, String(args.from), String(args.to), ctx));
       },
     );
 
@@ -241,34 +217,9 @@ export function mountMcp(
         inputSchema: {},
       },
       async () => {
-        const userId = caller.userId;
         await auditRead('list_categories');
-        const { rows } = await db.execute<Row>(
-          sql`select c.id, c.name, c.group_name, c.color_dark, c.quiet, c.protected,
-            coalesce((select round(avg(((rb.end_min - rb.start_min) + 1440) % 1440))::int
-                      from routine_blocks rb
-                      where rb.category_id = c.id and rb.user_id = c.user_id and rb.deleted_at is null), 60)
-              as usual_minutes
-          from categories c where c.user_id = ${userId} and c.deleted_at is null order by c.sort`,
-        );
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify({
-                categories: rows.map((c) => ({
-                  id: String(c.id),
-                  name: String(c.name),
-                  group: String(c.group_name),
-                  color: String(c.color_dark),
-                  quiet: Boolean(c.quiet),
-                  protected: Boolean(c.protected),
-                  usual_minutes: Number(c.usual_minutes),
-                })),
-              }),
-            },
-          ],
-        };
+        const { ctx } = await planningCtx(caller.userId);
+        return jsonText(listCategories(ctx.data));
       },
     );
 
@@ -317,6 +268,7 @@ export function mountMcp(
         inputSchema: {
           proposal_id: z.string().uuid().optional(),
           request_text: z.string().min(1).max(4000),
+          context_id: z.string().max(64).optional(),
           changes: z.array(z.record(z.string(), z.unknown())).min(1).max(25),
           checks: z
             .array(z.object({ id: z.string(), passed: z.boolean(), detail: z.string() }))
@@ -356,26 +308,34 @@ export function mountMcp(
           };
         }
 
-        const data = await loadScheduleData(userId);
-        const user = await getUserProfile(userId);
-        const revision = await getRevision(userId);
+        const { ctx: pctx } = await planningCtx(userId);
+        const { data, revision, profile } = pctx;
+        const context = contextFor(userId, pctx);
 
-        const profile: ValidateProfile | undefined = user
-          ? {
-              day_start_min: Number(user.day_start_min),
-              day_end_min: Number(user.day_end_min),
-              quiet_start_min: Number(user.quiet_start_min),
-              quiet_end_min: Number(user.quiet_end_min),
-            }
-          : undefined;
-
-        const changes = args.changes as PlanChange[];
+        const rawChanges = args.changes as PlanChange[];
         const checks = (args.checks ?? []) as PlanCheck[];
 
+        // Refs are only meaningful against the context they came from.
+        if (args.context_id && args.context_id !== contextId(context) && usesShortRefs(rawChanges)) {
+          return jsonText({
+            proposal_id: args.proposal_id ?? null,
+            status: 'invalid',
+            errors: [
+              {
+                change_index: -1,
+                code: 'context_stale',
+                message: 'The schedule changed since get_context. Call it again and use the new refs.',
+              },
+            ],
+            review_hint: null,
+          });
+        }
+
         const result = validate(
-          { request_text: args.request_text as string, changes },
-          { data, today: today as IsoDate, source: 'mcp', profile },
+          { request_text: args.request_text as string, changes: rawChanges },
+          { data, today: today as IsoDate, source: 'mcp', profile, refs: context.refs },
         );
+        const changes = result.changes;
 
         if (result.errors.length > 0) {
           return {
@@ -625,20 +585,11 @@ function loadGuideTemplate(): string {
   return readFileSync(join(assetRoot(), 'mcp', 'planning-guide.md'), 'utf8');
 }
 
-function termStatus(startsOn: IsoDate, endsOn: IsoDate, today: IsoDate): string {
-  if (endsOn < today) return 'past';
-  if (startsOn <= today && endsOn >= today) return 'active';
-  return 'upcoming';
-}
+const jsonText = (obj: unknown) => ({ content: [{ type: 'text' as const, text: JSON.stringify(obj) }] });
 
-function daysBetweenDates(from: string, to: string): number {
-  const a = new Date(from);
-  const b = new Date(to);
-  return Math.ceil((b.getTime() - a.getTime()) / 86_400_000) + 1;
-}
+/** Identifies the exact context a client planned from: refs shift when the revision or the day changes. */
+const contextId = (c: PlanningContext) => `${c.revision}.${c.from}`;
 
-function minutesToClock(min: number): string {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+function usesShortRefs(changes: PlanChange[]): boolean {
+  return /"(block_ref|category_id|term_id)":"[bct]\d+"/.test(JSON.stringify(changes));
 }

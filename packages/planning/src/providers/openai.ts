@@ -14,6 +14,7 @@ export function createOpenAIProvider(opts: OpenAIProviderOpts): PlanProvider {
   return {
     id: opts.baseUrl ? 'custom' : 'openai',
     displayName: opts.baseUrl ? 'Custom' : 'OpenAI',
+    model: opts.model,
     supportsVision: true,
 
     async run(runOpts: ProviderRunOpts): Promise<ProviderStepResult> {

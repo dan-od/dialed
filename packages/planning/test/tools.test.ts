@@ -10,7 +10,10 @@ describe('PLAN_TOOL_SCHEMAS', () => {
   it('propose_changes has a non-empty input_schema with changes', () => {
     const propose = PLAN_TOOL_SCHEMAS.find((t) => t.name === 'propose_changes')!;
     expect(propose.description.length).toBeGreaterThan(0);
-    const schema = propose.input_schema as { properties: Record<string, unknown>; required: string[] };
+    const schema = propose.input_schema as {
+      properties: Record<string, unknown>;
+      required: string[];
+    };
     expect(schema.properties).toHaveProperty('changes');
     expect(schema.required).toContain('changes');
   });

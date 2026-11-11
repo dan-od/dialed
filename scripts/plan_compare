@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Compare planning models on the same requests and schedule context (D-123). Uses ANTHROPIC_API_KEY and
+# DATABASE_URL from .env, calls the Anthropic API (a few cents per run) and stores nothing in the database.
+# Usage:
+#   ./scripts/plan_compare claude-haiku-5-5 claude-sonnet-5-5
+#   ./scripts/plan_compare claude-haiku-5-5 claude-sonnet-5-5 --email=you@example.com --requests=/path/requests.txt
+# requests.txt: one request per line. Drafts land in /tmp/dialed-plan-compare/<model>.json.
+source "$(dirname "$0")/lib/common.sh"
+ensure_node
+load_env
+[[ $# -ge 1 ]] || die "Usage: $0 <model> [<model> …] [--email=…] [--requests=file]"
+[[ -n "${ANTHROPIC_API_KEY:-}" ]] || die "ANTHROPIC_API_KEY is not set in .env."
+cd "$ROOT"
+tsx apps/api/src/cli/plan_compare.ts "$@"

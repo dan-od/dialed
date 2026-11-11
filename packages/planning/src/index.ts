@@ -10,4 +10,6 @@ export * from './providers/openai';
 export * from './providers/gemini';
 export * from './providers/compat';
 export * from './tools';
+export * from './context';
+export * from './read-tools';
 export * from './timetable';
