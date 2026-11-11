@@ -29,8 +29,11 @@ case "$TARGET" in
     APP="$(find "$DD/Build/Products/Release-iphonesimulator" -maxdepth 1 -name '*.app' | head -1)"
     ;;
   device)
-    log "Building Release for the connected iPhone (log: $LOG). Signing uses the team set in Xcode."
-    npx expo run:ios --configuration Release --device --no-bundler >"$LOG" 2>&1 || {
+    # Pick the first paired physical device so the build works non-interactively.
+    UDID="${2:-$(xcrun devicectl list devices 2>/dev/null | awk '/physical/ && /available/ {print $2; exit}')}"
+    [[ -n "$UDID" ]] || die "No paired iPhone found. Plug in and trust it first."
+    log "Building Release for $UDID (log: $LOG). Signing uses the team set in Xcode."
+    npx expo run:ios --configuration Release --device "$UDID" --no-bundler >"$LOG" 2>&1 || {
       tail -30 "$LOG" >&2
       die "Device build failed (signing? open ios/Dialed.xcworkspace → Signing & Capabilities → Personal Team)."
     }
