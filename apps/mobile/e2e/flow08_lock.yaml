@@ -3,8 +3,8 @@ appId: com.apple.springboard
 ---
 - pressKey: lock
 - waitForAnimationToEnd: { timeout: 3000 }
-- tapOn: { point: "50%,50%" }
+- tapOn: { point: '50%,50%' }
 - waitForAnimationToEnd: { timeout: 3000 }
 - takeScreenshot: f08-lock-${STATE}
-- swipe: { start: "50%,95%", end: "50%,40%", duration: 300 }
+- swipe: { start: '50%,95%', end: '50%,40%', duration: 300 }
 - pressKey: home

@@ -12,3 +12,5 @@ verification
 mcp
 .github
 apps/mobile/expo-env.d.ts
+# Byte-exact parity fixtures (glanceNative.test.ts, Swift decode tests)
+apps/mobile/native-tests/glance/fixtures

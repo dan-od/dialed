@@ -3,11 +3,11 @@ appId: com.apple.springboard
 ---
 - pressKey: home
 - longPressOn:
-    point: "50%,85%"
-- extendedWaitUntil: { visible: "Edit", timeout: 10000 }
-- tapOn: "Edit"
-- extendedWaitUntil: { visible: "Add Widget", timeout: 10000 }
-- tapOn: "Add Widget"
-- extendedWaitUntil: { visible: "Search Widgets", timeout: 10000 }
-- tapOn: { text: "Dialed", index: 0 }
-- extendedWaitUntil: { visible: "page 1 of 4", timeout: 10000 }
+    point: '50%,85%'
+- extendedWaitUntil: { visible: 'Edit', timeout: 10000 }
+- tapOn: 'Edit'
+- extendedWaitUntil: { visible: 'Add Widget', timeout: 10000 }
+- tapOn: 'Add Widget'
+- extendedWaitUntil: { visible: 'Search Widgets', timeout: 10000 }
+- tapOn: { text: 'Dialed', index: 0 }
+- extendedWaitUntil: { visible: 'page 1 of 4', timeout: 10000 }

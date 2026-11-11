@@ -2,7 +2,7 @@ appId: me.okoro.dialed
 ---
 - launchApp
 # Dev-only: write the seed Monday at MINUTE for the widgets and start its Live Activity locally (dev-glance.tsx).
-- openLink: "dialed://dev-glance?minute=${MINUTE}&la=1"
+- openLink: 'dialed://dev-glance?minute=${MINUTE}&la=1'
 - extendedWaitUntil:
-    visible: "Glance.*"
+    visible: 'Glance.*'
     timeout: 30000

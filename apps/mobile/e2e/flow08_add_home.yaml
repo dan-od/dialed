@@ -2,11 +2,11 @@
 appId: com.apple.springboard
 ---
 - runFlow: _flow08_gallery.yaml
-- tapOn: " Add Widget"
+- tapOn: ' Add Widget'
 - waitForAnimationToEnd
 - runFlow: _flow08_gallery.yaml
-- swipe: { start: "85%,58%", end: "15%,58%", duration: 300 }
-- extendedWaitUntil: { visible: "Dialed, Up next", timeout: 5000 }
-- tapOn: " Add Widget"
+- swipe: { start: '85%,58%', end: '15%,58%', duration: 300 }
+- extendedWaitUntil: { visible: 'Dialed, Up next', timeout: 5000 }
+- tapOn: ' Add Widget'
 - waitForAnimationToEnd
-- tapOn: "Done"
+- tapOn: 'Done'
