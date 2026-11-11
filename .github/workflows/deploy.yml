@@ -1,0 +1,102 @@
+# Deploy Dialed to the home lab (Homelab Hosting Playbook §6.4; checklist: infra/homelab/README.md).
+#
+# Off until the owner turns it on: the job runs only when the repo variable DEPLOY_ENABLED is "true"
+# (Settings → Secrets and variables → Actions → Variables), so pushing this file deploys nothing.
+#
+# Repo secrets (Settings → Secrets and variables → Actions → Secrets):
+#   TS_OAUTH_CLIENT_ID, TS_OAUTH_SECRET  Tailscale OAuth client, scope Auth Keys: Write, tag tag:ci (reusable)
+#   DEPLOY_HOST                          100.76.5.106
+#   DEPLOY_USER                          root
+#   DEPLOY_SSH_KEY                       dedicated ed25519 private key for this repo (playbook §6.4, from= tailnet)
+#   DEPLOY_KNOWN_HOSTS                   output of `ssh-keyscan -t ed25519 100.76.5.106`, run from proxmox2
+#   POSTGRES_PASSWORD                    from the host's .env (scripts/homelab-init); hex, no $
+#   CODE_PEPPER                          from the host's .env (64 hex chars)
+#   ADMIN_TOKEN                          from the host's .env
+#   JWT_KEY_ID                           from the host's .env; must match .secrets/jwt-ed25519.pem on the host
+#   SMTP_URL                             Resend SMTP URL, smtps://resend:<api key>@smtp.resend.com:465
+#   EMAIL_FROM                           Dialed <no-reply@okoro.me>
+#   ANTHROPIC_API_KEY                    server key (owner pays; set a monthly spend limit in the console)
+#   BACKUP_DIR                           backup folder on the 2 TB drive, e.g. /mnt/backup/dialed
+#
+# The JWT signing key never leaves the host: .secrets/ is excluded from rsync, like .env.
+name: Deploy dialed
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency: deploy-dialed
+
+jobs:
+  deploy:
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Join tailnet
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: SSH setup
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Sync code
+        run: |
+          rsync -az --delete \
+            --exclude='.git' --exclude='node_modules' --exclude='__pycache__' --exclude='.env' \
+            --exclude='.secrets' --exclude='backups' \
+            ./ ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/docker-homelab/sites/dialed/
+
+      - name: Write .env
+        run: |
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "umask 077; cat > /opt/docker-homelab/sites/dialed/.env" <<'EOF'
+          COMPOSE_FILE=infra/docker-compose.yml
+          COMPOSE_PROFILES=prod
+          NODE_ENV=production
+          APP_NAME=Dialed
+          PUBLIC_BASE_URL=https://api.okoro.me
+          PORT=8080
+          LOG_LEVEL=info
+          SIGNUP_MODE=invite
+          APPLE_TEAM_TIER=personal
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          JWT_KEY_ID=${{ secrets.JWT_KEY_ID }}
+          CODE_PEPPER=${{ secrets.CODE_PEPPER }}
+          EMAIL_TRANSPORT=smtp
+          SMTP_URL=${{ secrets.SMTP_URL }}
+          EMAIL_FROM=${{ secrets.EMAIL_FROM }}
+          APNS_MODE=log
+          AI_MODE=live
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          PLAN_MODEL_ANTHROPIC=claude-sonnet-5-5
+          PLAN_DAILY_LIMIT=30
+          IMPORT_DAILY_LIMIT=6
+          MCP_ENABLED=true
+          TRUST_PROXY_IP=172.16.0.0/12
+          ADMIN_TOKEN=${{ secrets.ADMIN_TOKEN }}
+          BACKUP_DIR=${{ secrets.BACKUP_DIR }}
+          EOF
+
+      - name: Build and restart
+        run: |
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} <<'DEPLOY'
+            set -e
+            cd /opt/docker-homelab/sites/dialed
+            docker compose up -d --build --remove-orphans
+            docker image prune -f
+            docker ps --filter name=dialed --format 'table {{.Names}}\t{{.Status}}'
+          DEPLOY
+
+      - name: Smoke test
+        run: |
+          sleep 10
+          curl -fsS -o /dev/null -w '%{http_code}\n' https://api.okoro.me/healthz
