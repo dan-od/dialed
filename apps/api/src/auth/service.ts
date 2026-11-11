@@ -2,6 +2,7 @@ import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { TokensOut } from '@dialed/contracts';
 import type { Config } from '../config';
 import type { Db, Tx } from '../db/pool';
+import { DEV_PASSWORD } from '../db/seeder';
 import { categories, devices, emailCodes, invites, sessions, users } from '../db/schema';
 import type { EmailTransport } from '../email';
 import { hashesEqual, pepperedHash, randomToken, sixDigitCode } from '../lib/crypto';
@@ -201,7 +202,9 @@ export class AuthService {
   async login(input: { email: string; password: string; time_zone?: string }): Promise<TokensOut> {
     const u = await this.findActiveUser(input.email);
     const ok = await verifyPassword(u?.password_hash ?? null, input.password);
-    if (!u || !ok) throw appError('bad_credentials');
+    // The repo's dev seed password is public: it never signs anyone in on a production server.
+    const devPassword = this.config.NODE_ENV === 'production' && input.password === DEV_PASSWORD;
+    if (!u || !ok || devPassword) throw appError('bad_credentials');
     if (!u.email_verified_at) {
       await this.assertResendAllowed(input.email, 'verify').then(
         () => this.issueCode(this.db, input.email, u.id),
