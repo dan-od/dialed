@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Standalone iOS Release build: JS bundle embedded, API = DIALED_API_URL (default https://api.okoro.me), so the
+# Standalone iOS Release build: JS bundle embedded, API = DIALED_API_URL (default https://dialed.okoro.me), so the
 # app runs with no Metro and no Mac, on cellular. See infra/homelab/README.md "iPhone app".
 # Usage:
 #   ./scripts/ios_release simulator   # unsigned Simulator build + checks (no Apple account needed)
@@ -9,7 +9,7 @@ source "$(dirname "$0")/lib/common.sh"
 ensure_node
 ensure_xcode_env
 export LANG=en_US.UTF-8
-export DIALED_API_URL="${DIALED_API_URL:-https://api.okoro.me}"
+export DIALED_API_URL="${DIALED_API_URL:-https://dialed.okoro.me}"
 [[ "$DIALED_API_URL" == https://* ]] || die "DIALED_API_URL must be https:// for a Release build (got $DIALED_API_URL)."
 TARGET="${1:-simulator}"
 LOG=/tmp/dialed-ios-release.log

@@ -63,7 +63,7 @@ jobs:
           COMPOSE_PROFILES=prod
           NODE_ENV=production
           APP_NAME=Dialed
-          PUBLIC_BASE_URL=https://api.okoro.me
+          PUBLIC_BASE_URL=https://dialed.okoro.me
           PORT=8080
           LOG_LEVEL=info
           SIGNUP_MODE=invite
@@ -99,4 +99,4 @@ jobs:
       - name: Smoke test
         run: |
           sleep 10
-          curl -fsS -o /dev/null -w '%{http_code}\n' https://api.okoro.me/healthz
+          curl -fsS -o /dev/null -w '%{http_code}\n' https://dialed.okoro.me/healthz

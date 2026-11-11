@@ -1,6 +1,6 @@
 # Dialed on the home lab — owner checklist
 
-Follows the Homelab Hosting Playbook (§4 conventions, §6 templates, §7 checklist). Public URL: **https://api.okoro.me**.
+Follows the Homelab Hosting Playbook (§4 conventions, §6 templates, §7 checklist). Public URL: **https://dialed.okoro.me**.
 
 ```
 iPhone (cellular) → Cloudflare → Tunnel homelab01 → cloudflared → nginx-proxy (dialed.conf) → dialed-api:8080
@@ -90,7 +90,7 @@ deploy into `/opt/docker-homelab` on proxmox2 itself.
 ## 3. In Cloudflare
 
 Zero Trust → Networks → Tunnels → **homelab01** → Public Hostnames → Add:
-subdomain `api`, domain `okoro.me`, service **HTTP → `nginx-proxy:80`**. This also creates the DNS record.
+subdomain `dialed`, domain `okoro.me`, service **HTTP → `nginx-proxy:80`**. This also creates the DNS record.
 Never point it at `dialed-api:8080` directly (skips nginx, real-IP logging and CrowdSec).
 No Cloudflare Access on this hostname: the iPhone app and MCP clients must reach it.
 
@@ -119,16 +119,16 @@ No Cloudflare Access on this hostname: the iPhone app and MCP clients must reach
 cd /opt/docker-homelab/sites/dialed && docker compose --profile prod up -d --build
 docker ps --filter name=dialed                               # all Up (healthy); dialed-migrate Exited (0)
 docker exec nginx-proxy wget -qO- http://dialed-api:8080/healthz   # {"ok":true}
-docker exec nginx-proxy nginx -T | grep -A3 "api.okoro.me"
-curl -I https://api.okoro.me/healthz                         # 200 from outside
+docker exec nginx-proxy nginx -T | grep -A3 "dialed.okoro.me"
+curl -I https://dialed.okoro.me/healthz                         # 200 from outside
 ```
 If the api refuses to start, `docker logs dialed-api` names the missing key (e.g.
 `AI_MODE=live needs ANTHROPIC_API_KEY`, `EMAIL_TRANSPORT=smtp needs SMTP_URL in production`).
 
 ## 6. iPhone app (standalone Release, free Apple account)
 
-The Release build embeds the JS bundle and points at `https://api.okoro.me`, so it runs with no Metro, no Mac and
-works on cellular. `apps/mobile/app.config.ts` uses `DIALED_API_URL` if set, otherwise **Release → api.okoro.me,
+The Release build embeds the JS bundle and points at `https://dialed.okoro.me`, so it runs with no Metro, no Mac and
+works on cellular. `apps/mobile/app.config.ts` uses `DIALED_API_URL` if set, otherwise **Release → dialed.okoro.me,
 Debug → localhost** (Xcode passes `CONFIGURATION` to the build phase, so this holds for Xcode-GUI builds too).
 
 - Check it builds (no account needed): `./scripts/ios_release simulator` — verifies `main.jsbundle` is embedded and
@@ -194,7 +194,7 @@ Debug → localhost** (Xcode passes `CONFIGURATION` to the build phase, so this 
 
 ## 10. Monitoring
 
-Uptime Kuma → Add monitor: HTTP(s), URL **`https://api.okoro.me/healthz`** (the bare host has no page),
+Uptime Kuma → Add monitor: HTTP(s), URL **`https://dialed.okoro.me/healthz`** (the bare host has no page),
 interval 60 s, certificate expiry notification on (14/7 days), notification **Osiris Alerts** (Telegram), add it to
 the `status.okoro.me` page.
 
@@ -210,7 +210,7 @@ docker exec nginx-proxy wget -qO- http://dialed-api:8080/healthz
 |---|---|
 | `dialed-api` restarting, log names a key | Fill it in `.env` (and the GitHub secret), `docker compose up -d` |
 | `dialed-api` can't read the JWT key (EACCES) | `chown 1000:1000 .secrets/jwt-ed25519.pem && chmod 600 .secrets/jwt-ed25519.pem` |
-| 502 from Cloudflare, api healthy | nginx conf not loaded: `docker exec nginx-proxy nginx -T \| grep api.okoro.me`; copy it again and reload |
+| 502 from Cloudflare, api healthy | nginx conf not loaded: `docker exec nginx-proxy nginx -T \| grep dialed.okoro.me`; copy it again and reload |
 | Every site down, nginx-proxy log `host not found in upstream` | a conf without the resolver form points at a missing container; fix it, then `cd /opt/docker-homelab && docker compose up -d --force-recreate nginx` |
 | 502/1033 right after a host reboot | cloudflared started before nginx-proxy; wait a minute or `docker restart cloudflared` |
 | Works from LAN, not from outside | tunnel hostname points at a container instead of `nginx-proxy:80` |

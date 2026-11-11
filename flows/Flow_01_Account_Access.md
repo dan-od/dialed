@@ -78,7 +78,7 @@ Credential stuffing (rate limits per IP + email, argon2 cost); code brute force 
 All fields labelled; errors linked via `accessibilityDescribedBy`; code field announces "Code, 6 digits"; VoiceOver focus moves to first error/stamp; Dynamic Type to AX1 without clipping (Anton heading auto-fits); 44 pt targets; Show/Hide toggles announce state; Apple button uses the system component (meets HIG).
 
 ## Platform behavior
-Free Apple account (D-39): Sign in with Apple hidden; reset email links go through the `api.okoro.me/reset` redirect page to `dialed://reset#token=…` (BACKEND_SETUP §13).
+Free Apple account (D-39): Sign in with Apple hidden; reset email links go through the `dialed.okoro.me/reset` redirect page to `dialed://reset#token=…` (BACKEND_SETUP §13).
 iOS: `textContentType` (`name`, `emailAddress`, `newPassword`/`password`, `oneTimeCode`), password AutoFill + strong password suggestions, keyboard return key submits, Keychain `WHEN_UNLOCKED_THIS_DEVICE_ONLY`. Apple sign-in only shows on devices (simulator supports with signed-in Apple ID). Universal links require Associated Domains entitlement.
 
 ## Contracts

@@ -9,7 +9,7 @@ const APP_GROUP = 'group.me.okoro.dialed';
 // Baked in at build time: expo-constants evaluates this file in the Xcode build phase, where Xcode sets
 // CONFIGURATION. Release builds (standalone, JS embedded) default to the home lab, so an Xcode-GUI build that
 // doesn't inherit the shell's DIALED_API_URL still works on cellular. DIALED_API_URL overrides either default.
-const PROD_API_URL = 'https://api.okoro.me';
+const PROD_API_URL = 'https://dialed.okoro.me';
 const API_URL =
   process.env.DIALED_API_URL ??
   (process.env.CONFIGURATION === 'Release' ? PROD_API_URL : 'http://localhost:8080');

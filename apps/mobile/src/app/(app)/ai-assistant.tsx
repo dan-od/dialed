@@ -64,7 +64,8 @@ export default function AiAssistant() {
   const [connectors, setConnectors] = useState<Connector[]>([]);
   const [loadingConnectors, setLoadingConnectors] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
-  const mcpUrl = API_BASE_URL.replace(/^http:\/\/localhost:\d+/, 'https://api.okoro.me') + '/mcp';
+  const mcpUrl =
+    API_BASE_URL.replace(/^http:\/\/localhost:\d+/, 'https://dialed.okoro.me') + '/mcp';
 
   const refreshConnectors = useCallback(async (): Promise<Connector[] | null> => {
     setLoadingConnectors(true);

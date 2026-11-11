@@ -245,7 +245,7 @@ Home lab (`scripts/homelab-init` writes `.env` 0600 once; the deploy workflow re
 | Key | Prod value | Notes |
 |---|---|---|
 | `COMPOSE_FILE`, `COMPOSE_PROFILES` | `infra/docker-compose.yml`, `prod` | read by `docker compose` itself (D-114) |
-| `NODE_ENV` / `PUBLIC_BASE_URL` / `PORT` | `production` / `https://api.okoro.me` / `8080` | compose sets `HOST=0.0.0.0`, `DATABASE_URL`, `JWT_PRIVATE_KEY_FILE=/run/secrets/jwt_private_key`, `UPLOAD_DIR=/app/uploads` |
+| `NODE_ENV` / `PUBLIC_BASE_URL` / `PORT` | `production` / `https://dialed.okoro.me` / `8080` | compose sets `HOST=0.0.0.0`, `DATABASE_URL`, `JWT_PRIVATE_KEY_FILE=/run/secrets/jwt_private_key`, `UPLOAD_DIR=/app/uploads` |
 | `SIGNUP_MODE` / `APPLE_TEAM_TIER` | `invite` / `personal` | invites via `dist/invite.js` |
 | `POSTGRES_PASSWORD`, `CODE_PEPPER`, `ADMIN_TOKEN` | random hex | never change after first start |
 | `JWT_KEY_ID` | `ed25519-<sha256(pubkey)[:16]>` | matches `.secrets/jwt-ed25519.pem` on the host (uid 1000, 0600) |
@@ -263,9 +263,9 @@ Home lab (`scripts/homelab-init` writes `.env` 0600 once; the deploy workflow re
 - Cost: `usage_counters` checked before each plan/import on the server key; 429 `daily_limit` with reset time. Provider spend alerts set in vendor consoles (owner action).
 - Deploy (D-114, D-121; owner checklist `infra/homelab/README.md`): GitHub Actions joins the tailnet as `tag:ci`, rsyncs the repo to `/opt/docker-homelab/sites/dialed` (excluding `.env`, `.secrets`, `backups`), writes `.env` from repo secrets and runs `docker compose up -d --build`; gated on the repo variable `DEPLOY_ENABLED`. Ingress: tunnel `homelab01` → `nginx-proxy` (`infra/homelab/dialed.conf`) → `dialed-api:8080`. Migrations run by the one-shot `migrate` service before `api`/`worker` start. Rollback: previous image tag; migrations are forward-only, every migration must be backward compatible with the previous app release (expand → migrate → contract over two releases).
 - Backups: nightly `pg_dump -Fc` (0600, 14 days) to `BACKUP_DIR` on the 2 TB drive (D-122); restore with `pg_restore --clean --if-exists` (README §8); planned weekly restore test into a scratch container (`scripts/restore_test`) that runs `migration_replay` checks against the restored DB. A backup without a passing restore test is unverified.
-- Health: container healthchecks (api `GET /healthz` on 127.0.0.1, worker liveness file, backup freshness); Uptime Kuma HTTP monitor on `https://api.okoro.me/healthz` with SSL-expiry warnings → Telegram “Osiris Alerts”.
+- Health: container healthchecks (api `GET /healthz` on 127.0.0.1, worker liveness file, backup freshness); Uptime Kuma HTTP monitor on `https://dialed.okoro.me/healthz` with SSL-expiry warnings → Telegram “Osiris Alerts”.
 - Ops commands: `docker compose run --rm api node dist/invite.js <email>`; `… dist/test-owner.js create|delete` (prod smoke-test account, D-118).
-- iPhone: `scripts/ios_release simulator|device` (Release, JS embedded, `https://api.okoro.me`, D-120); free-account profiles last 7 days, renew by running again from Xcode.
+- iPhone: `scripts/ios_release simulator|device` (Release, JS embedded, `https://dialed.okoro.me`, D-120); free-account profiles last 7 days, renew by running again from Xcode.
 
 ## 12. Local development
 - `scripts/bootstrap`: checks Node/pnpm/Docker, installs deps, starts Postgres via compose, runs migrations, seeds the owner's routine and test users (idempotent: upserts by fixed UUIDs).
@@ -281,7 +281,7 @@ The owner builds with a free Apple account (Xcode Personal Team) until enrolling
 | Live Activities | push-to-start at block start, push end | No push. The app starts the activity itself whenever it's foreground or wakes in a block (open app, background refresh, a heads-up notification tap). It sets `staleDate` = block end and, right after starting, calls `end(dismissalPolicy: .after(blockEnd))` so the card keeps counting down with `Text(timerInterval:)` and leaves on time without a push. **Verify this on the device** — record whether iOS keeps the ended card visible until `blockEnd`; if not, keep it running and end it on next wake. |
 | Widgets (App Group snapshot) | App Group entitlement | Try enabling App Groups on the Personal Team in Xcode first. If Xcode refuses, widgets ship as previews only ("Open Dialed to see your day") until the paid account; the line under the date and Live Activity still work. Record the result in `BACKEND_SETUP.md §Versions`. |
 | Sign in with Apple | native button | Hidden. Email sign-in only. Server keeps the endpoint for later. |
-| Password reset universal link | `https://api.okoro.me/reset#token=…` opens the app | Associated Domains unavailable. The email links to `https://api.okoro.me/reset#token=…`, a tiny static page that redirects to `dialed://reset#token=…` (the fragment never hits the server) and shows "Open Dialed" if the redirect is blocked. |
+| Password reset universal link | `https://dialed.okoro.me/reset#token=…` opens the app | Associated Domains unavailable. The email links to `https://dialed.okoro.me/reset#token=…`, a tiny static page that redirects to `dialed://reset#token=…` (the fragment never hits the server) and shows "Open Dialed" if the redirect is blocked. |
 | TestFlight / App Store | yes | No. Install with Xcode; re-install weekly. |
 | Background push for widget refresh | silent push | Widgets refresh from their own timeline + every app open/background refresh. |
 

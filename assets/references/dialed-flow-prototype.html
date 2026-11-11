@@ -859,10 +859,10 @@ dl.anno dd { margin: 0 }
     'day-sync': ['Day, syncing', 'Pill in the header', 'Spinner, then a toast.', 'Light when done.', 'Changes made offline wait on the phone and sync on their own when the network returns.'],
     'push-chat': ['Plan sent from Claude chat', 'iPhone notification (drawn here)', 'Drops from the top.', 'System default.', 'Planned in the Claude app through the connector. Opens the same review; nothing applies until Approve.'],
     'deleteacct': ['Delete account?', 'Centered alert dialog', 'Pops in.', 'Warning.', 'Says what gets deleted and when, and points to Export first.'],
-    'oauth-signin': ['Connect an AI app: sign in', 'Web page in the AI app\'s browser (ASWebAuthenticationSession)', 'Plain page, 120ms fades.', 'None', 'Opened by Claude/ChatGPT when you add the connector. Lives only on api.okoro.me so it can be trusted. Same sign-in as the app.'],
+    'oauth-signin': ['Connect an AI app: sign in', 'Web page in the AI app\'s browser (ASWebAuthenticationSession)', 'Plain page, 120ms fades.', 'None', 'Opened by Claude/ChatGPT when you add the connector. Lives only on dialed.okoro.me so it can be trusted. Same sign-in as the app.'],
     'oauth-consent': ['Connect an AI app: allow', 'Web page, consent', 'Fades in.', 'Success on Allow (in the app later).', 'Names the app and the site asking (claude.ai), then says plainly what it can and can\'t do. Cancel shares nothing.'],
     'oauth-done': ['Connect an AI app: done', 'Web page, success', 'Check pops in.', 'Success', 'Sends you back to the AI app. Dialed\'s Settings now lists it as connected.'],
-    'newPw': ['Pick a new password', 'Page opened from the reset email', 'Slides in.', 'Warning on errors, success on save.', 'One field with Show. Saving signs you in here and signs out other devices. Free Apple accounts can\'t use universal links, so the email link opens dialed:// via a tiny redirect page on api.okoro.me.'],
+    'newPw': ['Pick a new password', 'Page opened from the reset email', 'Slides in.', 'Warning on errors, success on save.', 'One field with Show. Saving signs you in here and signs out other devices. Free Apple accounts can\'t use universal links, so the email link opens dialed:// via a tiny redirect page on dialed.okoro.me.'],
     'newPw-expired': ['Reset link expired', 'Page, error state', 'Fades in.', 'Warning', 'Links work once, for an hour. One tap sends a new one.'],
     'nameTerm': ['Name your term', 'Sheet before the first routine', 'Slides up.', 'Success on create.', 'Routines belong to a term, so a brand-new account names one first. Prefilled; most people just tap Create.'],
     'catQuiet': ['Quiet switch on a category', 'Row inside Edit category', 'Switch slides 200ms; the explanation swaps.', 'Selection', 'Quiet categories never get a Live Activity or reminders and show in the line under the date. Meal and Break start quiet.'],
@@ -1538,7 +1538,7 @@ dl.anno dd { margin: 0 }
     const mcp = cl.mcp === 'on'
       ? apps.map((a) => '<div class="setrow"><span class="lbl2"><span class="okline">' + I.check + a + ' connected</span><small>Reads your schedule, sends drafts. Nothing changes until you approve here.</small></span></div>').join('') + '<button class="setrow" id="cl-testdraft" data-act="cl-testdraft">Send a test draft from chat</button><button class="setrow" id="cl-another" data-act="cl-another">Connect another app</button><button class="setrow" id="cl-disc" data-act="cl-disc-ask" style="color:var(--err)">Disconnect all</button>'
       : '<div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px"><p class="sub" style="margin:0">Plan in the AI app you already use, then approve here. Works with any assistant that supports MCP connectors: Claude, ChatGPT, Gemini, Cursor and more. A normal Pro or Plus plan covers it; no API key.</p><ol class="steps-ol"><li>In your AI app, add a custom connector</li><li>Paste this URL</li><li>Sign in with your Dialed account</li></ol>' +
-        '<div class="urlrow">api.okoro.me/mcp<button id="cl-copy" data-act="cl-copy">Copy</button></div><button class="btn" id="cl-connect" data-act="cl-connect">' + (cl.mcp === 'busy' ? '<span class="spin"></span>' : 'I\'ve added it') + '</button></div>';
+        '<div class="urlrow">dialed.okoro.me/mcp<button id="cl-copy" data-act="cl-copy">Copy</button></div><button class="btn" id="cl-connect" data-act="cl-connect">' + (cl.mcp === 'busy' ? '<span class="spin"></span>' : 'I\'ve added it') + '</button></div>';
     const rule = (t, d) => '<div class="setrow"><span style="display:inline-flex;align-self:flex-start;margin-top:3px">' + I.check.replace('stroke-width', 'stroke="var(--acc2)" stroke-width') + '</span><span class="lbl2">' + t + '<small>' + d + '</small></span></div>';
     return setHdr('Settings', 'cl-back') + '<div class="scroll"><section class="pad"><h1 class="h1" tabindex="-1" style="font-size:60px">AI assistant</h1><p class="sub">Use whichever AI you like. It only drafts; your schedule changes when you tap Approve, never before.</p></section>' +
       '<div class="setcap">Plan it, inside Dialed</div><div class="setgroup">' +
@@ -1642,7 +1642,7 @@ dl.anno dd { margin: 0 }
 
   /* ---------- six screens added for approval (D-35) ---------- */
   function browserChrome(inner) {
-    return '<div class="webv"><div class="webbar"><button class="tlink" id="oa-cancel" data-act="oa-cancel" style="font-size:15px">Cancel</button><span class="weburl"><span aria-hidden="true">🔒</span> api.okoro.me</span><span style="width:52px;text-align:right;font-size:14px;font-weight:700;opacity:.6">aA</span></div><div class="webbody">' + inner + '</div></div>';
+    return '<div class="webv"><div class="webbar"><button class="tlink" id="oa-cancel" data-act="oa-cancel" style="font-size:15px">Cancel</button><span class="weburl"><span aria-hidden="true">🔒</span> dialed.okoro.me</span><span style="width:52px;text-align:right;font-size:14px;font-weight:700;opacity:.6">aA</span></div><div class="webbody">' + inner + '</div></div>';
   }
   function scrOauth() {
     const st = S.oauth.step, client = S.oauth.client;
@@ -1653,7 +1653,7 @@ dl.anno dd { margin: 0 }
         '<div style="display:flex;flex-direction:column;gap:10px;margin-top:18px"><button class="apple" id="oa-apple" data-act="oa-signin">' + APPLE + 'Continue with Apple</button><div class="or">or with email</div>' +
         afield('email', 'Email', 'email', S.oauth.email, S.oauth.err) + afield('pw', 'Password', 'password', '', '') +
         '<button class="btn" id="oa-continue" data-act="oa-signin">' + (S.oauth.busy ? '<span class="spin"></span>' : 'Continue') + '</button></div>' +
-        '<p class="legal" style="margin-top:16px">Only sign in on api.okoro.me. Dialed never asks for your password inside a chat.</p>';
+        '<p class="legal" style="margin-top:16px">Only sign in on dialed.okoro.me. Dialed never asks for your password inside a chat.</p>';
     } else if (st === 'consent') {
       body = tiles + '<h1 class="h1" tabindex="-1" style="font-size:40px;text-align:center">' + esc(client) + ' wants to use Dialed</h1><p class="sub" style="text-align:center">Requested by <b style="color:var(--text)">' + esc(S.oauth.host) + '</b> for ' + esc(S.user.email) + '</p>' +
         '<div class="oa-list"><div class="oa-h">It can</div><div class="oa-i ok">' + I.check + '<span>See your schedule, categories, terms and recent plans</span></div><div class="oa-i ok">' + I.check + '<span>Send you plan drafts to review and approve in Dialed</span></div>' +

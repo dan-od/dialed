@@ -22,7 +22,7 @@ function load(env: Partial<Record<(typeof ENV_KEYS)[number], string>>) {
 
 describe('app.config apiBaseUrl', () => {
   it('uses the home lab in a Release build with no env', () => {
-    expect(load({ CONFIGURATION: 'Release' })).toBe('https://api.okoro.me');
+    expect(load({ CONFIGURATION: 'Release' })).toBe('https://dialed.okoro.me');
   });
   it('lets DIALED_API_URL override any configuration', () => {
     expect(load({ CONFIGURATION: 'Release', DIALED_API_URL: 'https://staging.example.test' })).toBe(

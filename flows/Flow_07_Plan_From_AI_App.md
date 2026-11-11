@@ -61,7 +61,7 @@ Confused deputy / token passthrough (MCP tokens audience-bound, never forwarded)
 Settings section: steps as an ordered list; Copy button labelled "Copy connector URL"; client rows announce status. OAuth web pages: semantic forms, labels, focus order, 200% zoom, AA contrast, `prefers-color-scheme` + `prefers-reduced-motion`.
 
 ## Platform behavior
-Connector URL: `https://api.okoro.me/mcp` (D-38). Free Apple account: chat drafts notify via local notification after background refresh, not APNs.
+Connector URL: `https://dialed.okoro.me/mcp` (D-38). Free Apple account: chat drafts notify via local notification after background refresh, not APNs.
 OAuth pages are server-rendered HTML (no SPA), ≤ 30 KB, Anton + system font, light/dark. Desktop AI apps may use loopback redirect URIs (allowed per RFC 8252).
 
 ## Contracts

@@ -51,7 +51,7 @@ value_for() {
   case "$1" in
     NODE_ENV) echo production ;;
     APP_NAME) echo Dialed ;;
-    PUBLIC_BASE_URL) echo https://api.okoro.me ;;
+    PUBLIC_BASE_URL) echo https://dialed.okoro.me ;;
     PORT) echo 8080 ;;
     LOG_LEVEL) echo info ;;
     SIGNUP_MODE) echo invite ;;

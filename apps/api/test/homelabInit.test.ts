@@ -36,7 +36,7 @@ describe('homelab-init', () => {
       COMPOSE_FILE: 'infra/docker-compose.yml',
       COMPOSE_PROFILES: 'prod',
       NODE_ENV: 'production',
-      PUBLIC_BASE_URL: 'https://api.okoro.me',
+      PUBLIC_BASE_URL: 'https://dialed.okoro.me',
       PORT: '8080',
       SIGNUP_MODE: 'invite',
       APPLE_TEAM_TIER: 'personal',

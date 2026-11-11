@@ -3,7 +3,7 @@
 Data: the owner's and Alice's seed in local Postgres (2037/2038 calendar). Runtime: local API on :8080 with
 `MCP_ENABLED=true`, `DEV_CLOCK=2037-10-20T12:00:00-04:00`, `AI_MODE=fixture`, `APNS_MODE=log`, the worker
 running; iPhone 17e Simulator (iOS 27.0, dev build of `me.okoro.dialed`). No public host: everything runs on
-`http://localhost` (the connector URL `api.okoro.me/mcp` is not live yet, CQ #3).
+`http://localhost` (the connector URL `dialed.okoro.me/mcp` is not live yet, CQ #3).
 
 Re-run:
 - `pnpm --filter @dialed/api exec vitest run test/oauth.test.ts test/mcp.proof.test.ts` (36 tests) and the

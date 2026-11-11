@@ -27,7 +27,7 @@ Everything below has a recommended default that the build uses until you answer.
 3. **Domain for the API and connector.**
    Recommended: `api.<yourdomain>` for the app and `api.<yourdomain>/mcp` for the AI connector, both through the Cloudflare Tunnel. Until you have one: everything runs locally; the https password-reset link and connecting the real Claude app (which needs a public HTTPS address) stay unverified, and dev builds use `dialed://` links instead.
    Affected flows: all networked flows, 07 (connector URL shown in Settings). Owner: you. Reversible: yes, but connected AI apps must reconnect.
-   **Your answer (2026-10-20): okoro.me** → API `https://api.okoro.me`, connector `https://api.okoro.me/mcp`, email from `no-reply@okoro.me`. Owner action (stop point for the agent): put okoro.me's DNS on Cloudflare (or add the tunnel CNAME at your registrar) and create the tunnel; add Resend's DNS records for email.
+   **Your answer (2026-10-20): okoro.me** → API `https://dialed.okoro.me`, connector `https://dialed.okoro.me/mcp`, email from `no-reply@okoro.me`. Owner action (stop point for the agent): put okoro.me's DNS on Cloudflare (or add the tunnel CNAME at your registrar) and create the tunnel; add Resend's DNS records for email.
 
 4. **Email sender for verification codes and password resets.**
    Recommended: Resend (free tier is enough), sending from `no-reply@<yourdomain>`. Any SMTP provider works.

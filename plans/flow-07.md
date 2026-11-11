@@ -46,7 +46,7 @@ Review and approve are already built in Flow 06.
 5. **Connector API and settings.**
    - Routes: `GET /v1/connector`, `DELETE /v1/connector/:clientId`, `DELETE /v1/connector` (these revoke only the caller's tokens), and `POST /v1/connector/test-draft` (3/day).
    - Settings section "Plan from your AI app":
-     - not connected: steps, the URL `api.okoro.me/mcp` with Copy, "I've added it";
+     - not connected: steps, the URL `dialed.okoro.me/mcp` with Copy, "I've added it";
      - connected: client rows named by redirect host, per-row swipe Disconnect, "Send a test draft from chat", "Connect another app";
      - "Disconnect all" opens a dialog (NAT-14, a D-35 surface, behind the flag).
 6. **Proof.**
