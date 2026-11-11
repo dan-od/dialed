@@ -64,6 +64,13 @@ describe('homelab-init', () => {
     expect(text).not.toMatch(/CLOUDFLARE_TUNNEL_TOKEN/);
   });
 
+  it('never puts a comment after KEY= (compose env_file reads `KEY=  # hint` as the value "# hint")', () => {
+    const text = readFileSync(join(dir, '.env'), 'utf8');
+    expect(
+      text.split('\n').filter((l) => /^[A-Z][A-Z0-9_]*=.*#/.test(l) && !/^EMAIL_FROM=/.test(l)),
+    ).toEqual([]);
+  });
+
   it('refuses to start until the TODOs are filled, then loads as production', () => {
     const asRun = {
       ...env,

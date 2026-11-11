@@ -128,6 +128,7 @@ services:
     entrypoint: ['/bin/sh', '-c']
     command:
       - >-
+        umask 077; sleep 120;
         while true; do
         f=/backups/dialed-$$(date +%F).dump;
         pg_dump -Fc -h postgres -U dialed dialed > $$f.part && mv $$f.part $$f;

@@ -101,8 +101,10 @@ trap 'rm -f "$tmp"' EXIT
       elif v="$(value_for "$k")"; then
         echo "$k=$v"
       else
-        # Not needed on the home lab yet (blank = unset; the app uses its default). Keep the hint.
-        echo "$k=${comment:+  $comment}"
+        # Not needed on the home lab yet (blank = unset; the app uses its default). The hint goes on its own
+        # line: compose's env_file parser reads `KEY=  # hint` as the value "# hint".
+        [[ -n "$comment" ]] && echo "$comment"
+        echo "$k="
       fi
     elif [[ "$line" == "# Dialed — environment keys."* || "$line" == "# Copy to .env"* ]]; then
       continue
