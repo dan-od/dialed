@@ -9,6 +9,8 @@ private let anton = "Anton-Regular"
 private let orange = Color(hex: "#FF5A1F")
 private let ink = Color(hex: "#140A05")
 private let cream = Color(hex: "#FFF1E8")
+private let muted = Color(hex: "#C9AE9F")
+private let track = Color(hex: "#3A2014")
 
 private extension BlockActivityAttributes.ContentState {
   var model: [ActivityModel.Next] { next.map { .init(title: $0.title, startsAt: $0.startsAt, durationMin: $0.durationMin) } }
@@ -18,51 +20,15 @@ private func card(_ a: BlockActivityAttributes, _ s: BlockActivityAttributes.Con
   ActivityModel.card(title: a.title, startsAt: a.startsAt, endsAt: s.endsAt, next: s.model, timeZone: .current)
 }
 
-/// The Dialed "d" brand mark — the real symbol drawn from the SVG path, cream on an orange tile.
-private struct BrandMark: View {
+/// The dark "d" (assets/brand/dialed-symbol.svg, exported to the DialedSymbol imageset) on the orange tile.
+private struct BrandTile: View {
   var size: CGFloat = 40
-  private let viewBox: CGFloat = 256
   var body: some View {
-    ZStack {
-      RoundedRectangle(cornerRadius: size * 0.22, style: .continuous).fill(orange)
-      // Path from dialed-symbol-reversed.svg (viewBox 0 0 256 256), scaled to fit.
-      DialedDPath()
-        .fill(cream)
-        .frame(width: size * 0.72, height: size * 0.72)
-    }
-    .frame(width: size, height: size)
-    .accessibilityHidden(true)
-  }
-}
-
-/// The "d" glyph from assets/brand/dialed-symbol-reversed.svg (even-odd fill, viewBox 256×256).
-private struct DialedDPath: Shape {
-  func path(in rect: CGRect) -> Path {
-    let s = min(rect.width, rect.height) / 256
-    var p = Path()
-    // Outer: vertical bar + arc
-    p.move(to: CGPoint(x: 161 * s, y: 30 * s))
-    p.addLine(to: CGPoint(x: 197 * s, y: 30 * s))
-    p.addLine(to: CGPoint(x: 197 * s, y: 216 * s))
-    p.addLine(to: CGPoint(x: 161 * s, y: 216 * s))
-    p.addLine(to: CGPoint(x: 161 * s, y: 205.24 * s))
-    // Arc: 69-radius circle centered roughly at (161, 147)
-    let cx: CGFloat = 124; let cy: CGFloat = 147; let r: CGFloat = 69
-    p.addArc(center: CGPoint(x: cx * s, y: cy * s), radius: r * s,
-             startAngle: .degrees(-30), endAngle: .degrees(-330), clockwise: true)
-    p.addLine(to: CGPoint(x: 161 * s, y: 88.76 * s))
-    p.closeSubpath()
-    // Inner diamond/notch
-    p.move(to: CGPoint(x: 133.9 * s, y: 159.73 * s))
-    p.addLine(to: CGPoint(x: 159.36 * s, y: 134.27 * s))
-    let nr: CGFloat = 16 * 0.707
-    p.addArc(center: CGPoint(x: 148.045 * s, y: 122.955 * s), radius: nr * s,
-             startAngle: .degrees(45), endAngle: .degrees(225), clockwise: true)
-    p.addLine(to: CGPoint(x: 111.27 * s, y: 137.10 * s))
-    p.addArc(center: CGPoint(x: 122.585 * s, y: 148.415 * s), radius: nr * s,
-             startAngle: .degrees(225), endAngle: .degrees(45), clockwise: true)
-    p.closeSubpath()
-    return p.offsetBy(dx: rect.minX, dy: rect.minY)
+    RoundedRectangle(cornerRadius: size * 11 / 40, style: .continuous)
+      .fill(orange)
+      .frame(width: size, height: size)
+      .overlay(Image("DialedSymbol").resizable().interpolation(.high).scaledToFit().frame(width: size * 0.7, height: size * 0.7))
+      .accessibilityHidden(true)
   }
 }
 
@@ -84,27 +50,45 @@ private struct SegmentBar: View {
   let m: ActivityModel.Card
   let start: Date
   let end: Date
+  private let gap: CGFloat = 5
+  private let height: CGFloat = 7
   var body: some View {
-    VStack(spacing: 4) {
-      GeometryReader { g in
-        HStack(spacing: 3) {
-          ForEach(Array(m.segments.enumerated()), id: \.offset) { _, s in
+    GeometryReader { g in
+      let usable = g.size.width - gap * CGFloat(max(0, m.segments.count - 1))
+      HStack(spacing: gap) {
+        ForEach(Array(m.segments.enumerated()), id: \.offset) { _, s in
+          Group {
             if s.current {
               ProgressView(timerInterval: start...end, countsDown: false) { EmptyView() } currentValueLabel: { EmptyView() }
-                .progressViewStyle(.linear).tint(orange)
+                .progressViewStyle(.linear)
+                .tint(orange)
+                .scaleEffect(x: 1, y: height / 4, anchor: .center)
+                .background(orange.opacity(0.25))
             } else {
-              Capsule().fill(cream.opacity(0.22)).frame(height: 4)
+              track
             }
           }
+          .frame(width: max(0, usable * s.fraction), height: height)
+          .clipShape(Capsule())
         }
       }
-      .frame(height: 4)
-      HStack {
-        // Next block info on the right; no percent (LA can't tick text without a push).
-        Spacer()
-        Text(m.nextShort ?? "").font(.system(size: 11, weight: .semibold)).opacity(0.65).lineLimit(1)
+    }
+    .frame(height: height)
+  }
+}
+
+private struct BottomRow: View {
+  let m: ActivityModel.Card
+  var body: some View {
+    HStack(spacing: 8) {
+      Text(m.title).lineLimit(1).layoutPriority(1)
+      Spacer(minLength: 0)
+      if let next = m.nextShort {
+        Text(next).lineLimit(1).truncationMode(.tail)
       }
     }
+    .font(.system(size: 11, weight: .bold))
+    .foregroundStyle(muted)
   }
 }
 
@@ -112,32 +96,32 @@ struct BlockActivityLockView: View {
   let context: ActivityViewContext<BlockActivityAttributes>
   var body: some View {
     let m = card(context.attributes, context.state)
-    HStack(alignment: .top, spacing: 10) {
-      BrandMark(size: 40)
-        .padding(.top, 2)
-      VStack(alignment: .leading, spacing: 2) {
-        HStack(spacing: 6) {
-          Circle().fill(Color(hex: context.attributes.categoryColorHex)).frame(width: 7, height: 7)
-          Text(m.headline).font(.system(size: 13, weight: .semibold)).opacity(0.8)
+    VStack(alignment: .leading, spacing: 0) {
+      HStack(alignment: .center, spacing: 10) {
+        BrandTile(size: 40)
+        VStack(alignment: .leading, spacing: 2) {
+          HStack(spacing: 6) {
+            Circle().fill(Color(hex: context.attributes.categoryColorHex)).frame(width: 8, height: 8)
+            Text(m.headline).font(.system(size: 13, weight: .semibold)).foregroundStyle(muted).lineLimit(1)
+          }
+          Text(m.title).font(.system(size: 16, weight: .bold)).foregroundStyle(cream).lineLimit(1)
         }
-        Text(m.title).font(.system(size: 17, weight: .heavy)).lineLimit(1)
+        .layoutPriority(1)
+        Spacer(minLength: 4)
+        VStack(alignment: .trailing, spacing: 0) {
+          Countdown(start: context.attributes.startsAt, end: context.state.endsAt, size: 34)
+            .foregroundStyle(orange)
+            .frame(width: 92, alignment: .trailing)
+          Text("left").font(.system(size: 11, weight: .bold)).foregroundStyle(muted)
+        }
       }
-      Spacer(minLength: 4)
-      VStack(alignment: .trailing, spacing: 0) {
-        Countdown(start: context.attributes.startsAt, end: context.state.endsAt, size: 32)
-          .foregroundStyle(orange)
-          .frame(width: 80, alignment: .trailing)
-        Text("left").font(.system(size: 12, weight: .bold)).opacity(0.7)
-      }
-    }
-    .overlay(alignment: .bottom) {
       SegmentBar(m: m, start: context.attributes.startsAt, end: context.state.endsAt)
-        .padding(.top, 4)
+        .padding(.top, 12)
+      BottomRow(m: m)
+        .padding(.top, 5)
     }
-    .padding(.bottom, 26)
-    .foregroundStyle(cream)
-    .padding(16)
-    .activityBackgroundTint(ink.opacity(0.92))
+    .padding(14)
+    .activityBackgroundTint(ink.opacity(0.9))
     .activitySystemActionForegroundColor(cream)
     .widgetURL(URL(string: "dialed://day"))
     .accessibilityElement(children: .ignore)
@@ -153,27 +137,30 @@ struct BlockActivityWidget: Widget {
       let m = card(context.attributes, context.state)
       return DynamicIsland {
         DynamicIslandExpandedRegion(.leading) {
-          HStack(spacing: 6) {
-            BrandMark(size: 22)
-            Text(m.title).font(.system(size: 15, weight: .heavy)).lineLimit(1)
+          HStack(spacing: 8) {
+            BrandTile(size: 28)
+            Text(m.title).font(.system(size: 15, weight: .bold)).foregroundStyle(cream).lineLimit(1)
           }
         }
         DynamicIslandExpandedRegion(.trailing) {
-          Countdown(start: context.attributes.startsAt, end: context.state.endsAt, size: 22)
-            .foregroundStyle(orange).frame(width: 72, alignment: .trailing)
+          Countdown(start: context.attributes.startsAt, end: context.state.endsAt, size: 26)
+            .foregroundStyle(orange).frame(width: 76, alignment: .trailing)
         }
         DynamicIslandExpandedRegion(.bottom) {
-          SegmentBar(m: m, start: context.attributes.startsAt, end: context.state.endsAt)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(m.accessibility)
+          VStack(spacing: 5) {
+            SegmentBar(m: m, start: context.attributes.startsAt, end: context.state.endsAt)
+            BottomRow(m: m)
+          }
+          .accessibilityElement(children: .ignore)
+          .accessibilityLabel(m.accessibility)
         }
       } compactLeading: {
-        BrandMark(size: 18)
+        BrandTile(size: 20)
       } compactTrailing: {
-        Countdown(start: context.attributes.startsAt, end: context.state.endsAt, size: 14)
+        Countdown(start: context.attributes.startsAt, end: context.state.endsAt, size: 15)
           .foregroundStyle(orange).frame(maxWidth: 52)
       } minimal: {
-        BrandMark(size: 18)
+        BrandTile(size: 20)
       }
       .widgetURL(URL(string: "dialed://day"))
     }
