@@ -140,7 +140,11 @@ services:
     depends_on: { postgres: { condition: service_healthy } }
     networks: [internal]
     healthcheck:
-      test: ['CMD-SHELL', "pg_isready -h postgres -U dialed -d dialed && find /backups -name 'dialed-*.dump' -mmin -1560 | grep -q ."]
+      test:
+        [
+          'CMD-SHELL',
+          "pg_isready -h postgres -U dialed -d dialed && find /backups -name 'dialed-*.dump' -mmin -1560 | grep -q .",
+        ]
       interval: 10m
       timeout: 10s
       retries: 3

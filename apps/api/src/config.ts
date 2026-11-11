@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
+import { parseProxySpec } from './lib/proxy';
 
 const bool = z.enum(['true', 'false']).transform((v) => v === 'true');
 
@@ -23,7 +24,11 @@ const Env = z.object({
   APNS_TOPIC: z.string().default('me.okoro.dialed'),
   AI_MODE: z.enum(['fixture', 'live']).default('fixture'),
   MCP_ENABLED: bool.default(false),
-  TRUST_PROXY_IP: z.string().optional(),
+  /** nginx-proxy's address: an exact IP or a CIDR such as 172.16.0.0/12 (the Docker networks). */
+  TRUST_PROXY_IP: z
+    .string()
+    .refine((v) => parseProxySpec(v) !== null, 'TRUST_PROXY_IP must be an IP or CIDR')
+    .optional(),
   RATE_LIMIT_MULTIPLIER: z.coerce.number().min(1).default(1),
   ANTHROPIC_API_KEY: z.string().optional(),
   PLAN_MODEL_ANTHROPIC: z.string().default('claude-sonnet-4-20250514'),

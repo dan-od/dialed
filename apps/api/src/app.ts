@@ -21,6 +21,7 @@ import { publicRoutes } from './public';
 import { oauthRoutes } from './oauth/routes';
 import { connectorRoutes } from './oauth/connector';
 import { mountMcp } from './mcp/server';
+import { isTrustedProxy } from './lib/proxy';
 
 export interface Deps {
   pool: pg.Pool;
@@ -74,13 +75,9 @@ export async function buildApp(config: Config, deps: Deps) {
 
   app.addHook('onRequest', async (req, reply) => {
     reply.header('x-request-id', req.id);
-    // Cloudflare's client IP, trusted only from the cloudflared container (SECURITY.md).
+    // Cloudflare's client IP, trusted only from the proxy (TRUST_PROXY_IP: IP or CIDR; SECURITY.md).
     const cf = req.headers['cf-connecting-ip'];
-    if (
-      config.TRUST_PROXY_IP &&
-      req.socket.remoteAddress === config.TRUST_PROXY_IP &&
-      typeof cf === 'string'
-    ) {
+    if (isTrustedProxy(req.socket.remoteAddress, config.TRUST_PROXY_IP) && typeof cf === 'string') {
       (req as { clientIp?: string }).clientIp = cf;
     }
   });
