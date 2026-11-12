@@ -13,7 +13,12 @@ import {
   type RoutineBlock,
   type ScheduleData,
 } from '@dialed/schedule';
-import { PROPOSE_CHANGES_LIMITS, type PlanCheck, type PlanSource } from '@dialed/contracts';
+import {
+  PlanChange as PlanChangeShape,
+  PROPOSE_CHANGES_LIMITS,
+  type PlanCheck,
+  type PlanSource,
+} from '@dialed/contracts';
 import type { RefMap } from './context';
 
 export interface ValidateProfile {
@@ -38,6 +43,8 @@ export interface ValidateContext {
   profile?: ValidateProfile;
   /** Short refs from the planning context (b1, c2, t1); real ids still pass through. */
   refs?: RefMap;
+  /** Check each change against the wire schema (default). Approve skips it: stored drafts already passed. */
+  checkShape?: boolean;
 }
 
 export interface ValidateError {
@@ -224,6 +231,52 @@ function countOutsideTerm(changes: PlanChange[], data: ScheduleData, today: IsoD
  * the model's full proposal while drafting, or just the enabled subset when Approve re-validates.
  */
 export function validate(
+  input: { request_text: string; changes: PlanChange[] },
+  ctx: ValidateContext,
+): ValidateResult {
+  const fail = (errors: ValidateError[]): ValidateResult => ({
+    errors,
+    checks: [],
+    ops: [],
+    changes: Array.isArray(input.changes) ? input.changes : [],
+  });
+  // Drafts come from a model: check the wire shape first so nothing below can throw on it.
+  if (!Array.isArray(input.changes)) {
+    return fail([
+      { change_index: -1, code: 'bad_change', message: '`changes` must be a list of changes.' },
+    ]);
+  }
+  const shapeErrors = (ctx.checkShape === false ? [] : input.changes).flatMap((change, index) => {
+    const parsed = PlanChangeShape.safeParse(change);
+    if (parsed.success) return [];
+    const kind = (change as { kind?: unknown } | null)?.kind;
+    const detail = parsed.error.issues
+      .slice(0, 3)
+      .map((i) => `${i.path.length ? i.path.join('.') : 'change'}: ${i.message}`)
+      .join('; ');
+    return [
+      {
+        change_index: index,
+        code: 'bad_change',
+        message: `Change ${index} (${String(kind)}) doesn’t match the schema: ${detail}`,
+      },
+    ];
+  });
+  if (shapeErrors.length > 0) return fail(shapeErrors);
+  try {
+    return checkDraft(input, ctx);
+  } catch (err) {
+    return fail([
+      {
+        change_index: -1,
+        code: 'bad_change',
+        message: `That draft couldn’t be checked (${err instanceof Error ? err.message : 'unknown error'}). Recheck the dates, refs and times.`,
+      },
+    ]);
+  }
+}
+
+function checkDraft(
   input: { request_text: string; changes: PlanChange[] },
   ctx: ValidateContext,
 ): ValidateResult {

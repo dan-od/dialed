@@ -162,9 +162,20 @@ export async function approvePlan(
         : undefined;
 
       if (!opts?.skipValidation) {
+        // Same words that unlocked protected blocks while drafting: the request plus answers and replies.
+        const { rows: said } = await tx.execute<Row>(
+          sql`select body from plan_messages where plan_id = ${planId} and role in ('answer', 'reply')
+            order by created_at`,
+        );
         const validation = validate(
-          { request_text: String(plan.request_text ?? ''), changes },
-          { data, today, source: String(plan.source) as PlanSource, profile },
+          {
+            request_text: [
+              String(plan.request_text ?? ''),
+              ...said.map((m) => String(m.body)),
+            ].join('\n'),
+            changes,
+          },
+          { data, today, source: String(plan.source) as PlanSource, profile, checkShape: false },
         );
         if (validation.errors.length > 0) {
           throw new AppError('plan_invalid', undefined, { errors: validation.errors });

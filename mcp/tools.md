@@ -63,7 +63,7 @@ Output: `{ proposal_id, status: "ready" | "invalid", errors: [{ change_index, co
 
 `palette` is one of the Design_Identity palette names (Orange, Amber, Wheat, Coral, Blue, Teal, Lime, Mint, Sky, Rose, Sand); the server maps it to the dark/light colour pair. `proposal_id` and the plan `version` are stored on `plans`.
 
-Validator error codes: `bad_time`, `overlap`, `protected_block`, `unknown_block`, `unknown_category`, `unknown_ref` (a ref that isn't in the context), `context_stale` (refs from an older `get_context`), `too_many_changes`, `range_too_long`, `duplicate_change`. Soft checks (reported in `checks`, never errors): `outside_term` (uncovered dates dropped), `day_bounds`, `quiet_hours`, profile limits.
+Validator error codes: `bad_change` (a change doesn't match the schema above: missing field, unknown field or kind, bad date), `bad_time`, `overlap`, `protected_block`, `unknown_block`, `unknown_category`, `unknown_ref` (a ref that isn't in the context), `context_stale` (refs from an older `get_context`), `too_many_changes`, `range_too_long`, `duplicate_change`. Soft checks (reported in `checks`, never errors): `outside_term` (uncovered dates dropped), `day_bounds`, `quiet_hours`, profile limits.
 
 ### `ask_user` (in-app engine only; not exposed over MCP)
 Input `{ question, options: [string, string, string?] }` → plan status `question`; the app shows "One quick question".

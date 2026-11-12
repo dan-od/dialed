@@ -262,3 +262,30 @@ describe('discardPlan', () => {
     }
   });
 });
+
+describe('protected blocks named in an answer (homelab 99c92257)', () => {
+  it('approves skipping a class when the Planner named classes in their answer', async () => {
+    const {
+      rows: [cls],
+    } = await t.db.execute<{ id: string; title: string }>(sql`
+      select rb.id, rb.title from routine_blocks rb join categories c on c.id = rb.category_id
+      where rb.user_id = ${OWNER.id} and c.protected and rb.weekday = 2 and rb.deleted_at is null
+      limit 1`);
+    const planId = randomUUID();
+    planIds.push(planId);
+    await t.db.execute(sql`insert into plans
+      (id, user_id, source, provider, request_text, status, base_revision, version, range_from, range_to)
+      values (${planId}, ${OWNER.id}, 'in_app', 'anthropic', 'Free up tomorrow', 'ready', 0, 1,
+        '2037-10-21', '2037-10-21')`);
+    await t.db.execute(sql`insert into plan_messages (id, plan_id, role, body)
+      values (${randomUUID()}, ${planId}, 'question', 'Which blocks should I skip?'),
+             (${randomUUID()}, ${planId}, 'answer', 'Skip everything, including classes')`);
+    await t.db
+      .execute(sql`insert into plan_changes (id, plan_id, ord, kind, title, payload_json, note, enabled)
+      values (${randomUUID()}, ${planId}, 0, 'skip', ${cls!.title},
+        ${JSON.stringify({ block_ref: cls!.id, on_date: '2037-10-21' })}::jsonb, 'Skipped.', true)`);
+
+    await approvePlan(t.db, OWNER.id, planId, 1, TODAY);
+    await t.db.execute(sql`delete from plan_messages where plan_id = ${planId}`);
+  });
+});

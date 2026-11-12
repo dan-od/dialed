@@ -67,6 +67,6 @@ One short sentence per change, plain words, no jargon: "Every Wednesday, Oct 21 
 ## Enforced by the server
 - No tool writes to the schedule. `propose_changes` stores a draft; the app applies it only on Approve.
 - Every draft is re-checked: valid times on a 5-minute grid, inside a term (or one your draft creates with `create_term`), no work-block overlaps. Day bounds, quiet hours and limits are soft checks reported in `checks`. Errors come back to you to fix (3 rounds max).
-- Blocks in protected categories (classes) can't be moved or removed unless the request names them.
+- Blocks in protected categories (classes) can't be moved, skipped or removed unless the person names them (the block, its category, or "class"/"classes") in their request or in an answer to your question. If they have, include them; don't ask again.
 - At most 25 changes per draft.
 - Tools only see this person's data.

@@ -8,6 +8,7 @@ import {
   loadFixtures,
   PLAN_TOOL_SCHEMAS,
   READ_TOOL_SCHEMAS,
+  type PlanProvider,
   type ToolContext,
 } from '@dialed/planning';
 import type { Db } from '../db/pool';
@@ -78,6 +79,9 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
   const ctrl = new AbortController();
   activeRuns.set(planId, ctrl);
   const runStart = Date.now();
+  let planProvider: PlanProvider | undefined;
+  let contextTokens: number | undefined;
+  let turns = 0;
 
   try {
     const data = await loadScheduleData(db, userId);
@@ -109,7 +113,7 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
         : undefined,
     };
 
-    const planProvider = createPlanProvider({
+    planProvider = createPlanProvider({
       config,
       providerMode: opts.providerMode,
       provider: opts.provider,
@@ -130,7 +134,7 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
     const toolSchemas =
       config.AI_MODE === 'fixture' ? [] : [...PLAN_TOOL_SCHEMAS, ...READ_TOOL_SCHEMAS];
     const context = contextFor(userId, ctx);
-    let turns = 0;
+    contextTokens = context.tokens;
 
     const result = await runPlan({
       provider: planProvider,
@@ -162,6 +166,15 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
       durationMs,
       status: result.status,
       errorCode: result.status === 'failed' ? result.code : undefined,
+      ...(result.status === 'failed'
+        ? {
+            error: {
+              message: redact(result.error).slice(0, 300),
+              status: result.detail?.status,
+              body: result.detail?.body ? redact(result.detail.body) : undefined,
+            },
+          }
+        : {}),
     });
 
     switch (result.status) {
@@ -214,20 +227,45 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
     }
   } catch (err) {
     const durationMs = Date.now() - runStart;
-    const errCode = (err as { code?: string }).code;
+    const e = (err ?? {}) as {
+      message?: unknown;
+      code?: unknown;
+      status?: unknown;
+      body?: unknown;
+      stack?: unknown;
+    };
+    const message = typeof e.message === 'string' ? e.message : String(err);
+    const errCode = typeof e.code === 'string' ? e.code : undefined;
     const code =
       errCode === 'byo_key_required'
         ? 'byo_key_required'
-        : err instanceof Error && err.message === 'provider_error'
-          ? 'provider_error'
-          : 'server_error';
+        : message === 'provider_key_invalid'
+          ? 'provider_key_invalid'
+          : message === 'provider_error'
+            ? 'provider_error'
+            : 'server_error';
+    // Cause of the failure for the owner; keys are redacted and the request text is never included.
     opts.log?.({
       kind: 'plan.run',
       planId,
+      provider: planProvider?.id,
+      model: planProvider?.model,
       providerMode: opts.providerMode,
+      contextTokens,
+      turns,
       durationMs,
       status: 'failed',
       errorCode: code,
+      error: {
+        message: redact(message).slice(0, 300),
+        code: errCode,
+        status: typeof e.status === 'number' ? e.status : undefined,
+        body:
+          e.body === undefined
+            ? undefined
+            : redact(typeof e.body === 'string' ? e.body : JSON.stringify(e.body)).slice(0, 500),
+        stack: typeof e.stack === 'string' ? redact(e.stack).slice(0, 1500) : undefined,
+      },
     });
     try {
       await planService.storeResult(planId, userId, 'failed', [], [], 0, 0, { errorCode: code });
@@ -238,4 +276,12 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
   } finally {
     activeRuns.delete(planId);
   }
+}
+
+/** Strips anything shaped like an API key (sk-…, AIza…, bearer tokens) before it reaches a log line. */
+function redact(text: string): string {
+  return text
+    .replace(/sk-[A-Za-z0-9_-]{8,}/g, 'sk-[redacted]')
+    .replace(/AIza[A-Za-z0-9_-]{20,}/g, 'AIza[redacted]')
+    .replace(/(bearer\s+)[A-Za-z0-9._-]{12,}/gi, '$1[redacted]');
 }

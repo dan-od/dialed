@@ -53,7 +53,15 @@ export type RunPlanResult =
       tokensOut: number;
     }
   | { status: 'question'; question: string; options: string[]; tokensIn: number; tokensOut: number }
-  | { status: 'failed'; error: string; code: string; tokensIn: number; tokensOut: number }
+  | {
+      status: 'failed';
+      error: string;
+      code: string;
+      /** Provider HTTP status and a truncated error body, for logs only. */
+      detail?: { status?: number; body?: string };
+      tokensIn: number;
+      tokensOut: number;
+    }
   | { status: 'nothing'; text: string; tokensIn: number; tokensOut: number };
 
 export interface RunPlanOpts {
@@ -82,6 +90,10 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
     ? opts.toolSchemas.filter((t) => t.name !== 'ask_user')
     : opts.toolSchemas;
   const validateCtx = { ...opts.ctx, refs: opts.context?.refs };
+  const plannerWords = [
+    opts.request,
+    ...opts.history.filter((m) => m.role === 'user').map((m) => m.content),
+  ].join('\n');
   let totalIn = 0;
   let totalOut = 0;
   let turns = 0;
@@ -123,7 +135,8 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
       return {
         status: 'failed',
         error: msg,
-        code: 'provider_error',
+        code: msg === 'provider_key_invalid' ? 'provider_key_invalid' : 'provider_error',
+        detail: providerDetail(err),
         tokensIn: totalIn,
         tokensOut: totalOut,
       };
@@ -200,17 +213,12 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
       };
     }
 
-    const input = call.input as {
-      request_text?: string;
-      changes: PlanChange[];
-      checks?: PlanCheck[];
-    };
+    const input = call.input as { changes?: unknown; checks?: PlanCheck[] };
+    const changes = readChanges(input.changes);
+    // Protected blocks unlock only on the Planner's own words (request, answers, replies), never the model's.
     const result = opts.skipValidation
-      ? { errors: [], checks: input.checks ?? [], changes: input.changes }
-      : validate(
-          { request_text: input.request_text ?? opts.request, changes: input.changes },
-          validateCtx,
-        );
+      ? { errors: [], checks: input.checks ?? [], changes }
+      : validate({ request_text: plannerWords, changes }, validateCtx);
 
     if (result.errors.length > 0) {
       validationRounds++;
@@ -271,6 +279,26 @@ function conversation(opts: RunPlanOpts, questionCap: number | null): ProviderMe
     else out.push({ role: 'user', content: note });
   }
   return out;
+}
+
+function providerDetail(err: unknown): { status?: number; body?: string } {
+  const e = err as { status?: unknown; body?: unknown };
+  return {
+    status: typeof e.status === 'number' ? e.status : undefined,
+    body: typeof e.body === 'string' ? e.body.slice(0, 500) : undefined,
+  };
+}
+
+/** `changes` as sent; some models send the array as a JSON string. Anything else is left for validate() to reject. */
+function readChanges(raw: unknown): PlanChange[] {
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw) as PlanChange[];
+    } catch {
+      return raw as unknown as PlanChange[];
+    }
+  }
+  return raw as PlanChange[];
 }
 
 function pushToolError(messages: ProviderMessage[], call: ToolCall, output: unknown) {
