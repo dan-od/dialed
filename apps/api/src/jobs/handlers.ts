@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 import { localNow } from '@dialed/schedule';
 import type { Db } from '../db/pool';
 import type { Config } from '../config';
-import { PlanService } from '../plans/service';
+import { PlanService, MAX_REDOS } from '../plans/service';
 import { startPlanRun, initRunner } from '../plans/runner';
 import { LiveActivityService, type PushSender } from '../glance/activities';
 import { enqueue } from './enqueue';
@@ -39,50 +39,35 @@ export function createHandlers(deps: HandlerDeps) {
       );
     },
 
+    // Flow 06: the one background try after the third failed attempt (queued by queueBackgroundRetry).
     'plan.retry': async (payload: unknown) => {
-      const p = payload as {
-        plan_id: string;
-        user_id: string;
-        request_text: string;
-        time_zone: string;
-      };
+      const p = payload as { plan_id: string; user_id: string };
 
       const {
         rows: [plan],
       } = await db.execute<Row>(
-        sql`select status, attempts, provider_mode, provider from plans where id = ${p.plan_id}`,
+        sql`select p.status, p.attempts, p.provider_mode, p.provider, p.request_text, p.bg_retry_at,
+          u.time_zone
+          from plans p join users u on u.id = p.user_id
+          where p.id = ${p.plan_id} and p.user_id = ${p.user_id}`,
       );
-      if (!plan || String(plan.status) !== 'failed') return;
-      if (Number(plan.attempts) > 1) return;
-
-      const providerMode = String(plan.provider_mode ?? 'server') as 'server' | 'byo';
-
-      // BYO keys are never stored (D-13); background retry cannot proceed without one.
-      if (providerMode === 'byo') {
-        await db.execute(
-          sql`update plans set status = 'failed', error_code = 'byo_key_unavailable',
-            attempts = attempts + 1 where id = ${p.plan_id}`,
-        );
-        log({
-          kind: 'plan.retry',
-          msg: 'BYO key not available for background retry',
-          planId: p.plan_id,
-        });
+      // The Planner may have edited, cancelled or approved since; then there's nothing to retry.
+      if (!plan || String(plan.status) !== 'failed' || !plan.bg_retry_at) return;
+      if (Number(plan.attempts) < MAX_REDOS) return;
+      // Own keys are never stored (D-13), so an own-key plan can't be retried here.
+      if (String(plan.provider_mode ?? 'server') !== 'server') return;
+      if (config.AI_MODE !== 'fixture' && !config.ANTHROPIC_API_KEY) {
+        log({ kind: 'plan.retry', msg: 'no server key configured, skipping', planId: p.plan_id });
         return;
       }
 
-      if (!config.ANTHROPIC_API_KEY) {
-        log({
-          kind: 'plan.retry',
-          msg: 'no server key configured, skipping retry',
-          planId: p.plan_id,
-        });
-        return;
-      }
-
-      await db.execute(
-        sql`update plans set status = 'drafting', bg_retry_at = now() where id = ${p.plan_id}`,
+      // Status moves to drafting only if nothing else touched the plan in the meantime.
+      const { rows: claimed } = await db.execute<Row>(
+        sql`update plans set status = 'drafting', error_code = null, validation_errors_json = null
+          where id = ${p.plan_id} and status = 'failed' returning id`,
       );
+      if (claimed.length === 0) return;
+      log({ kind: 'plan.retry', msg: 'background retry started', planId: p.plan_id });
       initRunner(config);
 
       try {
@@ -92,10 +77,10 @@ export function createHandlers(deps: HandlerDeps) {
           planService,
           planId: p.plan_id,
           userId: p.user_id,
-          requestText: p.request_text,
-          timeZone: p.time_zone,
+          requestText: String(plan.request_text),
+          timeZone: String(plan.time_zone),
           now,
-          providerMode,
+          providerMode: 'server',
           provider: plan.provider ? String(plan.provider) : undefined,
           log,
         });
@@ -106,7 +91,13 @@ export function createHandlers(deps: HandlerDeps) {
       const {
         rows: [after],
       } = await db.execute<Row>(sql`select status from plans where id = ${p.plan_id}`);
-      if (String(after?.status) === 'ready') {
+      log({
+        kind: 'plan.retry',
+        msg: 'background retry finished',
+        planId: p.plan_id,
+        status: after?.status,
+      });
+      if (String(after?.status) === 'ready' || String(after?.status) === 'question') {
         await enqueue(
           db,
           'push.plan_ready',

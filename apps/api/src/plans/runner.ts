@@ -17,6 +17,7 @@ import type { Config } from '../config';
 import { PlanService } from './service';
 import { createPlanProvider } from './provider-factory';
 import { contextFor } from './context-cache';
+import { queueBackgroundRetry } from './background-retry';
 import { renderGuide } from '../mcp/guide';
 
 type Row = Record<string, unknown>;
@@ -294,6 +295,20 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
     }
   } finally {
     activeRuns.delete(planId);
+  }
+  // A third failed attempt on a network problem gets one background try (Flow 06).
+  try {
+    if (await queueBackgroundRetry(db, planId, now)) {
+      opts.log?.({ kind: 'plan.retry', msg: 'background retry queued', planId });
+    }
+  } catch (err) {
+    opts.log?.({
+      kind: 'plan.retry',
+      level: 'warn',
+      msg: 'could not queue background retry',
+      planId,
+      error: redact(String((err as Error)?.message ?? err)).slice(0, 200),
+    });
   }
 }
 

@@ -11,7 +11,8 @@ export interface FailureCopy {
   settings: boolean;
 }
 
-type FailedPlan = Pick<PlanDTO, 'error_code' | 'validation_errors' | 'attempts'>;
+type FailedPlan = Pick<PlanDTO, 'error_code' | 'validation_errors' | 'attempts'> &
+  Partial<Pick<PlanDTO, 'background_retry'>>;
 
 /** Server-side redo limit (MAX_REDOS): first run + 2 redos. */
 export const MAX_REDOS = 2;
@@ -33,7 +34,11 @@ export function failureCopy(plan: FailedPlan): FailureCopy {
 
   if (NETWORK.has(code)) {
     if (!retriesLeft) {
-      return { ...base, title: `Still can’t reach ${ai}`, body: exhaustedSentence() };
+      return {
+        ...base,
+        title: `Still can’t reach ${ai}`,
+        body: exhaustedSentence(plan.background_retry),
+      };
     }
     // The time limit is named only for a real timeout; a provider error (e.g. a 400) says so plainly.
     if (code === 'server_error') {
@@ -138,9 +143,12 @@ function validationReason(errors: FailedPlan['validation_errors']): string {
   }
 }
 
-// The prototype adds "We'll keep trying in the background and notify you", but nothing queues a background
-// retry yet (plan.retry has a handler only), so the copy doesn't promise one.
-function exhaustedSentence(): string {
+/** After the third attempt: the prototype's promise only when the server really queued its background try. */
+function exhaustedSentence(retry: FailedPlan['background_retry']): string {
+  if (retry === 'queued')
+    return 'Your request is saved. We’ll keep trying in the background and notify you when the plan is ready.';
+  if (retry === 'done')
+    return 'We tried again in the background too. Your request is saved. Try again later, or edit it.';
   return 'Your request is saved. Try again in a little while, or edit it.';
 }
 

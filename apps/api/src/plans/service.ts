@@ -9,6 +9,7 @@ import { AppError } from '../lib/errors';
 import { findByIdempotencyKey } from './idempotency';
 import { dailyPlanCount, incrementUsage } from './usage';
 import { iso, isoOrNull } from '../lib/time';
+import { backgroundRetryState, bgRetryKey } from './background-retry';
 
 type Row = Record<string, unknown>;
 
@@ -162,6 +163,11 @@ export class PlanService {
       from plan_messages where plan_id = ${planId} order by created_at`);
 
     const checksJson = (plan.checks_json as PlanCheck[]) ?? [];
+    const {
+      rows: [retryJob],
+    } = await this.db.execute<Row>(
+      sql`select status from jobs where dedupe_key = ${bgRetryKey(planId)}`,
+    );
 
     return {
       id: String(plan.id),
@@ -194,6 +200,7 @@ export class PlanService {
       error_code: plan.error_code ? String(plan.error_code) : null,
       validation_errors: (plan.validation_errors_json as PlanDTO['validation_errors'] | null) ?? [],
       attempts: Number(plan.attempts ?? 0),
+      background_retry: backgroundRetryState(plan.bg_retry_at, retryJob?.status),
       created_at: iso(plan.created_at),
       ready_at: isoOrNull(plan.ready_at),
       decided_at: isoOrNull(plan.decided_at),
@@ -202,8 +209,9 @@ export class PlanService {
 
   async list(userId: string, limit = 10): Promise<PlanSummary[]> {
     const { rows } = await this.db.execute<Row>(sql`
-      select p.id, p.source, p.client_name, p.request_text, p.status, p.created_at,
-        (select count(*)::int from plan_changes pc where pc.plan_id = p.id) as change_count
+      select p.id, p.source, p.client_name, p.request_text, p.status, p.created_at, p.bg_retry_at,
+        (select count(*)::int from plan_changes pc where pc.plan_id = p.id) as change_count,
+        (select j.status from jobs j where j.dedupe_key = 'plan.retry:' || p.id::text) as retry_status
       from plans p where p.user_id = ${userId}
       order by p.created_at desc limit ${limit}`);
     return rows.map((r) => ({
@@ -214,6 +222,7 @@ export class PlanService {
       status: String(r.status) as PlanSummary['status'],
       created_at: iso(r.created_at),
       change_count: Number(r.change_count),
+      background_retry: backgroundRetryState(r.bg_retry_at, r.retry_status),
     }));
   }
 

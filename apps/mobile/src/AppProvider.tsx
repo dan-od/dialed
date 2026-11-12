@@ -42,6 +42,7 @@ import {
   writeSession,
   type StoredSession,
 } from './session/storage';
+import { definePlanCheckTask } from './plan/backgroundCheck';
 import { DevicePrefsStore } from './settings/prefs';
 import { Categories } from './settings/service';
 import { SyncEngine, type SyncStatus } from './sync/engine';
@@ -107,6 +108,16 @@ class SessionTokens implements TokenSource {
 const tokens = new SessionTokens();
 const api = new ApiClient(API_BASE_URL, tokens);
 const planApi = new PlanApi(api);
+
+// Flow 06 background retry: iOS may launch Dialed in the background with no session loaded yet. The Keychain
+// item is readable only while unlocked (SECURITY.md), so a locked-phone wake just skips the check.
+definePlanCheckTask({
+  ready: async () => {
+    if (!tokens.session) tokens.session = await readSession();
+    return !!tokens.session;
+  },
+  list: async () => (await planApi.list(10)).plans,
+});
 
 /** The running engine, outside React state (the Blocks service enqueues through it). */
 class EngineHub {

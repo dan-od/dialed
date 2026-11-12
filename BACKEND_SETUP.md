@@ -42,6 +42,7 @@ Recorded at Batch 0 (2026-10-20) on the owner's Mac:
 | Expo SDK / React Native / React | 58.0.16 / 0.88.0 / 19.3.0 | `create-expo-app@5.0.0` default template (Expo Router, `src/app`) |
 | CocoaPods / Watchman / gitleaks | 1.17.0 / 2026.10.19.00 / 8.30.1 | Homebrew |
 | @react-native-community/datetimepicker / expo-notifications | 9.2.1 / 58.1.6 | Flow 04: native time picker; local reminders + permission prompt (`enableRemoteNotifications` only on `APPLE_TEAM_TIER=paid`) |
+| expo-background-task / expo-task-manager | 58.0.13 / 58.0.14 | Flow 06 background retry: iOS wakes Dialed (BGTaskScheduler, iOS picks the time) to post a local notification when the server's background try produced a plan; no push on the free account (D-39, D-125) |
 | fflate (API) / expo-file-system (mobile) | 0.8.2 / 58.0.10 | Flow 09 Export my data: dependency-free zip writer for `dialed-export.zip`; a temp file for the iOS share sheet (RN `Share`, no expo-sharing) |
 | App Groups on Personal Team | Simulator: works (2026-11-08, Xcode 27.1): app and widget carry `group.me.okoro.dialed`, and the app wrote `snapshot.json` into the shared container. Device / Personal Team: **not tested** (no `APPLE_TEAM_ID` set; needs the owner's Xcode sign-in and an iPhone run) | Flow 08, D-77 |
 | @bacons/apple-targets | 5.0.0 (dev) | Flow 08 widget extension target from `targets/widgets` (named in §1). Pulls `@xmldom/xmldom` 0.7.13 (13 high advisories, build-time only): pnpm override to 0.8.15; prebuild output unchanged |

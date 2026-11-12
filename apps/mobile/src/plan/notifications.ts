@@ -4,6 +4,7 @@ import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import { AppState } from 'react-native';
 import type { PlanApi } from './api';
+import { notifyRetriedPlans, registerPlanCheck } from './backgroundCheck';
 
 type ToastFn = (msg: string) => void;
 
@@ -63,9 +64,12 @@ export function usePlanReadyPolling(planApi: PlanApi) {
   const lastCheck = useRef<string | null>(null);
 
   useEffect(() => {
+    // Signed in: ask iOS for background checks for plans the server retried (Flow 06).
+    void registerPlanCheck();
     const sub = AppState.addEventListener('change', (state) => {
       if (state !== 'active') return;
       void checkForReadyPlans(planApi, lastCheck);
+      void notifyRetriedPlans(async () => (await planApi.list(10)).plans).catch(() => {});
     });
     return () => sub.remove();
   }, [planApi]);

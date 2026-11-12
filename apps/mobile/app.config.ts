@@ -43,6 +43,8 @@ const config: ExpoConfig = {
       { backgroundColor: '#FF5A1F', image: './assets/brand/splash-mark.png', imageWidth: 132 },
     ],
     'expo-sqlite',
+    // Flow 06 (D-39): iOS wakes Dialed now and then to check for a plan the server retried in the background.
+    'expo-background-task',
     'expo-secure-store',
     'expo-font',
     // Flow 04 native time pickers (5-minute interval).

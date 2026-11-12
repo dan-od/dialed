@@ -298,6 +298,8 @@ export const PlanDTO = z.object({
     .default([]),
   /** Redo attempts after a failure (0 for a first run). */
   attempts: z.number().int().default(0),
+  /** Flow 06: the one background try after the third failed attempt: queued (waiting or running), done, or none. */
+  background_retry: z.enum(['queued', 'done']).nullable().default(null),
   created_at: z.iso.datetime(),
   ready_at: z.iso.datetime().nullable(),
   decided_at: z.iso.datetime().nullable(),
@@ -312,6 +314,8 @@ export const PlanSummary = z.object({
   status: z.enum(PLAN_STATUSES),
   created_at: z.iso.datetime(),
   change_count: z.number().int(),
+  /** Flow 06: the one background try after the third failed attempt: queued (waiting or running), done, or none. */
+  background_retry: z.enum(['queued', 'done']).nullable().default(null),
 });
 export type PlanSummary = z.infer<typeof PlanSummary>;
 

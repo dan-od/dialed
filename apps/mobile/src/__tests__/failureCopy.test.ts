@@ -111,4 +111,29 @@ describe('plan screen copy (prototype v11)', () => {
     expect(c.title).not.toMatch(/answer|reach/);
     expect(c.canRetry).toBe(false);
   });
+
+  describe('after the third attempt', () => {
+    const exhausted = (background_retry: 'queued' | 'done' | null) =>
+      failureCopy({ ...plan('timeout', [], 2), background_retry });
+
+    it('promises the background try only when the server queued it', () => {
+      expect(exhausted('queued').body).toBe(
+        'Your request is saved. We’ll keep trying in the background and notify you when the plan is ready.',
+      );
+      expect(exhausted('queued').title).toBe('Still can’t reach Claude');
+    });
+
+    it('says the background try also failed once it ran', () => {
+      expect(exhausted('done').body).toBe(
+        'We tried again in the background too. Your request is saved. Try again later, or edit it.',
+      );
+    });
+
+    it('keeps the plain sentence when nothing was queued (own key, older server)', () => {
+      expect(exhausted(null).body).toBe(
+        'Your request is saved. Try again in a little while, or edit it.',
+      );
+      expect(failureCopy(plan('provider_error', [], 2)).body).not.toMatch(/background/);
+    });
+  });
 });
