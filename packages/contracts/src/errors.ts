@@ -22,6 +22,7 @@ export const ERROR_CODES = [
   'plan_invalid',
   'plan_not_ready',
   'validation_failed',
+  'too_many_questions',
   'resync_required',
   'provider_error',
   'provider_key_invalid',

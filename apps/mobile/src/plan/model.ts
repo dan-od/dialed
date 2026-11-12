@@ -1,4 +1,4 @@
-import type { PlanChangeRow, PlanCheck, PlanDTO } from '@dialed/contracts';
+import type { PlanChangeRow, PlanCheck, PlanDTO, PlanMessage } from '@dialed/contracts';
 import { formatClock } from '@dialed/schedule';
 
 export type ChangeTag = 'New' | 'Moved' | 'Changed' | 'Removed' | 'Skip' | 'New category';
@@ -129,4 +129,9 @@ function toCard(row: PlanChangeRow, allChecks: PlanCheck[]): ChangeCard {
 
 export function enabledCount(cards: ChangeCard[]): number {
   return cards.filter((c) => c.enabled).length;
+}
+
+/** The question the Planner is answering now: the newest one (messages come oldest first). */
+export function latestQuestion(messages: PlanMessage[]): PlanMessage | undefined {
+  return messages.filter((m) => m.role === 'question').at(-1);
 }

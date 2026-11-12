@@ -11,6 +11,17 @@ import { dailyPlanCount, incrementUsage } from './usage';
 
 type Row = Record<string, unknown>;
 
+/** The provider a new plan will run on; 'fixture' only under AI_MODE=fixture. The runner overwrites it with the one it used. */
+export function plannedProvider(
+  config: Pick<Config, 'AI_MODE'>,
+  providerMode: 'server' | 'byo',
+  provider: string | undefined,
+): string {
+  if (config.AI_MODE === 'fixture') return 'fixture';
+  if (providerMode === 'server') return 'anthropic';
+  return provider ?? 'anthropic';
+}
+
 export class PlanService {
   constructor(
     private readonly db: Db,
@@ -52,15 +63,16 @@ export class PlanService {
     const baseRevision = revRow ? Number(revRow.revision) : 0;
 
     const planId = randomUUID();
+    const storedProvider = plannedProvider(this.config, providerMode, provider);
     await this.db.execute(sql`insert into plans
       (id, user_id, source, provider, request_text, status, base_revision,
        provider_mode, idempotency_key, version)
-      values (${planId}, ${userId}, 'in_app', ${provider ?? 'fixture'},
+      values (${planId}, ${userId}, 'in_app', ${storedProvider},
         ${requestText}, 'drafting', ${baseRevision},
         ${providerMode}, ${idempotencyKey ?? null}, 1)`);
 
     await this.db.execute(sql`insert into audit_log (user_id, actor, action, target)
-      values (${userId}, ${'ai:' + (provider ?? 'fixture')}, 'plan_create', ${planId})`);
+      values (${userId}, ${'ai:' + storedProvider}, 'plan_create', ${planId})`);
 
     return { planId, existing: false };
   }

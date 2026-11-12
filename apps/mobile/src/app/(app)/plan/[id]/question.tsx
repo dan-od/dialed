@@ -2,6 +2,7 @@ import { Pressable, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useApp } from '../../../../AppProvider';
 import { usePlan } from '../../../../plan/usePlan';
+import { latestQuestion } from '../../../../plan/model';
 import { useTheme } from '../../../../theme/theme';
 import { BackLink, Header, Page } from '../../../../ui/Chrome';
 import { haptic } from '../../../../lib/haptics';
@@ -19,7 +20,7 @@ export default function Question() {
   const { plan } = usePlan(planApi, id);
   const [busy, setBusy] = useState(false);
 
-  const question = plan?.messages.find((m) => m.role === 'question');
+  const question = plan ? latestQuestion(plan.messages) : undefined;
 
   const answer = async (option: string) => {
     setBusy(true);

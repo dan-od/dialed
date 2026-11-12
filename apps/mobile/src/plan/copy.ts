@@ -7,6 +7,8 @@ const SENTENCES: Record<string, (ai: string) => string> = {
   daily_limit: (_ai) =>
     `You’ve used today’s 30 plans on the Dialed server. Try again tomorrow or bring your own key.`,
   validation_failed: (ai) => `${ai} couldn’t make a plan that fits your limits. Try rewording it.`,
+  too_many_questions: (ai) =>
+    `${ai} still wasn’t sure after two questions. Try again with the day, time and how long.`,
 };
 
 export function errorSentence(code: ErrorCode | string | null): string {

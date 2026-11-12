@@ -78,7 +78,7 @@ jobs:
           APNS_MODE=log
           AI_MODE=live
           ANTHROPIC_API_KEY=${{ secrets.DIALED_ANTHROPIC_API_KEY }}
-          PLAN_MODEL_ANTHROPIC=claude-sonnet-5-5
+          PLAN_MODEL_ANTHROPIC=${{ vars.PLAN_MODEL_ANTHROPIC || 'claude-sonnet-5-5' }}
           PLAN_DAILY_LIMIT=30
           IMPORT_DAILY_LIMIT=6
           MCP_ENABLED=true

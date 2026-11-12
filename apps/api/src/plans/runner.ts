@@ -117,6 +117,7 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
       byoBaseUrl: opts.byoBaseUrl,
       requestText,
     });
+    await db.execute(sql`update plans set provider = ${planProvider.id} where id = ${planId}`);
 
     const { rows: priorMsgs } = await db.execute<Row>(
       sql`select role, body from plan_messages where plan_id = ${planId} order by created_at`,

@@ -12,6 +12,8 @@ export interface PlanLimits {
   maxTokens: number;
   maxRetries: number;
   maxValidationRounds: number;
+  /** Questions per plan; after this many the model must propose or the run fails (too_many_questions). */
+  maxQuestions: number;
 }
 
 export const DEFAULT_LIMITS: PlanLimits = {
@@ -21,6 +23,7 @@ export const DEFAULT_LIMITS: PlanLimits = {
   maxTokens: 8192,
   maxRetries: 3,
   maxValidationRounds: 3,
+  maxQuestions: 2,
 };
 
 export interface ToolContext {
@@ -56,7 +59,9 @@ export type RunPlanResult =
 export interface RunPlanOpts {
   provider: PlanProvider;
   guide: string;
+  /** The Planner's original request. */
   request: string;
+  /** Everything after the request, in order: questions (assistant), answers and replies (user). */
   history: ProviderMessage[];
   toolSchemas: { name: string; description: string; input_schema: object }[];
   ctx: ToolContext;
@@ -70,10 +75,12 @@ export interface RunPlanOpts {
 
 export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
   const limits = { ...DEFAULT_LIMITS, ...opts.limits };
-  const messages: ProviderMessage[] = withContext(
-    [...opts.history, { role: 'user', content: opts.request }],
-    opts.context,
-  );
+  const questionsAsked = opts.history.filter((m) => m.role === 'assistant').length;
+  const atQuestionCap = questionsAsked >= limits.maxQuestions;
+  const messages = conversation(opts, atQuestionCap ? limits.maxQuestions : null);
+  const tools = atQuestionCap
+    ? opts.toolSchemas.filter((t) => t.name !== 'ask_user')
+    : opts.toolSchemas;
   const validateCtx = { ...opts.ctx, refs: opts.context?.refs };
   let totalIn = 0;
   let totalOut = 0;
@@ -107,7 +114,7 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
       response = await opts.provider.run({
         system: opts.guide,
         messages,
-        tools: opts.toolSchemas,
+        tools,
         maxTokens: limits.maxTokens,
         signal: opts.signal,
       });
@@ -173,6 +180,15 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
     }
 
     if (call.name === 'ask_user') {
+      if (atQuestionCap) {
+        return {
+          status: 'failed',
+          error: `Asked ${limits.maxQuestions} questions without proposing a plan.`,
+          code: 'too_many_questions',
+          tokensIn: totalIn,
+          tokensOut: totalOut,
+        };
+      }
       const input = call.input as { question: string; options: string[] };
       opts.onStep?.({ kind: 'question' });
       return {
@@ -231,13 +247,30 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
   };
 }
 
-/** Prepends the context to the conversation's first user message (the original request on follow-ups). */
-function withContext(messages: ProviderMessage[], context?: PlanningContext): ProviderMessage[] {
-  if (!context) return messages;
-  const i = messages.findIndex((m) => m.role === 'user');
-  return messages.map((m, j) =>
-    j === i ? { ...m, content: `${context.text}\n\n---\n${m.content}` } : m,
-  );
+/**
+ * The conversation as the provider sees it: the context and the original request first, then the
+ * questions and answers in order. Consecutive user turns are joined so roles always alternate, and at
+ * the question cap the last user turn says to propose now.
+ */
+function conversation(opts: RunPlanOpts, questionCap: number | null): ProviderMessage[] {
+  const first = opts.context ? `${opts.context.text}\n\n---\n${opts.request}` : opts.request;
+  const out: ProviderMessage[] = [{ role: 'user', content: first }];
+  for (const m of opts.history) {
+    const last = out.at(-1)!;
+    if (m.role === 'user' && last.role === 'user' && !last.tool_results) {
+      out[out.length - 1] = { ...last, content: `${last.content}\n\n${m.content}` };
+    } else {
+      out.push(m);
+    }
+  }
+  if (questionCap !== null) {
+    const last = out.at(-1)!;
+    const note = `(You've asked ${questionCap} questions, the most allowed. Don't ask another: propose your best plan now with propose_changes and say what you assumed in the notes.)`;
+    if (last.role === 'user')
+      out[out.length - 1] = { ...last, content: `${last.content}\n\n${note}` };
+    else out.push({ role: 'user', content: note });
+  }
+  return out;
 }
 
 function pushToolError(messages: ProviderMessage[], call: ToolCall, output: unknown) {

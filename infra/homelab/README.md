@@ -113,6 +113,8 @@ No Cloudflare Access on this hostname: the iPhone app and MCP clients must reach
    database password and pepper must never change after first start).
 3. **Turn deploys on:** Variables tab → New repository variable `DEPLOY_ENABLED` = `true`. Until then the workflow
    skips (pushing it deployed nothing).
+4. **Planning model (optional):** Variables tab → New repository variable `PLAN_MODEL_ANTHROPIC`, e.g.
+   `claude-haiku-5-5`. Unset → `claude-sonnet-5-5`.
 
 ## 5. Start it
 
@@ -189,6 +191,10 @@ Debug → localhost** (Xcode passes `CONFIGURATION` to the build phase, so this 
 
 - Normal: push to `main` → GitHub Actions deploys (rsync, `.env` from secrets, `docker compose up -d --build`).
 - By hand on the host: `git pull` (or rsync), then `docker compose --profile prod up -d --build`.
+- **Change the AI model:** GitHub → Settings → Secrets and variables → Actions → Variables → set
+  `PLAN_MODEL_ANTHROPIC`, then Actions → Deploy → Run workflow (or re-run the last Deploy). Editing `.env` on the
+  host doesn't stick: every deploy rewrites it from secrets and variables. The `plan.run` log line names the model.
+  To compare models first, run `./scripts/plan_compare claude-haiku-5-5 claude-sonnet-5-5` locally.
 - Migrations run automatically: `dialed-migrate` applies new `backend/migrations` files before api/worker start;
   a failed migration leaves the old containers running. Edit infra in the repo, never in `sites/dialed/` (the
   next rsync `--delete` replaces it).

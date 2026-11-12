@@ -88,25 +88,44 @@ describe('runPlan with a preloaded context', () => {
     }
   });
 
-  it('puts the context in the first user message of a follow-up, not the latest', async () => {
+  it('after one Q&A the provider gets [user(context+request), assistant(question), user(answer)]', async () => {
     const context = buildContext(ctx);
     const provider = freeUpTomorrowModel();
     await runPlan({
       provider,
       guide: 'g',
-      request: 'Yes, all of them',
+      request: 'Free up tomorrow',
       history: [
-        { role: 'user', content: 'Free up tomorrow' },
-        { role: 'assistant', content: 'All blocks?' },
+        { role: 'assistant', content: 'All blocks, or just the afternoon?' },
+        { role: 'user', content: 'All of them' },
       ],
       toolSchemas: PLAN_TOOL_SCHEMAS,
       ctx,
       context,
     });
     const msgs = provider.calls[0]!.messages;
+    expect(msgs.map((m) => m.role)).toEqual(['user', 'assistant', 'user']);
     expect(msgs[0]!.content.startsWith('DIALED CONTEXT')).toBe(true);
+    expect(msgs[0]!.content.endsWith('Free up tomorrow')).toBe(true);
+    expect(msgs[1]!.content).toBe('All blocks, or just the afternoon?');
+    expect(msgs[2]!.content).toBe('All of them');
+  });
+
+  it('a reply after a ready plan never sends two user messages in a row', async () => {
+    const provider = freeUpTomorrowModel();
+    await runPlan({
+      provider,
+      guide: 'g',
+      request: 'Free up tomorrow',
+      history: [{ role: 'user', content: 'Keep the gym though' }],
+      toolSchemas: PLAN_TOOL_SCHEMAS,
+      ctx,
+      context: buildContext(ctx),
+    });
+    const msgs = provider.calls[0]!.messages;
+    expect(msgs).toHaveLength(1);
     expect(msgs[0]!.content).toContain('Free up tomorrow');
-    expect(msgs.at(-1)!.content).toBe('Yes, all of them');
+    expect(msgs[0]!.content.endsWith('Keep the gym though')).toBe(true);
   });
 
   it('answers get_schedule for dates outside the window, refuses dates inside it', async () => {
@@ -154,5 +173,73 @@ describe('runPlan with a preloaded context', () => {
     expect(outside!.output.days).toHaveLength(2);
     expect(inside!.id).toBe('b');
     expect(inside!.is_error).toBe(true);
+  });
+});
+
+describe('question cap', () => {
+  const twoAsked = [
+    { role: 'assistant' as const, content: 'Which day?' },
+    { role: 'user' as const, content: 'Thursday' },
+    { role: 'assistant' as const, content: 'Morning or evening?' },
+    { role: 'user' as const, content: 'Either' },
+  ];
+
+  it('after 2 questions, ask_user is withdrawn and the model is told to propose', async () => {
+    const provider = freeUpTomorrowModel();
+    const r = await runPlan({
+      provider,
+      guide: 'g',
+      request: 'Free up tomorrow',
+      history: twoAsked,
+      toolSchemas: PLAN_TOOL_SCHEMAS,
+      ctx,
+      context: buildContext(ctx),
+    });
+    const sent = provider.calls[0]!;
+    expect(sent.tools.map((t) => t.name)).not.toContain('ask_user');
+    expect(sent.messages.at(-1)!.content).toMatch(/propose your best plan/i);
+    expect(r.status).toBe('ready');
+  });
+
+  it('a third question fails with too_many_questions', async () => {
+    const provider: PlanProvider = {
+      id: 'mock',
+      displayName: 'Mock',
+      supportsVision: false,
+      async run() {
+        return {
+          content: '',
+          tool_calls: [
+            { id: 'q', name: 'ask_user', input: { question: 'Really?', options: ['Yes'] } },
+          ],
+          tokens_in: 1,
+          tokens_out: 1,
+        };
+      },
+    };
+    const r = await runPlan({
+      provider,
+      guide: 'g',
+      request: 'Free up tomorrow',
+      history: twoAsked,
+      toolSchemas: PLAN_TOOL_SCHEMAS,
+      ctx,
+      context: buildContext(ctx),
+    });
+    expect(r.status).toBe('failed');
+    if (r.status === 'failed') expect(r.code).toBe('too_many_questions');
+  });
+
+  it('one question so far still allows a second', async () => {
+    const provider = freeUpTomorrowModel();
+    await runPlan({
+      provider,
+      guide: 'g',
+      request: 'Free up tomorrow',
+      history: twoAsked.slice(0, 2),
+      toolSchemas: PLAN_TOOL_SCHEMAS,
+      ctx,
+    });
+    expect(provider.calls[0]!.tools.map((t) => t.name)).toContain('ask_user');
   });
 });

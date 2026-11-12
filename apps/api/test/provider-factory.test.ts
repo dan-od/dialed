@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { testConfig } from './helpers';
 import { createPlanProvider } from '../src/plans/provider-factory';
+import { plannedProvider } from '../src/plans/service';
 
 describe('createPlanProvider', () => {
   const fixtureConfig = testConfig({ AI_MODE: 'fixture' });
@@ -125,5 +126,19 @@ describe('createPlanProvider', () => {
         requestText: 'test',
       }),
     ).toThrow('base URL');
+  });
+});
+
+describe('plannedProvider (what a new plan row records)', () => {
+  it("is 'fixture' only in fixture mode", () => {
+    expect(plannedProvider({ AI_MODE: 'fixture' }, 'server', undefined)).toBe('fixture');
+    expect(plannedProvider({ AI_MODE: 'fixture' }, 'byo', 'openai')).toBe('fixture');
+  });
+
+  it('records the real provider in live mode, never fixture', () => {
+    expect(plannedProvider({ AI_MODE: 'live' }, 'server', undefined)).toBe('anthropic');
+    expect(plannedProvider({ AI_MODE: 'live' }, 'server', 'openai')).toBe('anthropic');
+    expect(plannedProvider({ AI_MODE: 'live' }, 'byo', 'gemini')).toBe('gemini');
+    expect(plannedProvider({ AI_MODE: 'live' }, 'byo', undefined)).toBe('anthropic');
   });
 });

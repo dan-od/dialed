@@ -21,6 +21,7 @@ const STATUS: Partial<Record<ErrorCode, number>> = {
   plan_invalid: 409,
   plan_not_ready: 409,
   validation_failed: 422,
+  too_many_questions: 422,
   provider_error: 502,
   provider_key_invalid: 400,
   byo_key_required: 400,
@@ -54,6 +55,8 @@ const MESSAGES: Partial<Record<ErrorCode, string>> = {
   plan_invalid: 'That plan doesn’t fit your schedule anymore. Check the changes.',
   plan_not_ready: 'That plan isn’t ready to review yet.',
   validation_failed: 'Couldn’t make a plan that fits your limits. Try rewording it.',
+  too_many_questions:
+    'Still not sure what you meant after two questions. Try again with the day, time and how long.',
   provider_error: 'Couldn’t reach the AI provider. Try again.',
   provider_key_invalid: 'That AI key was refused. Check it in Settings.',
   byo_key_required: 'Add your own AI key in Settings to plan this way.',
