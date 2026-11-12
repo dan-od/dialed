@@ -30,13 +30,18 @@ case "$TARGET" in
     ;;
   device)
     # Pick the first paired physical device so the build works non-interactively.
-    UDID="${2:-$(xcrun devicectl list devices 2>/dev/null | awk '/physical/ && /available/ {print $2; exit}')}"
+    UDID="${2:-$(xcrun devicectl list devices 2>/dev/null | awk '/physical/ && /available|connected/ {print $2; exit}')}"
     [[ -n "$UDID" ]] || die "No paired iPhone found. Plug in and trust it first."
     log "Building Release for $UDID (log: $LOG). Signing uses the team set in Xcode."
-    npx expo run:ios --configuration Release --device "$UDID" --no-bundler >"$LOG" 2>&1 || {
-      tail -30 "$LOG" >&2
-      die "Device build failed (signing? open ios/Dialed.xcworkspace → Signing & Capabilities → Personal Team)."
-    }
+    if ! npx expo run:ios --configuration Release --device "$UDID" --no-bundler >"$LOG" 2>&1; then
+      # Installed fine but couldn't auto-open because the phone is locked: that's still a good build.
+      if grep -q "device is locked" "$LOG" && grep -q "✔ Complete 100%" "$LOG"; then
+        log "Installed. The phone was locked, so it didn't open; unlock it and open Dialed."
+      else
+        tail -30 "$LOG" >&2
+        die "Device build failed (signing? open ios/Dialed.xcworkspace → Signing & Capabilities → Personal Team)."
+      fi
+    fi
     APP="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*Release-iphoneos/Dialed.app' -maxdepth 6 -print 2>/dev/null | head -1)"
     ;;
   *) die "Usage: $0 simulator|device" ;;
