@@ -10,6 +10,7 @@ import {
   READ_TOOL_SCHEMAS,
   type PlanProvider,
   type ToolContext,
+  type ValidateError,
 } from '@dialed/planning';
 import type { Db } from '../db/pool';
 import type { Config } from '../config';
@@ -82,6 +83,7 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
   let planProvider: PlanProvider | undefined;
   let contextTokens: number | undefined;
   let turns = 0;
+  const rounds: ValidateError[][] = [];
 
   try {
     const data = await loadScheduleData(db, userId);
@@ -146,7 +148,9 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
       context,
       onStep: (step) => {
         if (step.kind === 'call') turns++;
+        if (step.kind === 'validate_error' && step.errors) rounds.push(step.errors);
       },
+      temperature: config.AI_MODE === 'fixture' ? undefined : config.PLAN_TEMPERATURE,
       skipValidation: config.AI_MODE === 'fixture' && !!process.env.DEV_CLOCK,
       signal: ctrl.signal,
       limits: { maxTokens: config.PLAN_MAX_TOKENS },
@@ -166,6 +170,7 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
       durationMs,
       status: result.status,
       errorCode: result.status === 'failed' ? result.code : undefined,
+      ...(rounds.length ? { validation: roundsForLog(rounds) } : {}),
       ...(result.status === 'failed'
         ? {
             error: {
@@ -225,6 +230,10 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
         );
         break;
     }
+    // The newest round's errors, so the app can say why a draft failed (or what a partial plan dropped).
+    const lastErrors = rounds.at(-1);
+    await db.execute(sql`update plans set validation_errors_json =
+      ${lastErrors ? JSON.stringify(lastErrors) : null}::jsonb where id = ${planId}`);
   } catch (err) {
     const durationMs = Date.now() - runStart;
     const e = (err ?? {}) as {
@@ -253,6 +262,7 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
       providerMode: opts.providerMode,
       contextTokens,
       turns,
+      ...(rounds.length ? { validation: roundsForLog(rounds) } : {}),
       durationMs,
       status: 'failed',
       errorCode: code,
@@ -284,4 +294,16 @@ function redact(text: string): string {
     .replace(/sk-[A-Za-z0-9_-]{8,}/g, 'sk-[redacted]')
     .replace(/AIza[A-Za-z0-9_-]{20,}/g, 'AIza[redacted]')
     .replace(/(bearer\s+)[A-Za-z0-9._-]{12,}/gi, '$1[redacted]');
+}
+
+/** Each validation round as rule code, change index and a short message, for the plan.run log line. */
+function roundsForLog(rounds: ValidateError[][]) {
+  return rounds.map((errors, i) => ({
+    round: i + 1,
+    errors: errors.map((e) => ({
+      code: e.code,
+      i: e.change_index,
+      msg: redact(e.message).slice(0, 100),
+    })),
+  }));
 }

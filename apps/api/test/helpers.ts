@@ -37,6 +37,7 @@ export function testConfig(over: Partial<Config> = {}): Config {
     PLAN_MODEL_OPENAI: 'gpt-4o',
     PLAN_MODEL_GEMINI: 'gemini-2.5-flash',
     PLAN_MAX_TOKENS: 8192,
+    PLAN_TEMPERATURE: 0,
     PLAN_DAILY_LIMIT: 30,
     ALLOW_PRIVATE_PROVIDER_URLS: false,
     UPLOAD_DIR: '/tmp/dialed-test-uploads',

@@ -61,7 +61,10 @@ export function createGeminiProvider(opts: GeminiProviderOpts): PlanProvider {
       const body = JSON.stringify({
         contents,
         ...(tools ? { tools } : {}),
-        generationConfig: { maxOutputTokens: runOpts.maxTokens },
+        generationConfig: {
+          maxOutputTokens: runOpts.maxTokens,
+          ...(runOpts.temperature !== undefined ? { temperature: runOpts.temperature } : {}),
+        },
       });
 
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${opts.model}:generateContent?key=${opts.apiKey}`;

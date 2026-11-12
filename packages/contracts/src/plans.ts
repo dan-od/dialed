@@ -285,6 +285,19 @@ export const PlanDTO = z.object({
   checks: z.array(PlanCheck),
   impact: z.array(PlanImpactRow),
   error_code: z.string().nullable(),
+  /** Why the last draft failed validation (validation_failed), newest round only. */
+  validation_errors: z
+    .array(
+      z.object({
+        code: z.string(),
+        change_index: z.number().int(),
+        message: z.string(),
+        subject: z.string().optional(),
+      }),
+    )
+    .default([]),
+  /** Redo attempts after a failure (0 for a first run). */
+  attempts: z.number().int().default(0),
   created_at: z.iso.datetime(),
   ready_at: z.iso.datetime().nullable(),
   decided_at: z.iso.datetime().nullable(),

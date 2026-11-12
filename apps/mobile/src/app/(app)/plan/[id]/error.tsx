@@ -2,8 +2,7 @@ import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useApp } from '../../../../AppProvider';
 import { usePlan } from '../../../../plan/usePlan';
-import { errorSentence, exhaustedSentence, tryAgainLabel } from '../../../../plan/copy';
-import { aiName } from '../../../../config';
+import { failureCopy, MAX_REDOS, tryAgainLabel } from '../../../../plan/copy';
 import { useTheme } from '../../../../theme/theme';
 import { Page } from '../../../../ui/Chrome';
 import { Button } from '../../../../ui/Button';
@@ -11,8 +10,6 @@ import { haptic } from '../../../../lib/haptics';
 import { T } from '../../../../ui/Text';
 import { useToast } from '../../../../ui/Toast';
 import { useState, useEffect } from 'react';
-
-const MAX_ATTEMPTS = 3;
 
 export default function PlanError() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,10 +20,9 @@ export default function PlanError() {
   const { plan } = usePlan(planApi, id);
   const [busy, setBusy] = useState(false);
 
-  const code = plan?.error_code ?? 'provider_error';
-  const attempt = plan?.version ?? 1;
-  const exhausted = attempt >= MAX_ATTEMPTS;
-  const ai = aiName();
+  const copy = failureCopy(
+    plan ?? { error_code: 'provider_error', validation_errors: [], attempts: 0 },
+  );
 
   useEffect(() => {
     if (plan && plan.status !== 'failed') {
@@ -74,11 +70,16 @@ export default function PlanError() {
         }}
       >
         <T size={28} weight="700" style={{ textAlign: 'center' }}>
-          {exhausted ? `Still can’t reach ${ai}` : `${ai} didn’t answer`}
+          {copy.title}
         </T>
         <T size={15} weight="500" color={c.muted} style={{ textAlign: 'center', maxWidth: 300 }}>
-          {exhausted ? exhaustedSentence() : errorSentence(code)}
+          {copy.body}
         </T>
+        {copy.reason ? (
+          <T size={15} weight="600" style={{ textAlign: 'center', maxWidth: 300 }}>
+            {copy.reason}
+          </T>
+        ) : null}
         {plan?.request_text ? (
           <View style={{ padding: 12, borderRadius: 12, backgroundColor: c.surf2, maxWidth: 300 }}>
             <T size={13} weight="500" color={c.muted} numberOfLines={3}>
@@ -91,19 +92,17 @@ export default function PlanError() {
         ) : null}
       </View>
       <View style={{ paddingHorizontal: 20, paddingBottom: 40, gap: 10 }}>
-        {!exhausted ? (
+        {copy.canRetry ? (
           <Button
             kind="primary"
-            label={tryAgainLabel(attempt + 1, MAX_ATTEMPTS)}
+            label={tryAgainLabel((plan?.attempts ?? 0) + 2, MAX_REDOS + 1)}
             busy={busy}
             onPress={() => void retry()}
           />
         ) : (
           <Button kind="primary" label="Got it" onPress={() => router.replace('/plan')} />
         )}
-        {code === 'provider_key_invalid' ? (
-          <Button kind="link" label="Open Settings" onPress={openSettings} />
-        ) : null}
+        {copy.settings ? <Button kind="link" label="Open Settings" onPress={openSettings} /> : null}
         <Button kind="secondary" label="Edit my request" onPress={edit} />
       </View>
     </Page>

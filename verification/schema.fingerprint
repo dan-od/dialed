@@ -4,3 +4,5 @@
 0001_init d96f06751cffd5dea494920ebb5fe11d
 # 0003_mcp_oauth: two clean replays on PostgreSQL 16.15, identical, 2026-11-05 (0002 was never recorded; only the latest is checked).
 0003_mcp_oauth 71aefadcfe611e2d55b40cd32959a9b0
+# 0004_plan_validation_errors: clean replays on PostgreSQL 16, identical, 2026-11-11.
+0004_plan_validation_errors 96bbd78436d7a5d585bd64d8a47b3019

@@ -99,7 +99,7 @@ export function buildContext(ctx: ToolContext, days = CONTEXT_DAYS): PlanningCon
         (c.protected ? ' protected' : '') +
         (c.quiet ? ' quiet' : ''),
     ),
-    'DAYS (ref start-end title category flags; P protected, Q quiet; "-" = one-off, no ref)',
+    'DAYS (ref start-end title category flags; P = protected class: leave it unless PROTECTED NOW allows; Q quiet; "-" = one-off, no ref)',
     ...dayLines,
   ].join('\n');
 

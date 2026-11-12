@@ -8,7 +8,7 @@ Keep this under 15 lines. Update at the end of every session.
 
 **Owner, on the home lab (checklist `infra/homelab/README.md`):** run `homelab-init`, fill SMTP_URL / EMAIL_FROM / BACKUP_DIR / ANTHROPIC_API_KEY, Resend + DNS, nginx conf, tunnel hostname `dialed.okoro.me`, repo secrets + deploy key + `DEPLOY_ENABLED`, first start, go-live sequence, Uptime Kuma.
 
-**Live AI (2026-11-11):** provider factory by AI_MODE × provider_mode; BYO keys per request only (D-13). Planning context preloaded per run (D-123): today + 14 days, one line per block with refs (b/c/t) mapped back in the validator, cached per user + revision, in the first user message; guide is now rendered and cached as the system prompt; shared read tools with MCP; MCP `get_context`. Seed: ~660 tokens/week. Compare models: `./scripts/plan_compare claude-haiku-5-5 claude-sonnet-5-5`.
+**Live AI (2026-11-11):** provider factory by AI_MODE × provider_mode; BYO keys per request only (D-13). Planning context preloaded per run (D-123): today + 14 days, one line per block with refs (b/c/t) mapped back in the validator, cached per user + revision, in the first user message; guide is now rendered and cached as the system prompt; shared read tools with MCP; MCP `get_context`. Seed: ~660 tokens/week. Compare models: `./scripts/plan_compare claude-haiku-5-5 claude-sonnet-5-5`. Plan quality (D-124): partial plans instead of validation_failed, per-round validation log, `PROTECTED NOW` line, PLAN_TEMPERATURE=0, redo route, accurate failure copy in the app.
 
 **Live Activity (2026-11-11):** brand symbol imageset, header/bottom row per owner review (D-108 approved); Release build installed on the iPhone via `scripts/ios_release device` (auto-detects UDID; run with `APPLE_TEAM_ID=AH3LD3CJ26`).
 

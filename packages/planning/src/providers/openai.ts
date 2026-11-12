@@ -54,6 +54,10 @@ export function createOpenAIProvider(opts: OpenAIProviderOpts): PlanProvider {
       const body = JSON.stringify({
         model: opts.model,
         max_tokens: runOpts.maxTokens,
+        // Reasoning models (o1/o3/o4, gpt-5) reject a non-default temperature.
+        ...(runOpts.temperature !== undefined && !/^(o\d|gpt-5)/.test(opts.model)
+          ? { temperature: runOpts.temperature }
+          : {}),
         messages,
         ...(tools.length > 0 ? { tools } : {}),
       });

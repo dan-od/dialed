@@ -174,6 +174,29 @@ describe('POST /v1/plans', () => {
     const done = await waitFor(owner, r.json().id, ['failed']);
     expect(done.status).toBe('failed');
     expect(done.error_code).toBe('validation_failed');
+    // The app gets the reason, not just the code.
+    expect(done.validation_errors.length).toBeGreaterThan(0);
+    expect(done.validation_errors[0]).toMatchObject({ change_index: 0 });
+    expect(done.attempts).toBe(0);
+
+    // Redo (Flow 06) re-drafts it, twice at most.
+    for (const attempt of [1, 2]) {
+      const redo = await t.app.inject({
+        method: 'POST',
+        url: `/v1/plans/${done.id}/redo`,
+        headers: auth(owner),
+      });
+      expect(redo.statusCode).toBe(200);
+      expect(redo.json().attempts).toBe(attempt);
+      expect(redo.json().validation_errors).toEqual([]);
+      await waitFor(owner, done.id, ['failed']);
+    }
+    const third = await t.app.inject({
+      method: 'POST',
+      url: `/v1/plans/${done.id}/redo`,
+      headers: auth(owner),
+    });
+    expect(third.statusCode).toBe(400);
     await cleanup();
   });
 

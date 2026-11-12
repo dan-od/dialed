@@ -25,6 +25,8 @@ export interface ProviderRunOpts {
   messages: ProviderMessage[];
   tools: { name: string; description: string; input_schema: object }[];
   maxTokens: number;
+  /** Sampling temperature; omitted → the provider's default. */
+  temperature?: number;
   signal?: AbortSignal;
 }
 

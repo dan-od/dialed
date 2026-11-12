@@ -56,6 +56,7 @@ export function createAnthropicProvider(opts: AnthropicProviderOpts): PlanProvid
       const body = JSON.stringify({
         model: opts.model,
         max_tokens: runOpts.maxTokens,
+        ...(runOpts.temperature !== undefined ? { temperature: runOpts.temperature } : {}),
         ...(runOpts.system
           ? {
               system: [

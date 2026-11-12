@@ -1,23 +1,131 @@
-import type { ErrorCode, PlanDTO } from '@dialed/contracts';
+import type { PlanDTO } from '@dialed/contracts';
 import { aiName } from '../config';
 
-const SENTENCES: Record<string, (ai: string) => string> = {
-  provider_error: (ai) => `${ai} didn’t answer within 30 seconds.`,
-  provider_key_invalid: (ai) => `Your ${providerLabel(ai)} key was refused. Check it in Settings.`,
-  daily_limit: (_ai) =>
-    `You’ve used today’s 30 plans on the Dialed server. Try again tomorrow or bring your own key.`,
-  validation_failed: (ai) => `${ai} couldn’t make a plan that fits your limits. Try rewording it.`,
-  too_many_questions: (ai) =>
-    `${ai} still wasn’t sure after two questions. Try again with the day, time and how long.`,
-};
-
-export function errorSentence(code: ErrorCode | string | null): string {
-  const ai = aiName();
-  const fn = SENTENCES[code ?? ''];
-  return fn ? fn(ai) : `${ai} ran into a problem. Try again.`;
+export interface FailureCopy {
+  title: string;
+  body: string;
+  /** The main reason in plain words (validation failures). */
+  reason?: string;
+  canRetry: boolean;
+  /** Show "Open Settings" (key problems). */
+  settings: boolean;
 }
 
-export function exhaustedSentence(): string {
+type FailedPlan = Pick<PlanDTO, 'error_code' | 'validation_errors' | 'attempts'>;
+
+/** Server-side redo limit (MAX_REDOS): first run + 2 redos. */
+export const MAX_REDOS = 2;
+const NETWORK = new Set(['provider_error', 'server_error', 'timeout']);
+const VALIDATION_ORDER = [
+  'protected_block',
+  'overlap',
+  'bad_time',
+  'too_many_changes',
+  'range_too_long',
+];
+
+/** What the failed-plan screen says. "Can't reach" only for real network or provider failures. */
+export function failureCopy(plan: FailedPlan): FailureCopy {
+  const ai = aiName();
+  const code = plan.error_code ?? 'provider_error';
+  const retriesLeft = plan.attempts < MAX_REDOS;
+  const base = { canRetry: retriesLeft, settings: false };
+
+  if (NETWORK.has(code)) {
+    if (!retriesLeft) {
+      return { ...base, title: `Still can’t reach ${ai}`, body: exhaustedSentence() };
+    }
+    const body =
+      code === 'server_error'
+        ? 'Dialed couldn’t reach the server. Try again.'
+        : code === 'timeout'
+          ? `${ai} took too long to answer.`
+          : `${ai} didn’t answer within 30 seconds.`;
+    return { ...base, title: `${ai} didn’t answer`, body };
+  }
+
+  switch (code) {
+    case 'validation_failed':
+      return {
+        ...base,
+        title: 'That plan didn’t fit',
+        body: `${ai} couldn’t make a plan that fits your schedule’s rules.`,
+        reason: validationReason(plan.validation_errors),
+      };
+    case 'too_many_questions':
+      return {
+        ...base,
+        title: 'Needs a bit more detail',
+        body: `${ai} still wasn’t sure after two questions. Try again with the day, time and how long.`,
+      };
+    case 'provider_key_invalid':
+      return {
+        ...base,
+        title: 'Your AI key was refused',
+        body: `Your ${providerLabel(ai)} key was refused. Check it in Settings.`,
+        settings: true,
+      };
+    case 'byo_key_required':
+    case 'byo_key_unavailable':
+      return {
+        ...base,
+        title: 'Your AI key is needed',
+        body: `This plan uses your own ${providerLabel(ai)} key. Add it in Settings, then try again.`,
+        settings: true,
+      };
+    case 'daily_limit':
+      return {
+        title: 'Today’s plans are used up',
+        body: 'You’ve used today’s 30 plans on the Dialed server. Try again tomorrow or bring your own key.',
+        canRetry: false,
+        settings: false,
+      };
+    case 'cancelled':
+      return {
+        ...base,
+        title: 'Plan cancelled',
+        body: 'You stopped this plan. Your request is saved.',
+      };
+    default:
+      return {
+        ...base,
+        title: `${ai} ran into a problem`,
+        body: 'Something went wrong making this plan. Try again.',
+      };
+  }
+}
+
+/** The main reason a draft failed validation, in the Planner's words. */
+function validationReason(errors: FailedPlan['validation_errors']): string {
+  const main =
+    VALIDATION_ORDER.map((c) => errors.filter((e) => e.code === c)).find(
+      (list) => list.length > 0,
+    ) ?? errors;
+  const first = main[0];
+  switch (first?.code) {
+    case 'protected_block': {
+      const what = first.subject ? `Your ${first.subject} class` : 'A class';
+      const more = main.length - 1;
+      return more > 0
+        ? `${what} and ${more} more are protected. Say which classes to skip.`
+        : `${what} is protected. Say which classes to skip.`;
+    }
+    case 'overlap':
+      return 'Part of it clashed with another block. Try a different time.';
+    case 'bad_time':
+      return 'A time didn’t work: it ended before it started or was already past.';
+    case 'too_many_changes':
+      return 'It needed more than 25 changes. Try a smaller request.';
+    case 'range_too_long':
+      return 'It covered more than 120 days. Try a shorter stretch.';
+    case undefined:
+      return 'Try rewording it.';
+    default:
+      return 'Some changes didn’t match your schedule. Try again or reword it.';
+  }
+}
+
+function exhaustedSentence(): string {
   const ai = aiName();
   return `Still can’t reach ${ai}. Your request is saved.`;
 }

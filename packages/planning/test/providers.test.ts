@@ -196,3 +196,46 @@ describe('provider contract: Gemini', () => {
     expect(result.tokens_out).toBe(70);
   });
 });
+
+describe('planning temperature', () => {
+  const sentBody = async () => {
+    const { safeFetch } = await import('../src/providers/http');
+    const calls = vi.mocked(safeFetch).mock.calls;
+    return JSON.parse(String(calls.at(-1)![0].body)) as Record<string, unknown>;
+  };
+  const opts = (temperature?: number) => ({
+    system: 's',
+    messages: [{ role: 'user' as const, content: 'x' }],
+    tools: [],
+    maxTokens: 64,
+    temperature,
+  });
+
+  it('Anthropic sends temperature when set, omits it when not', async () => {
+    const { createAnthropicProvider } = await import('../src/providers/anthropic');
+    const p = createAnthropicProvider({ apiKey: 'k', model: 'claude-sonnet-5-5' });
+    await mockSafeFetch(loadRecording('anthropic-propose'));
+    await p.run(opts(0));
+    expect((await sentBody()).temperature).toBe(0);
+    await mockSafeFetch(loadRecording('anthropic-propose'));
+    await p.run(opts());
+    expect('temperature' in (await sentBody())).toBe(false);
+  });
+
+  it('OpenAI sends temperature, except to reasoning models that reject it', async () => {
+    const { createOpenAIProvider } = await import('../src/providers/openai');
+    await mockSafeFetch(loadRecording('openai-propose'));
+    await createOpenAIProvider({ apiKey: 'k', model: 'gpt-4o' }).run(opts(0.2));
+    expect((await sentBody()).temperature).toBe(0.2);
+    await mockSafeFetch(loadRecording('openai-propose'));
+    await createOpenAIProvider({ apiKey: 'k', model: 'o3-mini' }).run(opts(0.2));
+    expect('temperature' in (await sentBody())).toBe(false);
+  });
+
+  it('Gemini puts it in generationConfig', async () => {
+    const { createGeminiProvider } = await import('../src/providers/gemini');
+    await mockSafeFetch(loadRecording('gemini-propose'));
+    await createGeminiProvider({ apiKey: 'k', model: 'gemini-2.5-flash' }).run(opts(0));
+    expect((await sentBody()).generationConfig).toMatchObject({ temperature: 0 });
+  });
+});

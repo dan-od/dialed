@@ -11,6 +11,8 @@ import { dailyPlanCount, incrementUsage } from './usage';
 
 type Row = Record<string, unknown>;
 
+export const MAX_REDOS = 2;
+
 /** The provider a new plan will run on; 'fixture' only under AI_MODE=fixture. The runner overwrites it with the one it used. */
 export function plannedProvider(
   config: Pick<Config, 'AI_MODE'>,
@@ -189,6 +191,8 @@ export class PlanService {
       checks: checksJson,
       impact: [],
       error_code: plan.error_code ? String(plan.error_code) : null,
+      validation_errors: (plan.validation_errors_json as PlanDTO['validation_errors'] | null) ?? [],
+      attempts: Number(plan.attempts ?? 0),
       created_at: String(plan.created_at),
       ready_at: plan.ready_at ? String(plan.ready_at) : null,
       decided_at: plan.decided_at ? String(plan.decided_at) : null,
@@ -210,6 +214,28 @@ export class PlanService {
       created_at: String(r.created_at),
       change_count: Number(r.change_count),
     }));
+  }
+
+  /** Re-drafts a failed or stale plan against the current schedule (Flow 06 Redo); at most 2 redos. */
+  async redo(userId: string, planId: string): Promise<void> {
+    const {
+      rows: [plan],
+    } = await this.db.execute<Row>(sql`
+      select id, user_id, status, attempts from plans where id = ${planId}`);
+    if (!plan || plan.user_id !== userId) throw new AppError('not_found');
+    if (plan.status !== 'failed' && plan.status !== 'stale')
+      throw new AppError('bad_request', 'Only a failed or out-of-date plan can be redone.');
+    if (Number(plan.attempts) >= MAX_REDOS)
+      throw new AppError(
+        'bad_request',
+        'This plan has been retried enough. Edit your request instead.',
+      );
+    const {
+      rows: [rev],
+    } = await this.db.execute<Row>(sql`select revision from revisions where user_id = ${userId}`);
+    await this.db.execute(sql`update plans set status = 'drafting', error_code = null,
+      validation_errors_json = null, attempts = attempts + 1, step = step + 1, version = version + 1,
+      base_revision = ${rev ? Number(rev.revision) : 0} where id = ${planId}`);
   }
 
   async answer(userId: string, planId: string, answer: string): Promise<void> {

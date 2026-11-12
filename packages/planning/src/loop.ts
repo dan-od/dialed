@@ -1,6 +1,6 @@
 import type { PlanChange, PlanCheck } from '@dialed/contracts';
 import type { ScheduleData, IsoDate } from '@dialed/schedule';
-import { validate, type ValidateProfile } from './validate';
+import { protectionNote, validate, type ValidateError, type ValidateProfile } from './validate';
 import type { PlanProvider, ProviderMessage, ToolCall } from './providers/types';
 import type { PlanningContext } from './context';
 import { runReadTool } from './read-tools';
@@ -40,6 +40,8 @@ export type PlanStepKind = 'call' | 'tool_result' | 'propose' | 'question' | 'va
 export interface PlanStep {
   kind: PlanStepKind;
   detail?: string;
+  /** validate_error: that round's errors. */
+  errors?: ValidateError[];
   tokens_in?: number;
   tokens_out?: number;
 }
@@ -59,6 +61,8 @@ export type RunPlanResult =
       code: string;
       /** Provider HTTP status and a truncated error body, for logs only. */
       detail?: { status?: number; body?: string };
+      /** validation_failed: the last round's errors (stored on the plan for the Planner's copy). */
+      validationErrors?: ValidateError[];
       tokensIn: number;
       tokensOut: number;
     }
@@ -76,6 +80,8 @@ export interface RunPlanOpts {
   /** Preloaded schedule (D-123), put in the first user message so the guide stays a cacheable system prompt. */
   context?: PlanningContext;
   limits?: Partial<PlanLimits>;
+  /** Sampling temperature for every call (PLAN_TEMPERATURE); undefined → provider default. */
+  temperature?: number;
   skipValidation?: boolean;
   signal?: AbortSignal;
   onStep?: (step: PlanStep) => void;
@@ -85,15 +91,19 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
   const limits = { ...DEFAULT_LIMITS, ...opts.limits };
   const questionsAsked = opts.history.filter((m) => m.role === 'assistant').length;
   const atQuestionCap = questionsAsked >= limits.maxQuestions;
-  const messages = conversation(opts, atQuestionCap ? limits.maxQuestions : null);
-  const tools = atQuestionCap
-    ? opts.toolSchemas.filter((t) => t.name !== 'ask_user')
-    : opts.toolSchemas;
-  const validateCtx = { ...opts.ctx, refs: opts.context?.refs };
   const plannerWords = [
     opts.request,
     ...opts.history.filter((m) => m.role === 'user').map((m) => m.content),
   ].join('\n');
+  const messages = conversation(
+    opts,
+    atQuestionCap ? limits.maxQuestions : null,
+    protectionNote(plannerWords, opts.ctx.data),
+  );
+  const tools = atQuestionCap
+    ? opts.toolSchemas.filter((t) => t.name !== 'ask_user')
+    : opts.toolSchemas;
+  const validateCtx = { ...opts.ctx, refs: opts.context?.refs };
   let totalIn = 0;
   let totalOut = 0;
   let turns = 0;
@@ -128,6 +138,7 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
         messages,
         tools,
         maxTokens: limits.maxTokens,
+        temperature: opts.temperature,
         signal: opts.signal,
       });
     } catch (err) {
@@ -222,12 +233,23 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
 
     if (result.errors.length > 0) {
       validationRounds++;
-      opts.onStep?.({ kind: 'validate_error', detail: `round ${validationRounds}` });
+      opts.onStep?.({
+        kind: 'validate_error',
+        detail: `round ${validationRounds}`,
+        errors: result.errors,
+      });
       if (validationRounds >= limits.maxValidationRounds) {
+        // Out of rounds: keep the changes that are valid on their own; the Planner still approves.
+        const kept = salvage(changes, result.errors, plannerWords, validateCtx);
+        if (kept) {
+          opts.onStep?.({ kind: 'propose' });
+          return { status: 'ready', ...kept, tokensIn: totalIn, tokensOut: totalOut };
+        }
         return {
           status: 'failed',
           error: 'Could not produce a valid plan after multiple attempts.',
           code: 'validation_failed',
+          validationErrors: result.errors,
           tokensIn: totalIn,
           tokensOut: totalOut,
         };
@@ -260,8 +282,14 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
  * questions and answers in order. Consecutive user turns are joined so roles always alternate, and at
  * the question cap the last user turn says to propose now.
  */
-function conversation(opts: RunPlanOpts, questionCap: number | null): ProviderMessage[] {
-  const first = opts.context ? `${opts.context.text}\n\n---\n${opts.request}` : opts.request;
+function conversation(
+  opts: RunPlanOpts,
+  questionCap: number | null,
+  protection: string,
+): ProviderMessage[] {
+  const first = opts.context
+    ? `${opts.context.text}\n${protection}\n\n---\n${opts.request}`
+    : opts.request;
   const out: ProviderMessage[] = [{ role: 'user', content: first }];
   for (const m of opts.history) {
     const last = out.at(-1)!;
@@ -279,6 +307,63 @@ function conversation(opts: RunPlanOpts, questionCap: number | null): ProviderMe
     else out.push({ role: 'user', content: note });
   }
   return out;
+}
+
+const LEFT_OUT_REASON: Record<string, string> = {
+  protected_block: 'protected class, not named',
+  bad_time: 'time didn’t work',
+  unknown_ref: 'not in your schedule',
+  unknown_block: 'not in your schedule',
+  unknown_category: 'unknown category',
+  bad_change: 'couldn’t be read',
+  duplicate_change: 'listed twice',
+};
+
+/**
+ * Drops the changes that broke a rule and re-checks the rest, a few passes deep. Null when nothing
+ * valid is left or an error belongs to the whole plan (overlap, range) and can't be pinned on a change.
+ */
+function salvage(
+  changes: PlanChange[],
+  errors: ValidateError[],
+  words: string,
+  ctx: Parameters<typeof validate>[1],
+): { changes: PlanChange[]; checks: PlanCheck[] } | null {
+  if (!Array.isArray(changes)) return null;
+  let keep = changes;
+  let errs = errors;
+  const left: string[] = [];
+  for (let pass = 0; pass < 3; pass++) {
+    const bad = new Map<number, ValidateError>();
+    for (const e of errs)
+      if (e.change_index >= 0 && !bad.has(e.change_index)) bad.set(e.change_index, e);
+    if (bad.size === 0) return null;
+    for (const [i, e] of bad) {
+      const title = (keep[i] as { title?: unknown } | undefined)?.title;
+      left.push(
+        `${typeof title === 'string' ? title : 'a change'} (${LEFT_OUT_REASON[e.code] ?? 'broke a rule'})`,
+      );
+    }
+    keep = keep.filter((_, i) => !bad.has(i));
+    if (keep.length === 0) return null;
+    const r = validate({ request_text: words, changes: keep }, ctx);
+    if (r.errors.length === 0) {
+      const detail = `Left out: ${left.join('; ')}.`;
+      return {
+        changes: r.changes as PlanChange[],
+        checks: [
+          ...r.checks,
+          {
+            id: 'left_out',
+            passed: false,
+            detail: detail.length > 200 ? `${detail.slice(0, 199)}…` : detail,
+          },
+        ],
+      };
+    }
+    errs = r.errors;
+  }
+  return null;
 }
 
 function providerDetail(err: unknown): { status?: number; body?: string } {

@@ -131,6 +131,38 @@ export function plansRoutes(
     return service.get(userId, id, tz);
   });
 
+  app.post('/v1/plans/:id/redo', { preHandler }, async (req) => {
+    const { id } = req.params as { id: string };
+    const userId = req.auth!.userId;
+    await service.redo(userId, id);
+
+    const tz = await userTz(userId);
+    const {
+      rows: [plan],
+    } = await db.execute(
+      sql`select request_text, provider_mode, provider from plans where id = ${id}`,
+    );
+    const planRow = plan as Record<string, unknown> | undefined;
+    startPlanRun({
+      db,
+      config,
+      planService: service,
+      planId: id,
+      userId,
+      requestText: String(planRow?.request_text ?? ''),
+      timeZone: tz,
+      now,
+      providerMode: String(planRow?.provider_mode ?? 'server') as 'server' | 'byo',
+      provider: planRow?.provider ? String(planRow.provider) : undefined,
+      ...byoHeaders(req),
+      log: (o) => req.log.info(o),
+    }).catch((err) => {
+      req.log.error({ err: { message: (err as Error).message } }, 'plan run error');
+    });
+
+    return service.get(userId, id, tz);
+  });
+
   app.post('/v1/plans/:id/reply', { preHandler }, async (req) => {
     const { id } = req.params as { id: string };
     const body = parse(ReplyPlanBody, req.body);

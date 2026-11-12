@@ -51,7 +51,10 @@ export interface ValidateError {
   /** -1 = the whole plan (too_many_changes, range_too_long, overlap), not one change. */
   change_index: number;
   code: string;
+  /** For the model: what broke and how to fix it. */
   message: string;
+  /** For the Planner's copy: the block involved, e.g. "9:40 Advanced Networking I". */
+  subject?: string;
 }
 
 export interface ValidateResult {
@@ -192,6 +195,32 @@ function requestNamesBlock(
     text.includes(categoryName.toLowerCase()) ||
     text.includes(groupName.toLowerCase()) ||
     /\bclass(es)?\b/.test(text)
+  );
+}
+
+const shortClock = (min: number) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`;
+
+/**
+ * One line for the model on which protected blocks the Planner's words unlock, using the same test the
+ * validator applies, so the first draft can respect it instead of learning it from an error.
+ */
+export function protectionNote(words: string, data: ScheduleData): string {
+  if (/\bclass(es)?\b/i.test(words)) {
+    return 'PROTECTED NOW: the Planner named classes, so P blocks may change where the request covers them.';
+  }
+  const categories = new Map(data.categories.map((c) => [c.id, c]));
+  const named = new Set<string>();
+  for (const b of data.routineBlocks) {
+    const c = categories.get(b.category_id);
+    if (!b.deleted_at && c?.protected && requestNamesBlock(words, b, c.name, c.group_name))
+      named.add(b.title);
+  }
+  if (named.size > 0) {
+    return `PROTECTED NOW: the Planner named ${[...named].join(', ')}; every other P block stays as it is.`;
+  }
+  return (
+    'PROTECTED NOW: no class named. Leave every P block exactly as it is. If the request covers one, ' +
+    'change the rest and say in a note which classes you kept, or ask one question about classes.'
   );
 }
 
@@ -340,7 +369,10 @@ function checkDraft(
       errors.push({
         change_index: index,
         code: 'protected_block',
-        message: `${block.title} is a class. Name it in your request to move it.`,
+        message:
+          `${block.title} is a protected class the Planner hasn’t named. Drop this change and say in a ` +
+          'note that you kept it, or ask_user whether classes should be included.',
+        subject: `${shortClock(block.start_min)} ${block.title}`,
       });
     }
     return block;

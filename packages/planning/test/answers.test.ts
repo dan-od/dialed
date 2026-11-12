@@ -37,6 +37,16 @@ function skipAllThursday(): PlanChange[] {
   return out;
 }
 
+function protectedThursday(): number {
+  const lines = context.text.split('\n');
+  let n = 0;
+  for (const line of lines.slice(lines.indexOf('Thu 11-12') + 1)) {
+    if (!line.startsWith('  ')) break;
+    if (/ P\b/.test(line.split(/ c\d+/)[1] ?? '')) n++;
+  }
+  return n;
+}
+
 /** Answers each call with the next input in `turns`, recording what it was sent. */
 function scripted(turns: Record<string, unknown>[]): PlanProvider & { calls: ProviderRunOpts[] } {
   const calls: ProviderRunOpts[] = [];
@@ -87,8 +97,12 @@ describe('after the Planner answers (homelab 99c92257)', () => {
   it('without naming classes, protected blocks come back as a validation error for the model', async () => {
     const provider = scripted([{ request_text: 'Free up tomorrow', changes: skipAllThursday() }]);
     const r = await run(provider, 'Skip the rest');
-    expect(r.status).toBe('failed');
-    if (r.status === 'failed') expect(r.code).toBe('validation_failed');
+    // Out of rounds, the classes are left out and named; the other skips stay for the Planner to approve.
+    expect(r.status).toBe('ready');
+    if (r.status === 'ready') {
+      expect(r.changes).toHaveLength(skipAllThursday().length - protectedThursday());
+      expect(r.checks.find((c) => c.id === 'left_out')!.detail).toMatch(/protected class/);
+    }
     const fed = provider.calls[1]!.messages.at(-1)!.tool_results![0]!;
     expect(fed.is_error).toBe(true);
     expect(JSON.stringify(fed.output)).toContain('protected_block');
@@ -101,7 +115,9 @@ describe('after the Planner answers (homelab 99c92257)', () => {
       ]),
       'Skip the rest',
     );
-    expect(r.status).toBe('failed');
+    expect(r.status).toBe('ready');
+    if (r.status === 'ready')
+      expect(r.changes).toHaveLength(skipAllThursday().length - protectedThursday());
   });
 });
 

@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { makeApp, OWNER, TEST_NOW, type TestApp } from './helpers';
 import { initRunner, startPlanRun } from '../src/plans/runner';
-import type { PlanService } from '../src/plans/service';
+import { PlanService } from '../src/plans/service';
 
 let t: TestApp;
 beforeAll(async () => {
@@ -72,5 +72,44 @@ describe('a failed run says why (homelab b7d52c9d)', () => {
       sql`select status, error_code from plans where id = ${planId}`,
     );
     expect(plan).toMatchObject({ status: 'failed', error_code: 'server_error' });
+  });
+});
+
+describe('validation rounds in the log', () => {
+  it('logs every round (code, change index, short message) and stores the last on the plan', async () => {
+    const planId = randomUUID();
+    const text = 'Add a morning run that overlaps with class';
+    await t.db
+      .execute(sql`insert into plans (id, user_id, source, provider, request_text, status, base_revision,
+      provider_mode, version) values (${planId}, ${OWNER.id}, 'in_app', 'fixture', ${text},
+      'drafting', 0, 'server', 1)`);
+    const logs: Record<string, unknown>[] = [];
+    await startPlanRun({
+      db: t.db,
+      config: t.config,
+      planService: new PlanService(t.db, t.config, TEST_NOW),
+      planId,
+      userId: OWNER.id,
+      requestText: text,
+      timeZone: 'America/Toronto',
+      now: TEST_NOW,
+      providerMode: 'server',
+      log: (o) => logs.push(o),
+    });
+    const line = logs.find((l) => l.kind === 'plan.run')!;
+    const rounds = line.validation as {
+      round: number;
+      errors: { code: string; i: number; msg: string }[];
+    }[];
+    expect(rounds.map((r) => r.round)).toEqual([1, 2, 3]);
+    expect(rounds[0]!.errors[0]).toMatchObject({ i: 0 });
+    expect(typeof rounds[0]!.errors[0]!.code).toBe('string');
+    const {
+      rows: [plan],
+    } = await t.db.execute<Record<string, unknown>>(
+      sql`select validation_errors_json from plans where id = ${planId}`,
+    );
+    expect((plan!.validation_errors_json as unknown[]).length).toBeGreaterThan(0);
+    await t.db.execute(sql`delete from plans where id = ${planId}`);
   });
 });
