@@ -3,7 +3,7 @@
 # Caller must set env TEXT to the text to type if clipboard is not pre-set.
 appId: me.okoro.dialed
 ---
-- tapOn: 'What should change.*'
+- tapOn: { id: 'plan-text' }
 - eraseText: 500
 - pressKey: command + a
 - pressKey: Backspace

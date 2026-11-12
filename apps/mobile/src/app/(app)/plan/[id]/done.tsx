@@ -1,38 +1,44 @@
-import { View } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Animated, { useReducedMotion, ZoomIn } from 'react-native-reanimated';
 import { useApp } from '../../../../AppProvider';
 import { usePlan } from '../../../../plan/usePlan';
+import { startsLabel } from '../../../../plan/impact';
+import { usePlanToday, useTermName } from '../../../../plan/useTermName';
+import { ListRow } from '../../../../plan/ui';
 import { useTheme } from '../../../../theme/theme';
-import { Page } from '../../../../ui/Chrome';
+import { H1, Header, Page, Sub } from '../../../../ui/Chrome';
 import { Button } from '../../../../ui/Button';
-import { PinnedFooter } from '../../../../ui/PinnedFooter';
+import { CheckIcon } from '../../../../ui/icons';
 import { haptic } from '../../../../lib/haptics';
 import { T } from '../../../../ui/Text';
 import { Spinner } from '../../../../ui/Spinner';
-import { useEffect, useMemo } from 'react';
-import { termFor } from '@dialed/schedule';
-import Animated, { BounceIn } from 'react-native-reanimated';
 
+/** Prototype `scrDone`. */
 export default function Done() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { planApi, data } = useApp();
   const { c } = useTheme();
   const router = useRouter();
+  const reduce = useReducedMotion();
   const { plan } = usePlan(planApi, id);
-
-  const term = data?.schedule
-    ? termFor(new Date().toISOString().slice(0, 10), data.schedule.terms ?? [])
-    : null;
-  const termName = term?.name ?? 'Your schedule';
+  const term = useTermName();
+  const today = usePlanToday();
 
   useEffect(() => {
     haptic.success();
   }, []);
 
-  const applied = useMemo(() => {
-    if (!plan) return [];
-    return plan.changes.filter((ch) => ch.enabled).map((ch) => ch.title);
-  }, [plan]);
+  const applied = useMemo(
+    () => (plan ? plan.changes.filter((ch) => ch.enabled).map((ch) => ch.title) : []),
+    [plan],
+  );
+  const schedule = data?.schedule;
+  const starts = useMemo(
+    () => (plan && schedule ? startsLabel(plan, schedule, today) : 'this week'),
+    [plan, schedule, today],
+  );
 
   if (!plan) {
     return (
@@ -46,46 +52,48 @@ export default function Done() {
 
   return (
     <Page>
-      <View
-        accessible
-        accessibilityRole="header"
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          paddingHorizontal: 20,
-          gap: 16,
-        }}
-      >
-        <Animated.View entering={BounceIn.duration(400)}>
-          <T size={48}>{'✓'}</T>
+      <Header left={<View />} />
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}>
+        <Animated.View
+          entering={reduce ? undefined : ZoomIn.springify().damping(12)}
+          style={{
+            width: 84,
+            height: 84,
+            borderRadius: 42,
+            backgroundColor: c.acc,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <CheckIcon color={c.ink} size={40} />
         </Animated.View>
-        <T size={28} weight="700" style={{ textAlign: 'center' }}>
-          {termName} updated
-        </T>
-        <T size={15} weight="500" color={c.muted} style={{ textAlign: 'center', maxWidth: 280 }}>
-          Changes start this week. Past days stay as they were.
-        </T>
-        <View style={{ gap: 4, marginTop: 8 }}>
-          {applied.map((t) => (
-            <T key={t} size={14} weight="500" color={c.text}>
-              {'•'} {t}
-            </T>
+        <View style={{ marginTop: 18 }}>
+          <H1 size={56}>{`${term ?? 'Your schedule'} updated`}</H1>
+        </View>
+        <Sub>{`Changes start ${starts}. Past days stay as they were.`}</Sub>
+        <View style={{ marginTop: 12 }}>
+          {applied.map((t, i) => (
+            <ListRow key={`${t}-${i}`}>
+              <CheckIcon color={c.ok} />
+              <T size={15} weight="600" style={{ flex: 1 }}>
+                {t}
+              </T>
+            </ListRow>
           ))}
         </View>
-      </View>
-      <PinnedFooter>
-        <Button
-          kind="primary"
-          label="See this week"
-          onPress={() => router.replace('/(app)/(tabs)/week')}
-        />
-        <Button
-          kind="secondary"
-          label="Back to Routines"
-          onPress={() => router.replace('/routines')}
-        />
-      </PinnedFooter>
+        <View style={{ gap: 8, marginTop: 22 }}>
+          <Button
+            kind="primary"
+            label="See this week"
+            onPress={() => router.replace('/(app)/(tabs)/week')}
+          />
+          <Button
+            kind="secondary"
+            label="Back to Routines"
+            onPress={() => router.replace('/routines')}
+          />
+        </View>
+      </ScrollView>
     </Page>
   );
 }

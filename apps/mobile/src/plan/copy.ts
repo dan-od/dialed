@@ -138,13 +138,34 @@ function validationReason(errors: FailedPlan['validation_errors']): string {
   }
 }
 
+// The prototype adds "We'll keep trying in the background and notify you", but nothing queues a background
+// retry yet (plan.retry has a handler only), so the copy doesn't promise one.
 function exhaustedSentence(): string {
-  const ai = aiName();
-  return `Still can’t reach ${ai}. Your request is saved.`;
+  return 'Your request is saved. Try again in a little while, or edit it.';
+}
+
+/** After "Out of date." on a stale review (prototype names the edit; the app doesn't know which one it was). */
+export function staleLine(ai: string): string {
+  return `Your schedule changed after ${ai} drafted this, so approving could clash.`;
 }
 
 export function staleSentence(detail?: string): string {
   return detail ?? 'Your schedule changed since this plan was drafted. Redo it so nothing clashes.';
+}
+
+/** Prototype `scrPlanLoading` steps; the first names the routine. */
+export function draftingSteps(term: string | null): string[] {
+  return [
+    `Reading your ${term ?? 'schedule'}`,
+    'Matching your categories',
+    'Fitting it into your week',
+    'Checking your limits',
+  ];
+}
+
+/** "Attempt 2 of 3." under the error buttons; `attempts` counts redos. */
+export function attemptLine(attempts: number): string {
+  return `Attempt ${Math.min(attempts + 1, MAX_REDOS + 1)} of ${MAX_REDOS + 1}.`;
 }
 
 export function draftingSub(): string {
@@ -163,10 +184,6 @@ export function composerSub(): string {
 export function emptyError(): string {
   const ai = aiName();
   return `Tell ${ai} what to change first. For example: "Gym on Sunday mornings for the rest of the year".`;
-}
-
-export function tryAgainLabel(attempt: number, max: number): string {
-  return `Try again (attempt ${attempt} of ${max})`;
 }
 
 export function doneSentence(termName: string, effectiveDate: string): string {
@@ -199,6 +216,10 @@ export function planStatusLabel(plan: PlanDTO): string {
       return 'Out of date';
     case 'failed':
       return 'Failed';
+    case 'ready':
+      return 'Ready';
+    case 'question':
+      return 'Question';
     default:
       return '';
   }

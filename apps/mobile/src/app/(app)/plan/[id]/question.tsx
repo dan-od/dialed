@@ -1,26 +1,35 @@
-import { Pressable, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { useApp } from '../../../../AppProvider';
 import { usePlan } from '../../../../plan/usePlan';
 import { latestQuestion } from '../../../../plan/model';
+import { useAiName } from '../../../../plan/useAiName';
 import { useTheme } from '../../../../theme/theme';
-import { BackLink, Header, Page } from '../../../../ui/Chrome';
+import { BackLink, H1, Header, Page } from '../../../../ui/Chrome';
+import { AiMark } from '../../../../ui/icons';
 import { haptic } from '../../../../lib/haptics';
 import { T } from '../../../../ui/Text';
 import { Spinner } from '../../../../ui/Spinner';
 import { useToast } from '../../../../ui/Toast';
-import { useState } from 'react';
 
+const SOMETHING_ELSE = 'Something else, I’ll explain';
+
+/** Prototype `scrQuestion`. */
 export default function Question() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { planApi } = useApp();
   const { c } = useTheme();
+  const ai = useAiName();
   const router = useRouter();
   const toast = useToast();
+  const reduce = useReducedMotion();
   const { plan } = usePlan(planApi, id);
   const [busy, setBusy] = useState(false);
 
   const question = plan ? latestQuestion(plan.messages) : undefined;
+  const options = (question?.options ?? []).filter((o) => !/^something else/i.test(o));
 
   const answer = async (option: string) => {
     setBusy(true);
@@ -35,10 +44,6 @@ export default function Question() {
     }
   };
 
-  const somethingElse = () => {
-    router.replace('/plan');
-  };
-
   if (!plan || !question) {
     return (
       <Page>
@@ -49,60 +54,54 @@ export default function Question() {
     );
   }
 
+  const option = (label: string, i: number, onPress: () => void) => (
+    <Pressable
+      key={label}
+      testID={`ans-${i}`}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      disabled={busy}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: 50,
+        borderRadius: 16,
+        backgroundColor: c.surf2,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        justifyContent: 'center',
+        opacity: pressed ? 0.85 : busy ? 0.6 : 1,
+      })}
+    >
+      <T size={15} weight="600">
+        {label}
+      </T>
+    </Pressable>
+  );
+
   return (
     <Page>
       <Header left={<BackLink label="Plan it" onPress={() => router.replace('/plan')} />} />
-      <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 8, gap: 16 }}>
-        <T size={28} weight="700">
-          One quick question
-        </T>
-        <View style={{ padding: 16, borderRadius: 16, backgroundColor: c.surf, gap: 8 }}>
-          <T size={15} weight="600">
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}>
+        <H1 size={48}>One quick question</H1>
+        <Animated.View
+          entering={reduce ? undefined : FadeInDown.duration(450)}
+          style={{ marginTop: 16, borderRadius: 20, backgroundColor: c.surf, padding: 16 }}
+        >
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <AiMark color={c.acc2} />
+            <T size={13} weight="700" color={c.acc2}>
+              {ai}
+            </T>
+          </View>
+          <T size={17} weight="600" style={{ marginTop: 8, lineHeight: 24 }}>
             {question.body}
           </T>
+        </Animated.View>
+        <View style={{ gap: 8, marginTop: 14 }}>
+          {options.map((o, i) => option(o, i, () => void answer(o)))}
+          {option(SOMETHING_ELSE, options.length, () => router.replace('/plan'))}
         </View>
-        <View style={{ gap: 10 }}>
-          {(question.options ?? []).map((opt) => (
-            <Pressable
-              key={opt}
-              accessibilityRole="button"
-              accessibilityLabel={opt}
-              disabled={busy}
-              onPress={() => void answer(opt)}
-              style={({ pressed }) => ({
-                height: 50,
-                borderRadius: 16,
-                backgroundColor: c.surf,
-                borderWidth: 1.5,
-                borderColor: c.line,
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: pressed ? 0.85 : 1,
-              })}
-            >
-              <T size={15} weight="600">
-                {opt}
-              </T>
-            </Pressable>
-          ))}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Something else, I'll explain"
-            disabled={busy}
-            onPress={somethingElse}
-            style={({ pressed }) => ({
-              height: 50,
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: pressed ? 0.85 : 1,
-            })}
-          >
-            <T size={15} weight="600" color={c.acc2}>
-              Something else, I’ll explain
-            </T>
-          </Pressable>
-        </View>
-      </View>
+      </ScrollView>
     </Page>
   );
 }

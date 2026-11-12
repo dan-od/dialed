@@ -1,28 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { randomUUID } from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
-import * as Network from 'expo-network';
 import type { PlanSummary, ProviderId } from '@dialed/contracts';
-import { termFor } from '@dialed/schedule';
 import { aiMode, aiName, aiProvider } from '../../../config';
 import { useApp } from '../../../AppProvider';
 import { useDraft } from '../../../plan/drafts';
-import {
-  composerPlaceholder,
-  composerSub,
-  emptyError,
-  planStatusLabel,
-  planSourceLabel,
-} from '../../../plan/copy';
+import { composerPlaceholder, composerSub, emptyError, planStatusLabel } from '../../../plan/copy';
+import { useTermName } from '../../../plan/useTermName';
+import { Chip, FieldLabel, ListRow, SendButton } from '../../../plan/ui';
 import { useTheme } from '../../../theme/theme';
-import { BackLink, Header, Page } from '../../../ui/Chrome';
-import { Button } from '../../../ui/Button';
-import { PinnedFooter } from '../../../ui/PinnedFooter';
-import { Stamp } from '../../../ui/Stamp';
+import { BackLink, H1, Header, Page, Sub } from '../../../ui/Chrome';
+import { OfflineLine } from '../../../ui/Inline';
 import { haptic } from '../../../lib/haptics';
-import { T } from '../../../ui/Text';
+import { D, T } from '../../../ui/Text';
 import { useToast } from '../../../ui/Toast';
 import { ToastAwareScroll } from '../../../ui/ToastAwareScroll';
 
@@ -36,8 +28,8 @@ const STARTERS = [
 const CHAR_WARN = 3500;
 
 export default function PlanComposer() {
-  const { planApi, data, store, online } = useApp();
-  const { c, isLight } = useTheme();
+  const { planApi, store, online } = useApp();
+  const { c } = useTheme();
   const router = useRouter();
   const toast = useToast();
   const { text, update, clear } = useDraft(store);
@@ -45,10 +37,7 @@ export default function PlanComposer() {
   const [error, setError] = useState('');
   const [recent, setRecent] = useState<PlanSummary[]>([]);
 
-  const term = data?.schedule
-    ? termFor(new Date().toISOString().slice(0, 10), data.schedule.terms ?? [])
-    : null;
-  const termName = term?.name ?? 'your schedule';
+  const term = useTermName();
   const ai = aiName();
 
   useEffect(() => {
@@ -121,31 +110,40 @@ export default function PlanComposer() {
 
   return (
     <Page>
-      <Header left={<BackLink label="Day" onPress={() => router.back()} />} />
-      <ToastAwareScroll base={110} contentContainerStyle={{ paddingTop: 8, paddingBottom: 160 }}>
+      <Header left={<BackLink label="Back" onPress={() => router.back()} />} />
+      <ToastAwareScroll
+        base={40}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={{ paddingBottom: 60 }}
+      >
         <View style={{ paddingHorizontal: 20 }}>
-          <T accessibilityRole="header" size={28} weight="700">
-            Plan it
-          </T>
-          <T size={14} weight="500" color={c.muted} style={{ marginTop: 6, lineHeight: 20 }}>
-            {composerSub()}
-          </T>
+          <H1 size={56}>Plan it</H1>
+          <Sub>{composerSub()}</Sub>
         </View>
 
         {!online ? (
-          <View style={{ marginHorizontal: 20, marginTop: 12 }}>
-            <Stamp
-              text={`You’re offline. ${ai} needs the server, so sending waits. Your text is kept.`}
-              kind="info"
-            />
-          </View>
+          <OfflineLine
+            pending={0}
+            text={`${ai} needs your server, so sending waits until you reconnect. Your text stays here.`}
+          />
         ) : null}
 
-        <View style={{ marginHorizontal: 20, marginTop: 16 }}>
+        <View
+          style={{
+            marginTop: 16,
+            marginHorizontal: 20,
+            borderRadius: 22,
+            backgroundColor: c.surf,
+            borderWidth: 1.5,
+            borderColor: error ? c.err : c.acc,
+            padding: 14,
+          }}
+        >
+          <FieldLabel>{composerPlaceholder()}</FieldLabel>
           <TextInput
+            testID="plan-text"
             accessibilityLabel={composerPlaceholder()}
-            placeholder={composerPlaceholder()}
-            placeholderTextColor={c.muted}
             value={text}
             onChangeText={(v) => {
               update(v);
@@ -158,17 +156,13 @@ export default function PlanComposer() {
             autoComplete="off"
             textContentType="none"
             style={{
-              minHeight: 120,
-              borderRadius: 16,
-              borderWidth: 1.5,
-              borderColor: error ? c.err : c.line,
-              backgroundColor: c.surf,
-              paddingHorizontal: 14,
-              paddingTop: 14,
-              paddingBottom: 14,
-              fontSize: 16,
+              marginTop: 6,
+              minHeight: 5 * 24,
+              padding: 0,
+              fontSize: 17,
+              fontWeight: '500',
+              lineHeight: 24,
               color: c.text,
-              lineHeight: 22,
             }}
           />
           {text.length >= CHAR_WARN ? (
@@ -182,110 +176,94 @@ export default function PlanComposer() {
             </T>
           ) : null}
           {error ? (
-            <T size={13} weight="600" color={c.err} style={{ marginTop: 6 }}>
+            <T
+              size={13}
+              weight="600"
+              color={c.err}
+              style={{ marginTop: 6 }}
+              accessibilityRole="alert"
+            >
               {error}
             </T>
           ) : null}
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: 8,
+              gap: 8,
+            }}
+          >
+            <T size={12} weight="600" color={c.muted} style={{ flex: 1 }} numberOfLines={1}>
+              {term ? `Plans against your ${term}` : 'Plans against your schedule'}
+            </T>
+            <SendButton
+              testID="plan-send"
+              label={`Send to ${ai}`}
+              busy={sending}
+              disabled={!online}
+              onPress={() => void send()}
+            />
+          </View>
         </View>
 
         <View
           style={{
             flexDirection: 'row',
+            flexWrap: 'wrap',
             gap: 8,
             marginHorizontal: 20,
             marginTop: 12,
-            flexWrap: 'wrap',
           }}
         >
-          {STARTERS.map((s) => (
-            <Pressable
+          {STARTERS.map((s, i) => (
+            <Chip
               key={s.label}
-              accessibilityRole="button"
-              accessibilityLabel={s.label}
+              testID={`starter-${i}`}
+              label={s.label}
               onPress={() => tapStarter(s.prefix)}
-              style={({ pressed }) => ({
-                height: 34,
-                paddingHorizontal: 14,
-                borderRadius: 17,
-                backgroundColor: c.surf2,
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: pressed ? 0.85 : 1,
-              })}
-            >
-              <T size={13} weight="600" color={c.text}>
-                {s.label}
-              </T>
-            </Pressable>
+            />
           ))}
         </View>
 
-        <T size={12} weight="600" color={c.muted} style={{ marginHorizontal: 20, marginTop: 16 }}>
-          Plans against {termName}
-        </T>
-
         {recent.length > 0 ? (
-          <View style={{ marginTop: 12, gap: 1 }}>
-            <T
-              size={11}
-              weight="700"
-              color={c.muted}
-              style={{
-                textTransform: 'uppercase',
-                letterSpacing: 0.4,
-                marginHorizontal: 20,
-                marginBottom: 8,
-              }}
-            >
-              Recent
+          <View style={{ marginTop: 22, paddingHorizontal: 20 }}>
+            <T size={16} weight="700" accessibilityRole="header">
+              Recent plans
             </T>
-            {recent.map((p) => (
-              <Pressable
-                key={p.id}
-                accessibilityRole="button"
-                accessibilityLabel={`${p.request_text}, ${planStatusLabel(p as never)}`}
-                onPress={() => tapRecent(p)}
-                style={({ pressed }) => ({
-                  paddingHorizontal: 20,
-                  paddingVertical: 12,
-                  backgroundColor: pressed ? c.surf : 'transparent',
-                })}
-              >
-                <T size={14} weight="600" numberOfLines={1}>
-                  {p.request_text}
-                </T>
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
-                  <T size={12} weight="500" color={c.muted}>
-                    {new Date(p.created_at).toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                    })}
+            {recent.map((p) => {
+              const status =
+                p.source === 'mcp' && p.client_name
+                  ? `From ${p.client_name}`
+                  : planStatusLabel(p as never);
+              return (
+                <ListRow key={p.id} onPress={() => tapRecent(p)}>
+                  <D size={16} color={c.muted} style={{ width: 52 }}>
+                    {shortDate(p.created_at)}
+                  </D>
+                  <T size={14} weight="500" style={{ flex: 1 }} numberOfLines={2}>
+                    {p.request_text}
                   </T>
-                  {p.source === 'mcp' && p.client_name ? (
-                    <T size={12} weight="500" color={c.acc2}>
-                      From {p.client_name} chat
+                  {status ? (
+                    <T size={12} weight="700" color={p.status === 'approved' ? c.ok : c.muted}>
+                      {status}
                     </T>
-                  ) : (
-                    <T size={12} weight="500" color={c.muted}>
-                      {planStatusLabel(p as never)}
-                    </T>
-                  )}
-                </View>
-              </Pressable>
-            ))}
+                  ) : null}
+                </ListRow>
+              );
+            })}
           </View>
         ) : null}
       </ToastAwareScroll>
-
-      <PinnedFooter>
-        <Button
-          kind="primary"
-          label="Send"
-          busy={sending}
-          disabled={!online}
-          onPress={() => void send()}
-        />
-      </PinnedFooter>
     </Page>
   );
+}
+
+/** "Nov 12" from an ISO timestamp; never "Invalid Date". */
+function shortDate(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? ''
+    : d.toLocaleDateString('en', { month: 'short', day: 'numeric' });
 }

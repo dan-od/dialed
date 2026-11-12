@@ -1,0 +1,76 @@
+{
+  "provider": "fixture",
+  "request_text": "Draft slowly for the screenshot: Bible study on Wednesdays",
+  "behaviour": "delay 9000 (evidence: keeps the drafting screen up)",
+  "propose_changes": {
+    "request_text": "Draft slowly for the screenshot: Bible study on Wednesdays",
+    "changes": [
+      {
+        "kind": "create_category",
+        "title": "Bible study",
+        "new_category": {
+          "temp_id": "c1",
+          "name": "Bible study",
+          "group": "Life",
+          "palette": "Mint"
+        },
+        "note": "New category: Bible study, in Life."
+      },
+      {
+        "kind": "new",
+        "title": "Bible study with Chichi",
+        "category_id": "c1",
+        "repeat": {
+          "weekday": "wed",
+          "from": "2026-10-21",
+          "until": "2026-12-31"
+        },
+        "start": "19:00",
+        "end": "20:30",
+        "note": "Every Wednesday, Oct 21 to Dec 31. Exam weeks included; Dec 23\u201331 has no term, so those weeks are left out."
+      },
+      {
+        "kind": "moved",
+        "title": "WellServices",
+        "block_ref": "50c05f16-23bd-5fe1-b748-148243e8611a",
+        "repeat": {
+          "weekday": "sun",
+          "from": "2026-10-25",
+          "until": "2026-12-11"
+        },
+        "to_weekday": "sun",
+        "start": "15:00",
+        "end": "16:45",
+        "note": "Makes room for Bible study from this Wednesday. Sunday is your lightest day.",
+        "close_from": "2026-10-21"
+      },
+      {
+        "kind": "moved",
+        "title": "Speedwatch Ontario",
+        "block_ref": "4785aeda-e8f8-5873-8ff4-6b01e0fad168",
+        "repeat": {
+          "weekday": "sat",
+          "from": "2026-10-24",
+          "until": "2026-12-11"
+        },
+        "to_weekday": "sat",
+        "start": "17:30",
+        "end": "18:45",
+        "note": "Right after Saturday gym, every week from Oct 24.",
+        "close_from": "2026-10-23"
+      }
+    ],
+    "checks": [
+      {
+        "id": "weekend_project_hours_max",
+        "passed": true,
+        "detail": "Saturday 4.25h, Sunday 3.5h of projects"
+      },
+      {
+        "id": "outside_term",
+        "passed": false,
+        "detail": "No term covers Dec 23\u201331; Bible study on Dec 23 and Dec 30 was left out."
+      }
+    ]
+  }
+}

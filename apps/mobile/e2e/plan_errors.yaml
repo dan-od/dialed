@@ -10,12 +10,16 @@ appId: me.okoro.dialed
 - waitForAnimationToEnd: { timeout: 3000 }
 
 # Type text matching the failure fixture (contains "anything")
-- tapOn: 'What should change.*'
+- tapOn: { id: 'plan-text' }
 - eraseText: 500
 - inputText: 'Do anything with my schedule'
 - hideKeyboard
-- tapOn: 'Send'
-- extendedWaitUntil: { visible: '.*didn.t answer|.*can.t reach .*', timeout: 30000 }
+- tapOn: { id: 'plan-send' }
+- extendedWaitUntil:
+    {
+      visible: '.*didn.t answer|.*can.t reach .*|.*had a problem|Couldn.t reach Dialed',
+      timeout: 30000,
+    }
 - waitForAnimationToEnd: { timeout: 3000 }
 - takeScreenshot: error-first-${THEME}
 
@@ -24,7 +28,11 @@ appId: me.okoro.dialed
     when: { visible: 'Try again.*' }
     commands:
       - tapOn: 'Try again.*'
-      - extendedWaitUntil: { visible: '.*didn.t answer|.*can.t reach .*', timeout: 30000 }
+      - extendedWaitUntil:
+          {
+            visible: '.*didn.t answer|.*can.t reach .*|.*had a problem|Couldn.t reach Dialed',
+            timeout: 30000,
+          }
       - waitForAnimationToEnd: { timeout: 3000 }
       - takeScreenshot: error-retry-${THEME}
 

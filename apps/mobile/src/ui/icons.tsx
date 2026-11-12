@@ -159,3 +159,44 @@ export const ChevronIcon = ({ color, size = 16 }: P) => (
     <Path d="M9 6l6 6-6 6" />
   </Svg>
 );
+export const SendIcon = ({ color, size = 20 }: P) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2.6}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <Path d="M12 19V5M6 11l6-6 6 6" />
+  </Svg>
+);
+export const WarnIcon = ({ color, size = 16 }: P) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2.4}
+    strokeLinecap="round"
+  >
+    <Path d="M12 8v5M12 17h.01" />
+    <Path d="M10.3 3.9L2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+  </Svg>
+);
+export const ArrowIcon = ({ color, size = 14 }: P) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={2.4}
+    strokeLinecap="round"
+  >
+    <Path d="M5 12h14M13 6l6 6-6 6" />
+  </Svg>
+);

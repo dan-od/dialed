@@ -96,3 +96,19 @@ describe('failureCopy', () => {
     expect(failureCopy(plan('daily_limit')).canRetry).toBe(false);
   });
 });
+
+describe('plan screen copy (prototype v11)', () => {
+  it('attempt line sits under the buttons: runs so far, of 3', () => {
+    const { attemptLine, draftingSteps } = jest.requireActual('../plan/copy');
+    expect(attemptLine(0)).toBe('Attempt 1 of 3.');
+    expect(attemptLine(2)).toBe('Attempt 3 of 3.');
+    expect(draftingSteps('Fall term')[0]).toBe('Reading your Fall term');
+    expect(draftingSteps(null)[0]).toBe('Reading your schedule');
+  });
+
+  it('a validation failure never titles itself "didn’t answer", even after 3 attempts', () => {
+    const c = failureCopy(plan('validation_failed', [], 2));
+    expect(c.title).not.toMatch(/answer|reach/);
+    expect(c.canRetry).toBe(false);
+  });
+});

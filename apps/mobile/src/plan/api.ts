@@ -27,6 +27,12 @@ function byoHeaders(byo?: ByoKeyHeaders): Record<string, string> {
   return h;
 }
 
+export interface ApproveResult {
+  revision: number;
+  applied: string[];
+  effective_from: string;
+}
+
 export class PlanApi {
   constructor(private readonly client: ApiClient) {}
 
@@ -65,8 +71,9 @@ export class PlanApi {
     return this.client.request<PlanDTO>('PATCH', `/v1/plans/${id}/changes/${changeId}`, body);
   }
 
-  async approve(id: string, body: ApprovePlanBody): Promise<PlanDTO> {
-    return this.client.request<PlanDTO>('POST', `/v1/plans/${id}/approve`, body);
+  /** The server answers with what it applied, not the plan (refetch the plan if you need it). */
+  async approve(id: string, body: ApprovePlanBody): Promise<ApproveResult> {
+    return this.client.request<ApproveResult>('POST', `/v1/plans/${id}/approve`, body);
   }
 
   async discard(id: string): Promise<void> {

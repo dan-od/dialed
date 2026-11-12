@@ -1,0 +1,25 @@
+# Flow 06 v11: review bottom (week box, Ask for changes) and the reply route → drafting → review again.
+# Requires: AI_MODE=fixture, DEV_CLOCK on the API, Metro, owner signed in.
+appId: me.okoro.dialed
+---
+- runFlow: _clock_seed.yaml
+- tapOn: 'Plan with .*'
+- extendedWaitUntil: { visible: 'Plan it', timeout: 10000 }
+- tapOn: { id: 'plan-text' }
+- eraseText: 500
+- inputText: 'Bible study with Chichi every Wednesday at 7'
+- hideKeyboard
+- tapOn: { id: 'plan-send' }
+- extendedWaitUntil: { visible: '.*changes to .*', timeout: 30000 }
+- scrollUntilVisible: { element: { id: 'plan-reply' }, direction: DOWN, timeout: 10000 }
+- assertVisible: 'What this does to your week'
+- assertVisible: 'Week'
+- assertVisible: 'Ask for changes'
+- takeScreenshot: v11-4-review-bottom
+- tapOn: { id: 'plan-reply' }
+- inputText: 'Make it 7:30 instead'
+- hideKeyboard
+- tapOn: { id: 'reply-send' }
+- extendedWaitUntil: { visible: '.*changes to .*', timeout: 30000 }
+- tapOn: { id: 'plan-discard' }
+- extendedWaitUntil: { visible: 'Plan discarded.*', timeout: 10000 }

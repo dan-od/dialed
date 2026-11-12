@@ -1,16 +1,17 @@
-import { View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useApp } from '../../../../AppProvider';
 import { usePlan } from '../../../../plan/usePlan';
-import { failureCopy, MAX_REDOS, tryAgainLabel } from '../../../../plan/copy';
+import { attemptLine, failureCopy } from '../../../../plan/copy';
 import { useTheme } from '../../../../theme/theme';
-import { Page } from '../../../../ui/Chrome';
+import { BackLink, H1, Header, Page, Sub } from '../../../../ui/Chrome';
 import { Button } from '../../../../ui/Button';
 import { haptic } from '../../../../lib/haptics';
 import { T } from '../../../../ui/Text';
 import { useToast } from '../../../../ui/Toast';
-import { useState, useEffect } from 'react';
 
+/** Prototype `scrError`; the title and sentence follow the real cause (`failureCopy`). */
 export default function PlanError() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { planApi } = useApp();
@@ -50,61 +51,49 @@ export default function PlanError() {
     }
   };
 
-  const edit = () => {
-    router.replace('/plan');
-  };
-
-  const openSettings = () => {
-    router.push('/ai-assistant');
-  };
+  const toComposer = () => router.replace('/plan');
 
   return (
     <Page>
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          paddingHorizontal: 20,
-          gap: 16,
-        }}
-      >
-        <T size={28} weight="700" style={{ textAlign: 'center' }}>
-          {copy.title}
-        </T>
-        <T size={15} weight="500" color={c.muted} style={{ textAlign: 'center', maxWidth: 300 }}>
-          {copy.body}
-        </T>
-        {copy.reason ? (
-          <T size={15} weight="600" style={{ textAlign: 'center', maxWidth: 300 }}>
-            {copy.reason}
-          </T>
-        ) : null}
+      <Header left={<BackLink label="Plan it" onPress={toComposer} />} />
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}>
+        <H1 size={52}>{copy.title}</H1>
+        <Sub>{copy.reason ? `${copy.body} ${copy.reason}` : copy.body}</Sub>
         {plan?.request_text ? (
-          <View style={{ padding: 12, borderRadius: 12, backgroundColor: c.surf2, maxWidth: 300 }}>
-            <T size={13} weight="500" color={c.muted} numberOfLines={3}>
+          <View style={{ marginTop: 18 }}>
+            <T size={12} weight="700" color={c.muted} style={{ marginBottom: 4 }}>
               Your request, saved
             </T>
-            <T size={14} weight="500" numberOfLines={3} style={{ marginTop: 4 }}>
-              {plan.request_text}
+            <T size={17} weight="600" color={c.soft} style={{ lineHeight: 24 }}>
+              “{plan.request_text}”
             </T>
           </View>
         ) : null}
-      </View>
-      <View style={{ paddingHorizontal: 20, paddingBottom: 40, gap: 10 }}>
-        {copy.canRetry ? (
-          <Button
-            kind="primary"
-            label={tryAgainLabel((plan?.attempts ?? 0) + 2, MAX_REDOS + 1)}
-            busy={busy}
-            onPress={() => void retry()}
-          />
-        ) : (
-          <Button kind="primary" label="Got it" onPress={() => router.replace('/plan')} />
-        )}
-        {copy.settings ? <Button kind="link" label="Open Settings" onPress={openSettings} /> : null}
-        <Button kind="secondary" label="Edit my request" onPress={edit} />
-      </View>
+        <View style={{ gap: 8, marginTop: 18 }}>
+          {copy.canRetry ? (
+            <Button
+              testID="retry"
+              kind="primary"
+              label="Try again"
+              busy={busy}
+              onPress={() => void retry()}
+            />
+          ) : (
+            <Button testID="err-ok" kind="primary" label="Got it" onPress={toComposer} />
+          )}
+          {copy.settings ? (
+            <Button
+              kind="secondary"
+              label="Open Settings"
+              onPress={() => router.push('/ai-assistant')}
+            />
+          ) : null}
+          <Button testID="err-edit" kind="secondary" label="Edit my request" onPress={toComposer} />
+        </View>
+        <T size={13} color={c.muted} style={{ marginTop: 14 }}>
+          {attemptLine(plan?.attempts ?? 0)}
+        </T>
+      </ScrollView>
     </Page>
   );
 }

@@ -44,6 +44,10 @@ export function createFixtureProvider(requestText: string): PlanProvider & { _st
       step++;
       (this as { _step: number })._step = step;
 
+      // Evidence only: hold the first call so the drafting screen can be captured.
+      const delay = /delay (\d+)/.exec(fixture.behaviour ?? '');
+      if (delay && step === 1) await new Promise((r) => setTimeout(r, Number(delay[1])));
+
       if (fixture.behaviour?.includes('throw provider_error')) {
         throw new Error('provider_error');
       }

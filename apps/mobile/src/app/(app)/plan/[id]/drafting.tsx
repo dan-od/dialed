@@ -1,31 +1,24 @@
-import { View } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useApp } from '../../../../AppProvider';
 import { usePlan } from '../../../../plan/usePlan';
-import { draftingSub } from '../../../../plan/copy';
-import { useTheme } from '../../../../theme/theme';
-import { Page } from '../../../../ui/Chrome';
-import { DialLoader } from '../../../../ui/DialLoader';
-import { StepList } from '../../../../ui/StepList';
-import { T } from '../../../../ui/Text';
-import { Button } from '../../../../ui/Button';
-import { useEffect } from 'react';
+import { draftingSteps, draftingSub } from '../../../../plan/copy';
+import { useTermName } from '../../../../plan/useTermName';
+import { PlanSteps, Pill } from '../../../../plan/ui';
+import { H1, Header, Page, Sub } from '../../../../ui/Chrome';
+import { Dialer } from '../../../../ui/Dialer';
 import { useToast } from '../../../../ui/Toast';
 
-const STEPS = [
-  'Reading your schedule',
-  'Matching your categories',
-  'Fitting it into your week',
-  'Checking your limits',
-];
-
+/** Prototype `scrPlanLoading`. */
 export default function Drafting() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { planApi } = useApp();
-  const { c } = useTheme();
   const router = useRouter();
   const toast = useToast();
   const { plan } = usePlan(planApi, id);
+  const term = useTermName();
+  const steps = useMemo(() => draftingSteps(term), [term]);
 
   useEffect(() => {
     if (!plan) return;
@@ -52,27 +45,16 @@ export default function Drafting() {
 
   return (
     <Page>
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          paddingHorizontal: 20,
-          gap: 24,
-        }}
-      >
-        <DialLoader color={c.acc} />
-        <T size={20} weight="700" style={{ textAlign: 'center' }}>
-          Drafting your plan
-        </T>
-        <StepList steps={STEPS} active={plan ? Math.min(STEPS.length - 1, plan.version) : 0} />
-        <T size={14} weight="500" color={c.muted} style={{ textAlign: 'center', maxWidth: 280 }}>
-          {draftingSub()}
-        </T>
-      </View>
-      <View style={{ paddingHorizontal: 20, paddingBottom: 40 }}>
-        <Button kind="secondary" label="Cancel" onPress={() => void cancel()} />
-      </View>
+      <Header
+        left={<View />}
+        right={<Pill testID="plan-cancel" label="Cancel" onPress={() => void cancel()} />}
+      />
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}>
+        <H1 size={52}>Drafting your plan</H1>
+        <Sub>{draftingSub()}</Sub>
+        <Dialer />
+        <PlanSteps steps={steps} style={{ marginTop: 26 }} />
+      </ScrollView>
     </Page>
   );
 }

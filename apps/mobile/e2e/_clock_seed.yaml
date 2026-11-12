@@ -1,0 +1,7 @@
+# Dev clock preset 1: Mon 19 Oct 2037, 1:15 pm (the seed routine's sample day; matches DEV_CLOCK=2037-10-20 on the API).
+appId: me.okoro.dialed
+---
+- runFlow: _relaunch.yaml
+- runFlow: _dev_clock.yaml
+- extendedWaitUntil: { visible: 'Mon 19 Oct', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 2000 }

@@ -1,0 +1,73 @@
+# Flow 06 screens vs prototype v11 (owner review 2026-11-12): one pass through every plan screen for the contact
+# sheet. Composer → drafting (slow fixture) → review → done; question; error ×3 → exhausted; composer with Recent.
+# Requires: AI_MODE=fixture, Metro on :8081, API running, owner signed in.
+appId: me.okoro.dialed
+---
+- runFlow: _clock_seed.yaml
+- tapOn: 'Plan with .*'
+- extendedWaitUntil: { visible: 'Plan it', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- tapOn: { id: 'plan-text' }
+- eraseText: 500
+- inputText: 'Draft slowly for the screenshot: Bible study on Wednesdays'
+- hideKeyboard
+- waitForAnimationToEnd: { timeout: 1000 }
+- takeScreenshot: v11-1-composer
+
+- tapOn: { id: 'plan-send' }
+- extendedWaitUntil: { visible: 'Drafting your plan', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 2500 }
+- takeScreenshot: v11-2-drafting
+
+- extendedWaitUntil: { visible: '.*changes to .*', timeout: 30000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: v11-3-review
+- swipe: { direction: UP, duration: 600 }
+- waitForAnimationToEnd: { timeout: 1500 }
+- takeScreenshot: v11-4-review-bottom
+
+- tapOn: { id: 'approve' }
+- waitForAnimationToEnd: { timeout: 2000 }
+# A tap right after a swipe can only stop the scroll; tap again if still on the review.
+- runFlow:
+    when: { visible: { id: 'approve' } }
+    commands:
+      - tapOn: { id: 'approve' }
+- extendedWaitUntil: { visible: '.*updated.*', timeout: 15000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: v11-5-done
+
+# Question
+- runFlow: _clock_seed.yaml
+- tapOn: 'Plan with .*'
+- extendedWaitUntil: { visible: 'Plan it', timeout: 10000 }
+- tapOn: { id: 'plan-text' }
+- eraseText: 500
+- inputText: 'Add bible study with Chichi on Weds'
+- hideKeyboard
+- tapOn: { id: 'plan-send' }
+- extendedWaitUntil: { visible: 'One quick question', timeout: 30000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: v11-6-question
+- tapOn: 'Something else.*'
+- extendedWaitUntil: { visible: 'Plan it', timeout: 10000 }
+
+# Error, twice more → exhausted
+- tapOn: { id: 'plan-text' }
+- eraseText: 500
+- inputText: 'Do anything with my schedule'
+- hideKeyboard
+- tapOn: { id: 'plan-send' }
+- extendedWaitUntil: { visible: 'Try again', timeout: 30000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: v11-7-error
+- tapOn: { id: 'retry' }
+- extendedWaitUntil: { visible: 'Attempt 2 of 3.', timeout: 30000 }
+- tapOn: { id: 'retry' }
+- extendedWaitUntil: { visible: 'Got it', timeout: 30000 }
+- waitForAnimationToEnd: { timeout: 3000 }
+- takeScreenshot: v11-8-error-exhausted
+- tapOn: { id: 'err-ok' }
+- extendedWaitUntil: { visible: 'Plan it', timeout: 10000 }
+- waitForAnimationToEnd: { timeout: 2000 }
+- takeScreenshot: v11-9-composer-recent

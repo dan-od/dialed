@@ -10,7 +10,7 @@ appId: me.okoro.dialed
 - waitForAnimationToEnd: { timeout: 3000 }
 
 # Clear any existing draft and type text
-- tapOn: 'What should change.*'
+- tapOn: { id: 'plan-text' }
 - eraseText: 500
 - inputText: 'Bible study with Chichi every Wed'
 - hideKeyboard
@@ -18,7 +18,7 @@ appId: me.okoro.dialed
 - takeScreenshot: composer-filled-${THEME}
 
 # Send — fixture resolves instantly so drafting screen may flash
-- tapOn: 'Send'
+- tapOn: { id: 'plan-send' }
 - extendedWaitUntil: { visible: '.*changes to .*', timeout: 30000 }
 - waitForAnimationToEnd: { timeout: 3000 }
 - takeScreenshot: review-${THEME}
