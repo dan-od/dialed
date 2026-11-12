@@ -232,6 +232,76 @@ describe('planning temperature', () => {
     expect('temperature' in (await sentBody())).toBe(false);
   });
 
+  const TEMP_400 = {
+    status: 400,
+    body: {
+      type: 'error',
+      error: {
+        type: 'invalid_request_error',
+        message: '`temperature` is deprecated for this model.',
+      },
+    },
+  };
+
+  it('retries once without temperature when the model rejects it, warns, and stops sending it', async () => {
+    const { safeFetch } = await import('../src/providers/http');
+    const { createAnthropicProvider } = await import('../src/providers/anthropic');
+    const p = createAnthropicProvider({ apiKey: 'k', model: 'claude-sonnet-5-5' });
+    const warnings: string[] = [];
+    vi.mocked(safeFetch).mockClear();
+    await mockSafeFetch(TEMP_400);
+    await mockSafeFetch(loadRecording('anthropic-propose'));
+    const result = await p.run({ ...opts(0), onWarning: (w) => warnings.push(w) });
+    expect(result.tool_calls).toHaveLength(1);
+    const calls = vi.mocked(safeFetch).mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(JSON.parse(String(calls[0]![0].body)).temperature).toBe(0);
+    expect('temperature' in JSON.parse(String(calls[1]![0].body))).toBe(false);
+    expect(warnings).toEqual([expect.stringContaining('temperature')]);
+
+    // Later turns on the same provider skip it: one call, no second 400.
+    await mockSafeFetch(loadRecording('anthropic-propose'));
+    await p.run({ ...opts(0), onWarning: (w) => warnings.push(w) });
+    expect(calls).toHaveLength(3);
+    expect('temperature' in (await sentBody())).toBe(false);
+    expect(warnings).toHaveLength(1);
+  });
+
+  it('OpenAI and Gemini retry without temperature too; other 400s are not retried', async () => {
+    const { safeFetch } = await import('../src/providers/http');
+    const { createOpenAIProvider } = await import('../src/providers/openai');
+    const { createGeminiProvider } = await import('../src/providers/gemini');
+    vi.mocked(safeFetch).mockClear();
+    await mockSafeFetch({
+      status: 400,
+      body: { error: { message: "Unsupported value: 'temperature' does not support 0.2" } },
+    });
+    await mockSafeFetch(loadRecording('openai-propose'));
+    await createOpenAIProvider({ apiKey: 'k', model: 'gpt-4o' }).run({
+      ...opts(0.2),
+      onWarning: () => {},
+    });
+    expect('temperature' in (await sentBody())).toBe(false);
+
+    await mockSafeFetch({
+      status: 400,
+      body: { error: { message: 'temperature is not supported for this model' } },
+    });
+    await mockSafeFetch(loadRecording('gemini-propose'));
+    await createGeminiProvider({ apiKey: 'k', model: 'gemini-2.5-flash' }).run({
+      ...opts(0),
+      onWarning: () => {},
+    });
+    expect((await sentBody()).generationConfig).not.toHaveProperty('temperature');
+
+    const before = vi.mocked(safeFetch).mock.calls.length;
+    await mockSafeFetch({ status: 400, body: { error: { message: 'max_tokens is too large' } } });
+    await expect(
+      createOpenAIProvider({ apiKey: 'k', model: 'gpt-4o' }).run(opts(0.2)),
+    ).rejects.toMatchObject({ message: 'provider_error', status: 400 });
+    expect(vi.mocked(safeFetch).mock.calls.length).toBe(before + 1);
+  });
+
   it('Gemini puts it in generationConfig', async () => {
     const { createGeminiProvider } = await import('../src/providers/gemini');
     await mockSafeFetch(loadRecording('gemini-propose'));

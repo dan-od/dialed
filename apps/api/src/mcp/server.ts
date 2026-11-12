@@ -24,6 +24,7 @@ import type { OAuthService } from '../oauth/service';
 import { enqueue } from '../jobs/enqueue';
 import { renderGuide } from './guide';
 import { contextFor } from '../plans/context-cache';
+import { iso } from '../lib/time';
 
 type Row = Record<string, unknown>;
 
@@ -241,7 +242,7 @@ export function mountMcp(
           select kind, title, note from plan_changes where plan_id = ${String(p.id)} order by ord`);
           result.push({
             id: String(p.id),
-            created_at: String(p.created_at),
+            created_at: iso(p.created_at),
             source: String(p.source),
             client_name: p.client_name ? String(p.client_name) : null,
             request_text: String(p.request_text),

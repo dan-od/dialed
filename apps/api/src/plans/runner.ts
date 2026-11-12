@@ -151,6 +151,15 @@ export async function startPlanRun(opts: PlanRunOpts): Promise<void> {
         if (step.kind === 'validate_error' && step.errors) rounds.push(step.errors);
       },
       temperature: config.AI_MODE === 'fixture' ? undefined : config.PLAN_TEMPERATURE,
+      onWarning: (message) =>
+        opts.log?.({
+          kind: 'plan.warning',
+          level: 'warn',
+          planId,
+          provider: planProvider?.id,
+          model: planProvider?.model,
+          message: redact(message).slice(0, 300),
+        }),
       skipValidation: config.AI_MODE === 'fixture' && !!process.env.DEV_CLOCK,
       signal: ctrl.signal,
       limits: { maxTokens: config.PLAN_MAX_TOKENS },

@@ -310,6 +310,28 @@ describe('GET /v1/plans', () => {
     expect(body.plans[0].id).toBe(r1.json().id);
     await cleanup();
   });
+
+  it('sends every timestamp as ISO 8601 (Hermes cannot parse Date.toString())', async () => {
+    await cleanup();
+    const r1 = await send(owner, {
+      source: 'in_app',
+      request_text: BIBLE_STUDY_TEXT,
+      provider_mode: 'server',
+    });
+    await waitFor(owner, r1.json().id, ['ready']);
+    const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+    await t.db.execute(
+      sql`insert into plan_messages (plan_id, role, body) values (${r1.json().id}, 'question', 'Which day?')`,
+    );
+    const row = (await list(owner)).json().plans[0];
+    expect(row.created_at).toMatch(ISO);
+    const plan = (await get(owner, r1.json().id)).json();
+    expect(plan.created_at).toMatch(ISO);
+    expect(plan.ready_at).toMatch(ISO);
+    expect(plan.messages.length).toBeGreaterThan(0);
+    for (const m of plan.messages) expect(m.created_at).toMatch(ISO);
+    await cleanup();
+  });
 });
 
 describe('access control', () => {

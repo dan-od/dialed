@@ -4,6 +4,7 @@ import { pepperedHash, randomToken } from '../lib/crypto';
 import { appError } from '../lib/errors';
 import type { Db } from '../db/pool';
 import type { Config } from '../config';
+import { iso } from '../lib/time';
 
 type Row = Record<string, unknown>;
 
@@ -228,7 +229,7 @@ export class OAuthService {
         client_id: String(r.client_id),
         client_name: String(r.client_name),
         redirect_host: host,
-        connected_at: String(r.created_at),
+        connected_at: iso(r.created_at),
       };
     });
   }

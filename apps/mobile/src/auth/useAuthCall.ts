@@ -1,15 +1,9 @@
 import { useState } from 'react';
 import { ApiError } from '../api/errors';
 import { haptic } from '../lib/haptics';
+import { noticeFor, type AuthNotice } from './notice';
 
-export type AuthNotice =
-  | { kind: 'taken' }
-  | { kind: 'invite' }
-  | { kind: 'none' }
-  | { kind: 'offline' }
-  | { kind: 'slow' }
-  | { kind: 'server' }
-  | null;
+export type { AuthNotice } from './notice';
 
 /** Busy state + mapping of API error codes to the Flow 01 states. Never shows raw codes. */
 export function useAuthCall() {
@@ -30,11 +24,7 @@ export function useAuthCall() {
           : new ApiError('server_error', 'Dialed couldn’t reach the server. Try again.');
       if (onError?.(err)) return undefined;
       haptic.warning();
-      if (err.code === 'offline') setNotice({ kind: 'offline' });
-      else if (err.code === 'rate_limited') setNotice({ kind: 'slow' });
-      else if (err.code === 'email_taken') setNotice({ kind: 'taken' });
-      else if (err.code === 'invite_required') setNotice({ kind: 'invite' });
-      else setNotice({ kind: 'server' });
+      setNotice(noticeFor(err.code));
       return undefined;
     } finally {
       setBusy(false);

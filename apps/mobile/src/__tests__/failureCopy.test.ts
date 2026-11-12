@@ -62,8 +62,17 @@ describe('failureCopy', () => {
     ).toMatch(re);
   });
 
+  it('names the time limit only for a real timeout (homelab: a 400 said "within 30 seconds")', () => {
+    const err = failureCopy(plan('provider_error', [], 0));
+    expect(`${err.title} ${err.body}`).not.toMatch(/seconds|didn’t answer/);
+    expect(err.body).toBe('Claude returned an error instead of a plan. Try again.');
+    expect(failureCopy(plan('timeout', [], 0)).body).toBe(
+      'Claude didn’t answer within 60 seconds.',
+    );
+  });
+
   it('"can’t reach" only for real network or provider failures, after retries run out', () => {
-    expect(failureCopy(plan('provider_error', [], 0)).title).toBe('Claude didn’t answer');
+    expect(failureCopy(plan('provider_error', [], 0)).title).toBe('Claude had a problem');
     expect(failureCopy(plan('provider_error', [], 2)).title).toBe('Still can’t reach Claude');
     expect(failureCopy(plan('provider_error', [], 2)).canRetry).toBe(false);
     expect(failureCopy(plan('server_error', [], 0)).body).toMatch(/server/);

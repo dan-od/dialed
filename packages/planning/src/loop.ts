@@ -19,7 +19,7 @@ export interface PlanLimits {
 export const DEFAULT_LIMITS: PlanLimits = {
   maxToolTurns: 8,
   maxWallMs: 90_000,
-  maxCallMs: 30_000,
+  maxCallMs: 60_000,
   maxTokens: 8192,
   maxRetries: 3,
   maxValidationRounds: 3,
@@ -82,6 +82,8 @@ export interface RunPlanOpts {
   limits?: Partial<PlanLimits>;
   /** Sampling temperature for every call (PLAN_TEMPERATURE); undefined → provider default. */
   temperature?: number;
+  /** Non-fatal provider notes (e.g. temperature rejected and dropped), for the run log. */
+  onWarning?: (message: string) => void;
   skipValidation?: boolean;
   signal?: AbortSignal;
   onStep?: (step: PlanStep) => void;
@@ -139,6 +141,8 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
         tools,
         maxTokens: limits.maxTokens,
         temperature: opts.temperature,
+        timeoutMs: limits.maxCallMs,
+        onWarning: opts.onWarning,
         signal: opts.signal,
       });
     } catch (err) {
@@ -146,7 +150,12 @@ export async function runPlan(opts: RunPlanOpts): Promise<RunPlanResult> {
       return {
         status: 'failed',
         error: msg,
-        code: msg === 'provider_key_invalid' ? 'provider_key_invalid' : 'provider_error',
+        code:
+          msg === 'provider_key_invalid'
+            ? 'provider_key_invalid'
+            : msg === 'request timed out'
+              ? 'timeout'
+              : 'provider_error',
         detail: providerDetail(err),
         tokensIn: totalIn,
         tokensOut: totalOut,

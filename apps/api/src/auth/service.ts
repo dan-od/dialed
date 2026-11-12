@@ -6,7 +6,7 @@ import { DEV_PASSWORD } from '../db/seeder';
 import { categories, devices, emailCodes, invites, sessions, users } from '../db/schema';
 import type { EmailTransport } from '../email';
 import { hashesEqual, pepperedHash, randomToken, sixDigitCode } from '../lib/crypto';
-import { appError } from '../lib/errors';
+import { AppError, appError } from '../lib/errors';
 import { ChangeRecorder } from '../sync/record';
 import { DEFAULT_CATEGORIES } from './defaults';
 import { ACCESS_TTL_SECONDS, type JwtService } from './jwt';
@@ -89,7 +89,8 @@ export class AuthService {
     await rec.record('profile', userId, 'upsert', u!);
   }
 
-  private async issueCode(tx: Tx | Db, email: string, userId: string | null) {
+  /** Always inside a transaction: a failed send rolls back the new code (and a signup's account). */
+  private async issueCode(tx: Tx, email: string, userId: string | null) {
     const code = sixDigitCode();
     await tx
       .update(emailCodes)
@@ -108,12 +109,18 @@ export class AuthService {
       code_hash: this.hash(code),
       expires_at: sql`now() + make_interval(mins => ${CODE_TTL_MIN})`,
     });
-    await this.email.send({
-      to: email,
-      subject: `${code} is your ${this.config.APP_NAME} code`,
-      text: `Your ${this.config.APP_NAME} code is ${code}. It expires in ${CODE_TTL_MIN} minutes.`,
-      meta: { kind: 'verify_code', code },
-    });
+    try {
+      await this.email.send({
+        to: email,
+        subject: `${code} is your ${this.config.APP_NAME} code`,
+        text: `Your ${this.config.APP_NAME} code is ${code}. It expires in ${CODE_TTL_MIN} minutes.`,
+        meta: { kind: 'verify_code', code },
+      });
+    } catch (cause) {
+      // Rolls back: the unsent code doesn't count toward the resend limit, the previous code stays valid,
+      // and a new signup's account isn't kept, so the same email can sign up again.
+      throw new AppError('email_send_failed', undefined, undefined, cause);
+    }
   }
 
   /** 1/min and 5/hour per email (SECURITY.md). */
@@ -131,7 +138,7 @@ export class AuthService {
     if (purpose === 'reset') return this.forgot(email);
     if (!u || u.email_verified_at) return; // no enumeration: same 202
     await this.assertResendAllowed(email, 'verify');
-    await this.issueCode(this.db, email, u.id);
+    await this.db.transaction((tx) => this.issueCode(tx, email, u.id));
   }
 
   async verify(input: { email: string; code: string; time_zone?: string }): Promise<TokensOut> {
@@ -207,7 +214,7 @@ export class AuthService {
     if (!u || !ok || devPassword) throw appError('bad_credentials');
     if (!u.email_verified_at) {
       await this.assertResendAllowed(input.email, 'verify').then(
-        () => this.issueCode(this.db, input.email, u.id),
+        () => this.db.transaction((tx) => this.issueCode(tx, input.email, u.id)),
         () => undefined, // a recent code is still valid
       );
       throw appError('forbidden', 'Check your inbox for a code to finish signing up.', {

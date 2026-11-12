@@ -65,7 +65,7 @@ export async function safeFetch(opts: SafeFetchOpts): Promise<SafeFetchResult> {
       ...opts.headers,
       host: hostname,
     },
-    timeout: opts.timeoutMs ?? 30_000,
+    timeout: opts.timeoutMs ?? 60_000,
     lookup: (_hostname, _opts, cb) => {
       cb(null, resolvedIp, resolvedIp.includes(':') ? 6 : 4);
     },

@@ -74,7 +74,7 @@ export function plansRoutes(
         providerMode: body.provider_mode,
         provider: body.provider,
         ...byo,
-        log: (o) => req.log.info(o),
+        log: (o) => (o.level === 'warn' ? req.log.warn(o) : req.log.info(o)),
       }).catch((err) => {
         req.log.error({ err: { message: (err as Error).message } }, 'plan run error');
       });
@@ -123,7 +123,7 @@ export function plansRoutes(
       providerMode: String(planRow?.provider_mode ?? 'server') as 'server' | 'byo',
       provider: planRow?.provider ? String(planRow.provider) : undefined,
       ...byo,
-      log: (o) => req.log.info(o),
+      log: (o) => (o.level === 'warn' ? req.log.warn(o) : req.log.info(o)),
     }).catch((err) => {
       req.log.error({ err: { message: (err as Error).message } }, 'plan run error');
     });
@@ -155,7 +155,7 @@ export function plansRoutes(
       providerMode: String(planRow?.provider_mode ?? 'server') as 'server' | 'byo',
       provider: planRow?.provider ? String(planRow.provider) : undefined,
       ...byoHeaders(req),
-      log: (o) => req.log.info(o),
+      log: (o) => (o.level === 'warn' ? req.log.warn(o) : req.log.info(o)),
     }).catch((err) => {
       req.log.error({ err: { message: (err as Error).message } }, 'plan run error');
     });
@@ -190,7 +190,7 @@ export function plansRoutes(
       providerMode: String(planRow?.provider_mode ?? 'server') as 'server' | 'byo',
       provider: planRow?.provider ? String(planRow.provider) : undefined,
       ...byo,
-      log: (o) => req.log.info(o),
+      log: (o) => (o.level === 'warn' ? req.log.warn(o) : req.log.info(o)),
     }).catch((err) => {
       req.log.error({ err: { message: (err as Error).message } }, 'plan run error');
     });

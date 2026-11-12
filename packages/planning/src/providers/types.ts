@@ -27,8 +27,15 @@ export interface ProviderRunOpts {
   maxTokens: number;
   /** Sampling temperature; omitted → the provider's default. */
   temperature?: number;
+  /** Per-call limit (PlanLimits.maxCallMs); default DEFAULT_CALL_MS. */
+  timeoutMs?: number;
+  /** Non-fatal provider notes for the run log (e.g. a model rejected the temperature). */
+  onWarning?: (message: string) => void;
   signal?: AbortSignal;
 }
+
+/** Long plans can legitimately take more than 30 s. */
+export const DEFAULT_CALL_MS = 60_000;
 
 export interface ProviderStepResult {
   content: string;

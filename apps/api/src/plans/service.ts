@@ -8,6 +8,7 @@ import { AppError } from '../lib/errors';
 
 import { findByIdempotencyKey } from './idempotency';
 import { dailyPlanCount, incrementUsage } from './usage';
+import { iso, isoOrNull } from '../lib/time';
 
 type Row = Record<string, unknown>;
 
@@ -186,16 +187,16 @@ export class PlanService {
         role: String(m.role) as 'question' | 'answer' | 'reply',
         body: String(m.body),
         options: m.options_json ? (m.options_json as string[]) : undefined,
-        created_at: String(m.created_at),
+        created_at: iso(m.created_at),
       })),
       checks: checksJson,
       impact: [],
       error_code: plan.error_code ? String(plan.error_code) : null,
       validation_errors: (plan.validation_errors_json as PlanDTO['validation_errors'] | null) ?? [],
       attempts: Number(plan.attempts ?? 0),
-      created_at: String(plan.created_at),
-      ready_at: plan.ready_at ? String(plan.ready_at) : null,
-      decided_at: plan.decided_at ? String(plan.decided_at) : null,
+      created_at: iso(plan.created_at),
+      ready_at: isoOrNull(plan.ready_at),
+      decided_at: isoOrNull(plan.decided_at),
     };
   }
 
@@ -211,7 +212,7 @@ export class PlanService {
       client_name: r.client_name ? String(r.client_name) : null,
       request_text: String(r.request_text),
       status: String(r.status) as PlanSummary['status'],
-      created_at: String(r.created_at),
+      created_at: iso(r.created_at),
       change_count: Number(r.change_count),
     }));
   }

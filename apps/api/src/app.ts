@@ -93,7 +93,22 @@ export async function buildApp(config: Config, deps: Deps) {
   });
 
   app.setErrorHandler((err: FastifyError | AppError, req, reply) => {
-    if (err instanceof AppError) return reply.code(err.status).send(err.toBody());
+    if (err instanceof AppError) {
+      if (err.cause) {
+        const c = err.cause as { message?: unknown; code?: unknown };
+        req.log.error(
+          {
+            errorCode: err.code,
+            cause: {
+              message: String(c.message ?? err.cause).slice(0, 300),
+              code: typeof c.code === 'string' ? c.code : undefined,
+            },
+          },
+          'request failed',
+        );
+      }
+      return reply.code(err.status).send(err.toBody());
+    }
     if (err.statusCode === 429) return reply.code(429).send(appError('rate_limited').toBody());
     if (
       err.validation ||

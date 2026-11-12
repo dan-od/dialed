@@ -58,8 +58,10 @@ async function main() {
       .join('=');
   const email = flag('email') ?? 'owner@dialed.test';
   const repeat = Number(flag('repeat') ?? 1);
-  const temperatureFlag = flag('temperature') ?? process.env.PLAN_TEMPERATURE ?? '0';
-  const temperature = temperatureFlag === 'default' ? undefined : Number(temperatureFlag);
+  // Unset, empty or "default": no temperature sent (the model's default).
+  const temperatureFlag = (flag('temperature') ?? process.env.PLAN_TEMPERATURE ?? '').trim();
+  const temperature =
+    temperatureFlag === '' || temperatureFlag === 'default' ? undefined : Number(temperatureFlag);
   const requestsFile = flag('requests');
   // One request per line; "request => answer => answer" replays answers to the model's questions.
   const requests = requestsFile

@@ -1,5 +1,7 @@
 import type { PlanProvider, ProviderRunOpts, ProviderStepResult, ToolCall } from './types';
 import { safeFetch, type SafeFetchOpts } from './http';
+import { withTemperatureFallback } from './temperature';
+import { DEFAULT_CALL_MS } from './types';
 
 export interface AnthropicProviderOpts {
   apiKey: string;
@@ -10,6 +12,9 @@ export interface AnthropicProviderOpts {
 
 export function createAnthropicProvider(opts: AnthropicProviderOpts): PlanProvider {
   const base = (opts.baseUrl ?? 'https://api.anthropic.com').replace(/\/$/, '');
+
+  // Set once a model rejects temperature, so later turns don't pay a failed call.
+  const state = { dropTemperature: false };
 
   return {
     id: 'anthropic',
@@ -53,20 +58,21 @@ export function createAnthropicProvider(opts: AnthropicProviderOpts): PlanProvid
         return { role: m.role, content: m.content };
       });
 
-      const body = JSON.stringify({
-        model: opts.model,
-        max_tokens: runOpts.maxTokens,
-        ...(runOpts.temperature !== undefined ? { temperature: runOpts.temperature } : {}),
-        ...(runOpts.system
-          ? {
-              system: [
-                { type: 'text', text: runOpts.system, cache_control: { type: 'ephemeral' } },
-              ],
-            }
-          : {}),
-        messages,
-        ...(tools.length > 0 ? { tools } : {}),
-      });
+      const bodyFor = (temperature: number | undefined) =>
+        JSON.stringify({
+          model: opts.model,
+          max_tokens: runOpts.maxTokens,
+          ...(temperature !== undefined ? { temperature } : {}),
+          ...(runOpts.system
+            ? {
+                system: [
+                  { type: 'text', text: runOpts.system, cache_control: { type: 'ephemeral' } },
+                ],
+              }
+            : {}),
+          messages,
+          ...(tools.length > 0 ? { tools } : {}),
+        });
 
       const fetchOpts: SafeFetchOpts = {
         url: `${base}/v1/messages`,
@@ -76,13 +82,18 @@ export function createAnthropicProvider(opts: AnthropicProviderOpts): PlanProvid
           'x-api-key': opts.apiKey,
           'anthropic-version': '2023-06-01',
         },
-        body,
-        timeoutMs: runOpts.signal ? undefined : 30_000,
+        timeoutMs: runOpts.timeoutMs ?? DEFAULT_CALL_MS,
         signal: runOpts.signal,
         allowPrivate: opts.allowPrivate,
       };
 
-      const res = await safeFetch(fetchOpts);
+      const res = await withTemperatureFallback(
+        state,
+        runOpts.temperature,
+        opts.model,
+        runOpts.onWarning,
+        (temperature) => safeFetch({ ...fetchOpts, body: bodyFor(temperature) }),
+      );
 
       if (res.status === 401 || res.status === 403) {
         throw Object.assign(new Error('provider_key_invalid'), { status: res.status });

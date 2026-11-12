@@ -46,6 +46,16 @@ export function AuthNotices({
       return (
         <InlineMessage parts={[{ hot: 'Too many tries.' }, ' Wait a minute and try again.']} />
       );
+    case 'email':
+      return (
+        <InlineMessage
+          parts={[
+            { hot: 'We couldn’t send your code.' },
+            ' Try again in a minute.',
+            ...(onRetry ? [' ', { link: 'Try again', onPress: onRetry }] : []),
+          ]}
+        />
+      );
     case 'server':
       return (
         <InlineMessage

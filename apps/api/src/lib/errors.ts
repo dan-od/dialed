@@ -14,6 +14,7 @@ const STATUS: Partial<Record<ErrorCode, number>> = {
   resync_required: 409,
   code_invalid: 400,
   code_expired: 400,
+  email_send_failed: 502,
   rate_limited: 429,
   daily_limit: 429,
   plan_stale: 409,
@@ -23,6 +24,7 @@ const STATUS: Partial<Record<ErrorCode, number>> = {
   validation_failed: 422,
   too_many_questions: 422,
   provider_error: 502,
+  timeout: 504,
   provider_key_invalid: 400,
   byo_key_required: 400,
   byo_key_unavailable: 400,
@@ -48,6 +50,7 @@ const MESSAGES: Partial<Record<ErrorCode, string>> = {
   no_account: 'Nobody has signed up with that email yet.',
   code_invalid: 'That code doesn’t match. Check the newest email from Dialed.',
   code_expired: 'That code expired. Send a new one.',
+  email_send_failed: 'We couldn’t send your code. Try again in a minute.',
   resync_required: 'Your phone needs a fresh copy of your schedule.',
   daily_limit: 'You’ve used today’s limit. Try again tomorrow.',
   plan_stale: 'Your schedule changed since this plan was drafted. Redo it so nothing clashes.',
@@ -58,6 +61,7 @@ const MESSAGES: Partial<Record<ErrorCode, string>> = {
   too_many_questions:
     'Still not sure what you meant after two questions. Try again with the day, time and how long.',
   provider_error: 'Couldn’t reach the AI provider. Try again.',
+  timeout: 'The AI provider took too long to answer. Try again.',
   provider_key_invalid: 'That AI key was refused. Check it in Settings.',
   byo_key_required: 'Add your own AI key in Settings to plan this way.',
   byo_key_unavailable:
@@ -74,6 +78,8 @@ const RETRYABLE = new Set<ErrorCode>([
   'server_error',
   'conflict',
   'provider_error',
+  'timeout',
+  'email_send_failed',
 ]);
 
 export class AppError extends Error {
@@ -82,6 +88,8 @@ export class AppError extends Error {
     readonly code: ErrorCode,
     message?: string,
     readonly details?: Record<string, unknown>,
+    /** Underlying failure, logged by the error handler and never sent to the client. */
+    readonly cause?: unknown,
   ) {
     super(message ?? MESSAGES[code] ?? 'Something went wrong.');
     this.status = STATUS[code] ?? 400;

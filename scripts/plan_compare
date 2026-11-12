@@ -3,7 +3,7 @@
 # DATABASE_URL from .env, calls the Anthropic API (a few cents per run) and stores nothing in the database.
 # Usage:
 #   ./scripts/plan_compare claude-haiku-5-5 claude-sonnet-5-5
-#   ./scripts/plan_compare claude-sonnet-5-5 --repeat=3 --today=2037-11-11 --temperature=0   (seed data, same day as the homelab)
+#   ./scripts/plan_compare claude-sonnet-5-5 --repeat=3 --today=2037-11-11   (seed data, same day as the homelab)
 #   ./scripts/plan_compare claude-haiku-5-5 claude-sonnet-5-5 --email=you@example.com --requests=/path/requests.txt
 # requests.txt: one request per line; "request => answer" replays an answer to the model's question. Drafts land in /tmp/dialed-plan-compare/<model>.json.
 source "$(dirname "$0")/lib/common.sh"

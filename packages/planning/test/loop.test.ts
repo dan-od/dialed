@@ -243,3 +243,48 @@ describe('question cap', () => {
     expect(provider.calls[0]!.tools.map((t) => t.name)).toContain('ask_user');
   });
 });
+
+describe('provider call limits', () => {
+  it('gives each call 60 s and reports a real timeout as timeout, not provider_error', async () => {
+    const calls: ProviderRunOpts[] = [];
+    const provider: PlanProvider = {
+      id: 'mock',
+      displayName: 'Mock',
+      supportsVision: false,
+      async run(opts) {
+        calls.push(opts);
+        throw new Error('request timed out');
+      },
+    };
+    const result = await runPlan({
+      provider,
+      guide: 'g',
+      request: 'Free up tomorrow',
+      history: [],
+      toolSchemas: PLAN_TOOL_SCHEMAS,
+      ctx,
+    });
+    expect(calls[0]!.timeoutMs).toBe(60_000);
+    expect(result).toMatchObject({ status: 'failed', code: 'timeout' });
+  });
+
+  it('a 400 from the provider stays provider_error', async () => {
+    const provider: PlanProvider = {
+      id: 'mock',
+      displayName: 'Mock',
+      supportsVision: false,
+      async run() {
+        throw Object.assign(new Error('provider_error'), { status: 400, body: 'bad' });
+      },
+    };
+    const result = await runPlan({
+      provider,
+      guide: 'g',
+      request: 'x',
+      history: [],
+      toolSchemas: PLAN_TOOL_SCHEMAS,
+      ctx,
+    });
+    expect(result).toMatchObject({ status: 'failed', code: 'provider_error' });
+  });
+});

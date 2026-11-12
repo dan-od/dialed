@@ -35,13 +35,26 @@ export function failureCopy(plan: FailedPlan): FailureCopy {
     if (!retriesLeft) {
       return { ...base, title: `Still can’t reach ${ai}`, body: exhaustedSentence() };
     }
-    const body =
-      code === 'server_error'
-        ? 'Dialed couldn’t reach the server. Try again.'
-        : code === 'timeout'
-          ? `${ai} took too long to answer.`
-          : `${ai} didn’t answer within 30 seconds.`;
-    return { ...base, title: `${ai} didn’t answer`, body };
+    // The time limit is named only for a real timeout; a provider error (e.g. a 400) says so plainly.
+    if (code === 'server_error') {
+      return {
+        ...base,
+        title: 'Couldn’t reach Dialed',
+        body: 'Dialed couldn’t reach the server. Try again.',
+      };
+    }
+    if (code === 'timeout') {
+      return {
+        ...base,
+        title: `${ai} didn’t answer`,
+        body: `${ai} didn’t answer within 60 seconds.`,
+      };
+    }
+    return {
+      ...base,
+      title: `${ai} had a problem`,
+      body: `${ai} returned an error instead of a plan. Try again.`,
+    };
   }
 
   switch (code) {

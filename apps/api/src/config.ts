@@ -40,8 +40,11 @@ const Env = z.object({
   PLAN_MODEL_OPENAI: z.string().default('gpt-4o'),
   PLAN_MODEL_GEMINI: z.string().default('gemini-2.5-flash'),
   PLAN_MAX_TOKENS: z.coerce.number().int().min(256).default(8192),
-  /** Sampling temperature for plan runs; low keeps the same request giving the same plan. */
-  PLAN_TEMPERATURE: z.coerce.number().min(0).max(1).default(0),
+  /** Sampling temperature for plan runs. Unset or empty: none is sent (some models, e.g. claude-sonnet-5-5, reject it). */
+  PLAN_TEMPERATURE: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+    z.coerce.number().min(0).max(1).optional(),
+  ),
   PLAN_DAILY_LIMIT: z.coerce.number().int().min(1).default(30),
   ALLOW_PRIVATE_PROVIDER_URLS: bool.default(false),
   UPLOAD_DIR: z.string().default('/tmp/dialed-uploads'),

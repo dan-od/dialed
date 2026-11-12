@@ -1,5 +1,7 @@
 import type { PlanProvider, ProviderRunOpts, ProviderStepResult, ToolCall } from './types';
 import { safeFetch, type SafeFetchOpts } from './http';
+import { withTemperatureFallback } from './temperature';
+import { DEFAULT_CALL_MS } from './types';
 
 export interface GeminiProviderOpts {
   apiKey: string;
@@ -7,6 +9,9 @@ export interface GeminiProviderOpts {
 }
 
 export function createGeminiProvider(opts: GeminiProviderOpts): PlanProvider {
+  // Set once a model rejects temperature, so later turns don't pay a failed call.
+  const state = { dropTemperature: false };
+
   return {
     id: 'gemini',
     displayName: 'Gemini',
@@ -58,26 +63,32 @@ export function createGeminiProvider(opts: GeminiProviderOpts): PlanProvider {
         }
       }
 
-      const body = JSON.stringify({
-        contents,
-        ...(tools ? { tools } : {}),
-        generationConfig: {
-          maxOutputTokens: runOpts.maxTokens,
-          ...(runOpts.temperature !== undefined ? { temperature: runOpts.temperature } : {}),
-        },
-      });
+      const bodyFor = (temperature: number | undefined) =>
+        JSON.stringify({
+          contents,
+          ...(tools ? { tools } : {}),
+          generationConfig: {
+            maxOutputTokens: runOpts.maxTokens,
+            ...(temperature !== undefined ? { temperature } : {}),
+          },
+        });
 
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${opts.model}:generateContent?key=${opts.apiKey}`;
       const fetchOpts: SafeFetchOpts = {
         url,
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body,
-        timeoutMs: runOpts.signal ? undefined : 30_000,
+        timeoutMs: runOpts.timeoutMs ?? DEFAULT_CALL_MS,
         signal: runOpts.signal,
       };
 
-      const res = await safeFetch(fetchOpts);
+      const res = await withTemperatureFallback(
+        state,
+        runOpts.temperature,
+        opts.model,
+        runOpts.onWarning,
+        (temperature) => safeFetch({ ...fetchOpts, body: bodyFor(temperature) }),
+      );
 
       if (res.status === 401 || res.status === 403) {
         throw Object.assign(new Error('provider_key_invalid'), { status: res.status });

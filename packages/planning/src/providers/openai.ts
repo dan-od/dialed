@@ -1,5 +1,7 @@
 import type { PlanProvider, ProviderRunOpts, ProviderStepResult, ToolCall } from './types';
 import { safeFetch, type SafeFetchOpts } from './http';
+import { withTemperatureFallback } from './temperature';
+import { DEFAULT_CALL_MS } from './types';
 
 export interface OpenAIProviderOpts {
   apiKey: string;
@@ -10,6 +12,9 @@ export interface OpenAIProviderOpts {
 
 export function createOpenAIProvider(opts: OpenAIProviderOpts): PlanProvider {
   const base = (opts.baseUrl ?? 'https://api.openai.com').replace(/\/$/, '');
+
+  // Set once a model rejects temperature, so later turns don't pay a failed call.
+  const state = { dropTemperature: false };
 
   return {
     id: opts.baseUrl ? 'custom' : 'openai',
@@ -51,16 +56,15 @@ export function createOpenAIProvider(opts: OpenAIProviderOpts): PlanProvider {
         }
       }
 
-      const body = JSON.stringify({
-        model: opts.model,
-        max_tokens: runOpts.maxTokens,
-        // Reasoning models (o1/o3/o4, gpt-5) reject a non-default temperature.
-        ...(runOpts.temperature !== undefined && !/^(o\d|gpt-5)/.test(opts.model)
-          ? { temperature: runOpts.temperature }
-          : {}),
-        messages,
-        ...(tools.length > 0 ? { tools } : {}),
-      });
+      const bodyFor = (temperature: number | undefined) =>
+        JSON.stringify({
+          model: opts.model,
+          max_tokens: runOpts.maxTokens,
+          // Reasoning models (o1/o3/o4, gpt-5) get no temperature: see the send below.
+          ...(temperature !== undefined ? { temperature } : {}),
+          messages,
+          ...(tools.length > 0 ? { tools } : {}),
+        });
 
       const fetchOpts: SafeFetchOpts = {
         url: `${base}/v1/chat/completions`,
@@ -69,13 +73,18 @@ export function createOpenAIProvider(opts: OpenAIProviderOpts): PlanProvider {
           'content-type': 'application/json',
           authorization: `Bearer ${opts.apiKey}`,
         },
-        body,
-        timeoutMs: runOpts.signal ? undefined : 30_000,
+        timeoutMs: runOpts.timeoutMs ?? DEFAULT_CALL_MS,
         signal: runOpts.signal,
         allowPrivate: opts.allowPrivate,
       };
 
-      const res = await safeFetch(fetchOpts);
+      const res = await withTemperatureFallback(
+        state,
+        /^(o\d|gpt-5)/.test(opts.model) ? undefined : runOpts.temperature,
+        opts.model,
+        runOpts.onWarning,
+        (temperature) => safeFetch({ ...fetchOpts, body: bodyFor(temperature) }),
+      );
 
       if (res.status === 401 || res.status === 403) {
         throw Object.assign(new Error('provider_key_invalid'), { status: res.status });
