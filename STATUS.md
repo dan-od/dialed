@@ -12,7 +12,7 @@ Keep this under 15 lines. Update at the end of every session.
 
 **Live Activity (2026-11-11):** brand symbol imageset, header/bottom row per owner review (D-108 approved); Release build installed on the iPhone via `scripts/ios_release device` (auto-detects UDID; run with `APPLE_TEAM_ID=AH3LD3CJ26`).
 
-**Unverified:** real Anthropic plan call with the context (needs homelab redeploy), Anthropic prompt-cache hits, real SMTP send, tunnel/Cloudflare path, LA on the lock screen after round 2, `chown` of the JWT key on Linux.
+**Unverified:** real Anthropic plan call with the context (needs homelab redeploy; owner keeps the key there only, so turns per request and 3× repeat match are measured with `dist/plan-compare.js`, README §7), Anthropic prompt-cache hits, real SMTP send, tunnel/Cloudflare path, LA on the lock screen after round 2, `chown` of the JWT key on Linux.
 
 **Still open from flows:** owner reviews of Flow 08/02 sheets and the consent page (D-35); `APPLE_TEAM_ID` (D-77); paid account + iPhone for push/LA proof.
 

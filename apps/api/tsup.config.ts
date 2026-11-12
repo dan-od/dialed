@@ -7,6 +7,7 @@ export default defineConfig({
     migrate: 'src/cli/migrate.ts',
     invite: 'src/invite.ts',
     'test-owner': 'src/test-owner.ts',
+    'plan-compare': 'src/cli/plan_compare.ts',
   },
   format: ['esm'],
   platform: 'node',

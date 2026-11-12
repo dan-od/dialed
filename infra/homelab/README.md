@@ -157,6 +157,13 @@ Debug → localhost** (Xcode passes `CONFIGURATION` to the build phase, so this 
    Note the password it prints once. The test owner gets the seed routine, moved so its Fall term covers today.
 2. On the phone, **Wi-Fi off**: sign in as `owner@dialed.test`. Check: schedule loads, edit a block, run a live AI
    plan and Approve it, airplane mode → edit → back online → it syncs.
+   Optional, while the test owner exists: measure plan quality on the seed routine with the server's key
+   (each request 3 times; prints turns, rules broken and whether the repeats made the same plan; a few cents):
+   ```bash
+   docker compose run --rm api node dist/plan-compare.js claude-sonnet-5-5 --repeat=3
+   ```
+   Add more models to compare them (e.g. `claude-haiku-5-5 claude-sonnet-5-5`). Earlier runs' turns are in the
+   `plan.run` log lines (`docker compose logs api | grep plan.run`).
 3. Invite yourself:
    ```bash
    docker compose run --rm api node dist/invite.js <your-real-email>
